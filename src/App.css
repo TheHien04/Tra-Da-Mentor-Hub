@@ -1,5 +1,6 @@
+/* ========== DESIGN SYSTEM – Theme theo role (flow) ========== */
 :root {
-  --primary-color: #0a4b39; /* Forest green từ logo */
+  --primary-color: #0a4b39; /* Forest green – Mentee / default */
   --secondary-color: #086642;
   --accent-color: #41a274;
   --light-accent: #eaf6ef;
@@ -13,6 +14,30 @@
   --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.12);
   --transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Mentor – cam (flow: giao diện mentor) */
+.app-container.role-mentor {
+  --primary-color: #c2410c;
+  --secondary-color: #9a3412;
+  --accent-color: #ea580c;
+  --light-accent: #fff7ed;
+}
+
+/* Mentee – xanh lá (flow: giao diện mentee) – giữ green */
+.app-container.role-mentee {
+  --primary-color: #0a4b39;
+  --secondary-color: #086642;
+  --accent-color: #41a274;
+  --light-accent: #eaf6ef;
+}
+
+/* Admin – xanh dương (flow: giao diện admin) */
+.app-container.role-admin {
+  --primary-color: #1d4ed8;
+  --secondary-color: #1e40af;
+  --accent-color: #3b82f6;
+  --light-accent: #eff6ff;
 }
 
 * {
@@ -90,10 +115,10 @@ body {
   background: linear-gradient(180deg, #f5f7fa 0%, #eef2f7 100%);
 }
 
-/* Navbar */
+/* Navbar – đồng bộ màu theo role (Mentor cam, Mentee xanh, Admin xanh dương) */
 .navbar {
   width: 260px;
-  background: linear-gradient(180deg, var(--primary-color) 0%, #062d23 100%);
+  background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: var(--light-text);
   padding: 0;
   display: flex;
@@ -153,11 +178,11 @@ body {
 .nav-item.active {
   background: linear-gradient(
     90deg,
-    rgba(65, 162, 116, 0.3) 0%,
-    rgba(65, 162, 116, 0.1) 100%
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.08) 100%
   );
   color: var(--light-text);
-  border-left: 4px solid #41a274;
+  border-left: 4px solid var(--accent-color);
   padding-left: 33px;
 }
 
@@ -448,7 +473,7 @@ h4 {
 
 .stat-icon {
   margin-bottom: 12px;
-  color: #41a274;
+  color: var(--accent-color);
   font-size: 2.5rem;
 }
 

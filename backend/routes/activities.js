@@ -86,4 +86,49 @@ router.post('/', (req, res) => {
   res.status(201).json(newActivity);
 });
 
+// GET activity by ID
+router.get('/:id', (req, res) => {
+  const activity = mockActivities.find(a => a._id === req.params.id);
+  if (!activity) return res.status(404).json({ message: 'Không tìm thấy activity' });
+  res.json(activity);
+});
+
+// PUT - Update activity
+router.put('/:id', (req, res) => {
+  const activity = mockActivities.find(a => a._id === req.params.id);
+  if (!activity) return res.status(404).json({ message: 'Không tìm thấy activity' });
+  
+  const index = mockActivities.findIndex(a => a._id === req.params.id);
+  mockActivities[index] = {
+    ...activity,
+    ...req.body,
+    _id: activity._id,
+    timestamp: activity.timestamp
+  };
+  res.json(mockActivities[index]);
+});
+
+// PATCH - Partial update activity
+router.patch('/:id', (req, res) => {
+  const activity = mockActivities.find(a => a._id === req.params.id);
+  if (!activity) return res.status(404).json({ message: 'Không tìm thấy activity' });
+  
+  const index = mockActivities.findIndex(a => a._id === req.params.id);
+  mockActivities[index] = {
+    ...activity,
+    ...req.body,
+    _id: activity._id,
+    timestamp: activity.timestamp
+  };
+  res.json(mockActivities[index]);
+});
+
+// DELETE activity
+router.delete('/:id', (req, res) => {
+  const index = mockActivities.findIndex(a => a._id === req.params.id);
+  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy activity' });
+  mockActivities.splice(index, 1);
+  res.json({ message: 'Đã xóa activity' });
+});
+
 export default router;

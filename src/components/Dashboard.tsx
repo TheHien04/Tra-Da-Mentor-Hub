@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { mentorApi, menteeApi, groupApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { FaUsers, FaUserTie, FaBook, FaTrophy, FaPlus, FaCalendar } from 'react-icons/fa';
 import Skeleton from './Skeleton';
 
@@ -16,6 +17,8 @@ interface DashboardStats {
 }
 
 const Dashboard = () => {
+  const { state } = useAuth();
+  const role = state.user?.role || 'user';
   const [stats, setStats] = useState<DashboardStats>({
     totalMentors: 0,
     totalMentees: 0,
@@ -28,11 +31,11 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([
-    { _id: '1', title: 'React Fundamentals', mentor: 'Nguyễn Thị Ánh Dương', date: '2025-12-28', time: '19:00', type: 'GROUP' },
-    { _id: '2', title: 'Career Path Planning', mentor: 'Phạm Minh Nhật', date: '2025-12-29', time: '10:00', type: 'ONE_ON_ONE' },
-    { _id: '3', title: 'Node.js Architecture', mentor: 'Phạm Minh Nhật', date: '2025-12-30', time: '20:00', type: 'GROUP' },
-    { _id: '4', title: 'Soft Skills Workshop', mentor: 'Trần Văn Hùng', date: '2025-12-31', time: '18:00', type: 'GROUP' },
-    { _id: '5', title: 'Portfolio Review', mentor: 'Nguyễn Thị Ánh Dương', date: '2026-01-02', time: '15:00', type: 'ONE_ON_ONE' }
+    { _id: '1', title: 'React Fundamentals', mentor: 'Alex Chen', date: '2025-12-28', time: '19:00', type: 'GROUP' },
+    { _id: '2', title: 'Career Path Planning', mentor: 'Jordan Lee', date: '2025-12-29', time: '10:00', type: 'ONE_ON_ONE' },
+    { _id: '3', title: 'Node.js Architecture', mentor: 'Jordan Lee', date: '2025-12-30', time: '20:00', type: 'GROUP' },
+    { _id: '4', title: 'Soft Skills Workshop', mentor: 'Sam Taylor', date: '2025-12-31', time: '18:00', type: 'GROUP' },
+    { _id: '5', title: 'Portfolio Review', mentor: 'Alex Chen', date: '2026-01-02', time: '15:00', type: 'ONE_ON_ONE' }
   ]);
   const [trendingSkills] = useState<any[]>([
     { skill: 'React.js', count: 12, percentage: 100 },
@@ -74,11 +77,11 @@ const Dashboard = () => {
 
         // Mock upcoming sessions
         setUpcomingSessions([
-          { _id: '1', title: 'React Fundamentals', mentor: 'Nguyễn Thị Ánh Dương', date: '2025-12-28', time: '19:00', type: 'GROUP' },
-          { _id: '2', title: 'Career Path Planning', mentor: 'Phạm Minh Nhật', date: '2025-12-29', time: '10:00', type: 'ONE_ON_ONE' },
-          { _id: '3', title: 'Node.js Architecture', mentor: 'Phạm Minh Nhật', date: '2025-12-30', time: '20:00', type: 'GROUP' },
-          { _id: '4', title: 'Soft Skills Workshop', mentor: 'Trần Văn Hùng', date: '2025-12-31', time: '18:00', type: 'GROUP' },
-          { _id: '5', title: 'Portfolio Review', mentor: 'Nguyễn Thị Ánh Dương', date: '2026-01-02', time: '15:00', type: 'ONE_ON_ONE' }
+          { _id: '1', title: 'React Fundamentals', mentor: 'Alex Chen', date: '2025-12-28', time: '19:00', type: 'GROUP' },
+          { _id: '2', title: 'Career Path Planning', mentor: 'Jordan Lee', date: '2025-12-29', time: '10:00', type: 'ONE_ON_ONE' },
+          { _id: '3', title: 'Node.js Architecture', mentor: 'Jordan Lee', date: '2025-12-30', time: '20:00', type: 'GROUP' },
+          { _id: '4', title: 'Soft Skills Workshop', mentor: 'Sam Taylor', date: '2025-12-31', time: '18:00', type: 'GROUP' },
+          { _id: '5', title: 'Portfolio Review', mentor: 'Alex Chen', date: '2026-01-02', time: '15:00', type: 'ONE_ON_ONE' }
         ]);
         
         setLoading(false);
@@ -110,15 +113,10 @@ const Dashboard = () => {
         .dashboard-title {
           font-size: 4rem;
           font-weight: 900;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f5576c 50%, #f39c12 75%, #667eea 100%);
-          background-size: 300% 300%;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: slideUp 0.8s ease-out, glow 3s ease-in-out infinite;
+          color: var(--primary-color);
+          animation: slideUp 0.8s ease-out;
           margin-bottom: 0.75rem;
           letter-spacing: -1px;
-          text-shadow: 0 2px 10px rgba(0,0,0,0.1);
           position: relative;
           display: inline-block;
           padding-bottom: 0.5rem;
@@ -130,7 +128,7 @@ const Dashboard = () => {
           left: 0;
           width: 100%;
           height: 4px;
-          background: linear-gradient(90deg, #667eea, #764ba2, #f5576c, #f39c12);
+          background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
           border-radius: 2px;
           animation: slideUp 1s ease-out 0.2s backwards;
         }
@@ -147,10 +145,13 @@ const Dashboard = () => {
         {/* Header */}
         <div style={{ marginBottom: '2.5rem' }}>
           <h1 className="dashboard-title">
-            Trà Dá Mentor Dashboard
+            Mentor Platform Dashboard
           </h1>
           <p className="dashboard-subtitle">
-            ✨ Guide the future, unlock unlimited potential ✨
+            {role === 'mentor' && '📊 Your mentoring sessions and remaining mentee capacity'}
+            {role === 'mentee' && '📊 Your mentoring sessions and connected mentor'}
+            {role === 'admin' && '📊 Overview: mentors and mentees connected'}
+            {(role === 'user' || !role) && '✨ Guide the future, unlock unlimited potential ✨'}
           </p>
         </div>
 
@@ -163,7 +164,7 @@ const Dashboard = () => {
         }}>
           <Link to="/mentors/add" style={{ textDecoration: 'none' }}>
             <div style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
               color: '#fff',
               padding: '1.5rem',
               borderRadius: '12px',
@@ -172,16 +173,16 @@ const Dashboard = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '1rem',
-              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
               animation: 'slideUp 0.5s ease-out 0.1s backwards'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.2)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
             }}>
               <FaPlus style={{ fontSize: '1.5rem' }} />
               <div>
@@ -193,7 +194,7 @@ const Dashboard = () => {
 
           <Link to="/mentees/add" style={{ textDecoration: 'none' }}>
             <div style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              background: 'linear-gradient(135deg, var(--accent-color) 0%, var(--secondary-color) 100%)',
               color: '#fff',
               padding: '1.5rem',
               borderRadius: '12px',
@@ -202,16 +203,16 @@ const Dashboard = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '1rem',
-              boxShadow: '0 4px 15px rgba(245, 87, 108, 0.3)',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
               animation: 'slideUp 0.5s ease-out 0.2s backwards'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(245, 87, 108, 0.4)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.2)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(245, 87, 108, 0.3)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
             }}>
               <FaPlus style={{ fontSize: '1.5rem' }} />
               <div>
@@ -221,9 +222,9 @@ const Dashboard = () => {
             </div>
           </Link>
 
-          <Link to="/schedule" style={{ textDecoration: 'none' }}>
+          <Link to="/session-logs" style={{ textDecoration: 'none' }}>
             <div style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%)',
               color: '#fff',
               padding: '1.5rem',
               borderRadius: '12px',
@@ -232,21 +233,21 @@ const Dashboard = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '1rem',
-              boxShadow: '0 4px 15px rgba(79, 172, 254, 0.3)',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
               animation: 'slideUp 0.5s ease-out 0.3s backwards'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px rgba(79, 172, 254, 0.4)';
+              e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.2)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 172, 254, 0.3)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
             }}>
-              <FaPlus style={{ fontSize: '1.5rem' }} />
+              <FaCalendar style={{ fontSize: '1.5rem' }} />
               <div>
-                <p style={{ fontSize: '0.9rem', margin: 0, opacity: 0.9 }}>Quick Action</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: '0.25rem 0 0 0' }}>Add Session</p>
+                <p style={{ fontSize: '0.9rem', margin: 0, opacity: 0.9 }}>Session log</p>
+                <p style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: '0.25rem 0 0 0' }}>Fill log after session</p>
               </div>
             </div>
           </Link>
@@ -615,7 +616,7 @@ const Dashboard = () => {
               📊 Dashboard Summary
             </h2>
             <p style={{ color: '#666', lineHeight: '1.6' }}>
-              Welcome to Trà Đá Mentor! You have <strong>{stats.totalMentors}</strong> mentors guiding <strong>{stats.totalMentees}</strong> mentees across <strong>{stats.totalGroups}</strong> mentorship groups.
+              Welcome to Mentor Platform! You have <strong>{stats.totalMentors}</strong> mentors guiding <strong>{stats.totalMentees}</strong> mentees across <strong>{stats.totalGroups}</strong> mentorship groups.
               Currently, <strong>{stats.menteesCompleted}</strong> mentees have completed their programs, <strong>{stats.menteesInProgress}</strong> are in progress,
               and <strong>{stats.menteesJustStarted}</strong> have just started their journey.
             </p>

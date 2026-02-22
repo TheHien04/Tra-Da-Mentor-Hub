@@ -1,4 +1,5 @@
 import express from 'express';
+import { validateGroup } from '../middleware/validation.js';
 const router = express.Router();
 
 // 🔹 Mock data - Study groups
@@ -87,7 +88,7 @@ router.get('/', (req, res) => {
 });
 
 // POST create group
-router.post('/', (req, res) => {
+router.post('/', validateGroup, (req, res) => {
   const newGroup = {
     _id: Date.now().toString(),
     ...req.body,
@@ -110,6 +111,42 @@ router.get('/:id/full', (req, res) => {
   const group = mockGroups.find(g => g._id === req.params.id);
   if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
   res.json(group);
+});
+
+// PUT - Update group
+router.put('/:id', validateGroup, (req, res) => {
+  const group = mockGroups.find(g => g._id === req.params.id);
+  if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+  
+  const updatedGroup = {
+    ...group,
+    ...req.body,
+    _id: group._id, // Keep original ID
+    createdAt: group.createdAt, // Keep original created date
+    updatedAt: new Date()
+  };
+  
+  const index = mockGroups.findIndex(g => g._id === req.params.id);
+  mockGroups[index] = updatedGroup;
+  res.json(updatedGroup);
+});
+
+// PATCH - Partial update group
+router.patch('/:id', validateGroup, (req, res) => {
+  const group = mockGroups.find(g => g._id === req.params.id);
+  if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+  
+  const updatedGroup = {
+    ...group,
+    ...req.body,
+    _id: group._id,
+    createdAt: group.createdAt,
+    updatedAt: new Date()
+  };
+  
+  const index = mockGroups.findIndex(g => g._id === req.params.id);
+  mockGroups[index] = updatedGroup;
+  res.json(updatedGroup);
 });
 
 // DELETE group

@@ -1,0 +1,149 @@
+/**
+ * Unauthorized Page Styling
+ */
+
+.unauthorized-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.unauthorized-card {
+  background: white;
+  border-radius: 20px;
+  padding: 60px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.unauthorized-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: bounce 0.6s ease-out;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.unauthorized-card h1 {
+  color: #333;
+  font-size: 32px;
+  margin: 0 0 15px 0;
+  font-weight: 700;
+}
+
+.unauthorized-message {
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.unauthorized-details {
+  background: #f5f5f5;
+  border-left: 4px solid #667eea;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.unauthorized-details p {
+  margin: 10px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.unauthorized-details strong {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.unauthorized-actions {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-back,
+.btn-dashboard {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 150px;
+}
+
+.btn-back {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.btn-back:hover {
+  background: #e0e0e0;
+  transform: translateX(-3px);
+}
+
+.btn-dashboard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-dashboard:hover {
+  transform: translateX(3px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+@media (max-width: 600px) {
+  .unauthorized-card {
+    padding: 40px 20px;
+  }
+
+  .unauthorized-icon {
+    font-size: 60px;
+  }
+
+  .unauthorized-card h1 {
+    font-size: 24px;
+  }
+
+  .unauthorized-actions {
+    flex-direction: column;
+  }
+
+  .btn-back,
+  .btn-dashboard {
+    width: 100%;
+    min-width: auto;
+  }
+}

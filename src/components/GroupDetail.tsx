@@ -44,9 +44,11 @@ const GroupDetail = () => {
       try {
         setLoading(true);
         const response = await groupApi.getByIdFull(id as string);
+        console.log('Group data:', response.data);
         setGroup(response.data);
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching group:', err);
         setError('Error loading group information.');
         setLoading(false);
       }

@@ -24,10 +24,10 @@ const NotFound = () => {
           404
         </h1>
         <h2 style={{ fontSize: '1.5rem', color: '#666', margin: '0 0 1.5rem 0' }}>
-          Trang không tìm thấy
+          Page not found
         </h2>
         <p style={{ color: '#999', marginBottom: '2rem', lineHeight: '1.6' }}>
-          Xin lỗi, trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển.
+          Sorry, the page you are looking for does not exist or has been moved.
         </p>
         <Link
           to="/"
@@ -51,7 +51,7 @@ const NotFound = () => {
             e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
           }}
         >
-          ← Quay về trang chủ
+          ← Back to home
         </Link>
       </div>
     </div>

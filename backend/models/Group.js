@@ -1,51 +1,73 @@
-import mongoose from 'mongoose';
-const Schema = mongoose.Schema;
+// backend/models/Group.js
+/**
+ * Group Model
+ * Study/mentoring groups
+ */
 
-const GroupSchema = new Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String
-  },
-  // Reference to mentor who manages this group
-  mentor: {
-    type: Schema.Types.ObjectId,
-    ref: 'Mentor'
-  },
-  // Reference to mentees in this group
-  mentees: [{
-    type: Schema.Types.ObjectId,
-    ref: 'Mentee'
-  }],
-  maxSize: {
-    type: Number,
-    default: 10
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  },
-  // Group meetings schedule
-  meetingSchedule: {
-    frequency: {
+import mongoose from "mongoose";
+
+const groupSchema = new mongoose.Schema(
+  {
+    name: {
       type: String,
-      enum: ['weekly', 'biweekly', 'monthly'],
-      default: 'weekly'
+      required: [true, "Group name is required"],
+      trim: true,
+      maxlength: [100, "Name cannot exceed 100 characters"],
     },
-    dayOfWeek: {
-      type: Number // 0-6 (Sunday to Saturday)
+    description: {
+      type: String,
+      required: [true, "Description is required"],
+      maxlength: [500, "Description cannot exceed 500 characters"],
     },
-    time: {
-      type: String // Format: "HH:MM"
-    }
+    topic: {
+      type: String,
+      required: [true, "Topic is required"],
+    },
+    mentorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Mentor",
+      required: true,
+    },
+    mentees: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Mentee",
+      },
+    ],
+    maxCapacity: {
+      type: Number,
+      required: [true, "Max capacity is required"],
+      min: [1, "Max capacity must be at least 1"],
+    },
+    meetingSchedule: {
+      frequency: {
+        type: String,
+        enum: ["Weekly", "Bi-weekly", "Monthly"],
+        default: "Weekly",
+      },
+      dayOfWeek: String,
+      time: String, // HH:MM format
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "ARCHIVED", "CLOSED"],
+      default: "ACTIVE",
+    },
+  },
+  {
+    timestamps: true,
+    collection: "groups",
   }
+);
+
+// Index
+groupSchema.index({ mentorId: 1 });
+groupSchema.index({ status: 1 });
+
+// Populate
+groupSchema.pre(["find", "findOne"], function () {
+  this.populate("mentorId", "expertise track");
+  this.populate("mentees", "progress track");
 });
 
-const Group = mongoose.model('Group', GroupSchema);
-export default Group; 
+export default mongoose.model("Group", groupSchema); 

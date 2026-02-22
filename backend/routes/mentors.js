@@ -1,4 +1,5 @@
 import express from 'express';
+import { validateMentor } from '../middleware/validation.js';
 const router = express.Router();
 
 // 🧪 Mock data - Diverse roles from different departments
@@ -203,7 +204,7 @@ router.get('/', (req, res) => {
 });
 
 // ➕ Thêm mới mentor
-router.post('/', (req, res) => {
+router.post('/', validateMentor, (req, res) => {
   const newMentor = {
     _id: `m${Date.now()}`,
     ...req.body,
@@ -221,6 +222,42 @@ router.get('/:id', (req, res) => {
   const mentor = mockMentors.find(m => m._id === req.params.id);
   if (!mentor) return res.status(404).json({ message: 'Mentor không tồn tại' });
   res.json(mentor);
+});
+
+// ✏️ Cập nhật mentor (full update)
+router.put('/:id', validateMentor, (req, res) => {
+  const mentor = mockMentors.find(m => m._id === req.params.id);
+  if (!mentor) return res.status(404).json({ message: 'Mentor không tồn tại' });
+  
+  const updatedMentor = {
+    ...mentor,
+    ...req.body,
+    _id: mentor._id,
+    createdAt: mentor.createdAt,
+    updatedAt: new Date()
+  };
+  
+  const index = mockMentors.findIndex(m => m._id === req.params.id);
+  mockMentors[index] = updatedMentor;
+  res.json(updatedMentor);
+});
+
+// 🔧 Cập nhật mentor (partial update)
+router.patch('/:id', validateMentor, (req, res) => {
+  const mentor = mockMentors.find(m => m._id === req.params.id);
+  if (!mentor) return res.status(404).json({ message: 'Mentor không tồn tại' });
+  
+  const updatedMentor = {
+    ...mentor,
+    ...req.body,
+    _id: mentor._id,
+    createdAt: mentor.createdAt,
+    updatedAt: new Date()
+  };
+  
+  const index = mockMentors.findIndex(m => m._id === req.params.id);
+  mockMentors[index] = updatedMentor;
+  res.json(updatedMentor);
 });
 
 // ❌ Xóa mentor

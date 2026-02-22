@@ -1,4 +1,5 @@
 import express from 'express';
+import { validateMentee } from '../middleware/validation.js';
 const router = express.Router();
 
 // 🔹 Mock data - Vietnamese students from universities, international universities, and high schools
@@ -16,6 +17,7 @@ let mockMentees = [
     mentorId: 'm1',
     groupId: '201',
     mentorshipType: 'GROUP',
+    applicationStatus: 'pending',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -31,6 +33,7 @@ let mockMentees = [
     mentorId: 'm2',
     groupId: '202',
     mentorshipType: 'GROUP',
+    applicationStatus: 'pending',
     createdAt: new Date(),
     updatedAt: new Date()
   },
@@ -278,13 +281,16 @@ let mockMentees = [
   }
 ];
 
-// GET all mentees
+const APPLICATION_STATUSES = ['pending', 'invited_for_interview', 'interviewed', 'accepted', 'rejected'];
+
+// GET all mentees (đảm bảo mỗi mentee có applicationStatus)
 router.get('/', (req, res) => {
-  res.json(mockMentees);
+  const list = mockMentees.map(m => ({ ...m, applicationStatus: m.applicationStatus || 'pending' }));
+  res.json(list);
 });
 
 // POST create mentee
-router.post('/', (req, res) => {
+router.post('/', validateMentee, (req, res) => {
   const newMentee = {
     _id: Date.now().toString(),
     ...req.body,
@@ -299,7 +305,56 @@ router.post('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const mentee = mockMentees.find(m => m._id === req.params.id);
   if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+  res.json({ ...mentee, applicationStatus: mentee.applicationStatus || 'pending' });
+});
+
+// PATCH chỉ cập nhật applicationStatus (matching flow)
+router.patch('/:id/application-status', (req, res) => {
+  const { applicationStatus } = req.body;
+  if (!applicationStatus || !APPLICATION_STATUSES.includes(applicationStatus)) {
+    return res.status(400).json({ message: 'applicationStatus phải là: ' + APPLICATION_STATUSES.join(', ') });
+  }
+  const mentee = mockMentees.find(m => m._id === req.params.id);
+  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+  mentee.applicationStatus = applicationStatus;
+  mentee.updatedAt = new Date();
   res.json(mentee);
+});
+
+// PUT - Update mentee
+router.put('/:id', validateMentee, (req, res) => {
+  const mentee = mockMentees.find(m => m._id === req.params.id);
+  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+  
+  const updatedMentee = {
+    ...mentee,
+    ...req.body,
+    _id: mentee._id,
+    createdAt: mentee.createdAt,
+    updatedAt: new Date()
+  };
+  
+  const index = mockMentees.findIndex(m => m._id === req.params.id);
+  mockMentees[index] = updatedMentee;
+  res.json(updatedMentee);
+});
+
+// PATCH - Partial update mentee
+router.patch('/:id', validateMentee, (req, res) => {
+  const mentee = mockMentees.find(m => m._id === req.params.id);
+  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+  
+  const updatedMentee = {
+    ...mentee,
+    ...req.body,
+    _id: mentee._id,
+    createdAt: mentee.createdAt,
+    updatedAt: new Date()
+  };
+  
+  const index = mockMentees.findIndex(m => m._id === req.params.id);
+  mockMentees[index] = updatedMentee;
+  res.json(updatedMentee);
 });
 
 // DELETE mentee

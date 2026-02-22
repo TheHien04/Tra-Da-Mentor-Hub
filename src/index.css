@@ -1,0 +1,178 @@
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global Styles */
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 text-gray-900 antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  h1 {
+    @apply text-4xl font-bold tracking-tight;
+  }
+  
+  h2 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+  
+  h3 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  h4 {
+    @apply text-xl font-semibold;
+  }
+
+  h5 {
+    @apply text-lg font-semibold;
+  }
+
+  h6 {
+    @apply text-base font-semibold;
+  }
+}
+
+/* Custom Components */
+@layer components {
+  /* Card Styles */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-200/50 hover:shadow-md transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300;
+  }
+
+  /* Button Styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-500 shadow-sm hover:shadow-md;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-gray-500;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+
+  .btn-success {
+    @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
+  }
+
+  /* Role-based colors */
+  .btn-mentor {
+    @apply bg-gradient-to-r from-mentor-600 to-mentor-500 text-white hover:from-mentor-700 hover:to-mentor-600 focus:ring-mentor-500 shadow-sm hover:shadow-md;
+  }
+
+  .btn-mentee {
+    @apply bg-gradient-to-r from-mentee-600 to-mentee-500 text-white hover:from-mentee-700 hover:to-mentee-600 focus:ring-mentee-500 shadow-sm hover:shadow-md;
+  }
+
+  .btn-admin {
+    @apply bg-gradient-to-r from-admin-600 to-admin-500 text-white hover:from-admin-700 hover:to-admin-600 focus:ring-admin-500 shadow-sm hover:shadow-md;
+  }
+
+  /* Input Styles */
+  .input {
+    @apply w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 placeholder-gray-400 transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:bg-gray-50 disabled:text-gray-500;
+  }
+
+  .input-error {
+    @apply border-red-300 focus:border-red-500 focus:ring-red-500/20;
+  }
+
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-blue-100 text-blue-700;
+  }
+
+  .badge-success {
+    @apply bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-700;
+  }
+
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+  }
+
+  .badge-mentor {
+    @apply bg-mentor-100 text-mentor-700;
+  }
+
+  .badge-mentee {
+    @apply bg-mentee-100 text-mentee-700;
+  }
+
+  .badge-admin {
+    @apply bg-admin-100 text-admin-700;
+  }
+
+  /* Container */
+  .container-custom {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-mentor {
+    @apply bg-gradient-to-br from-mentor-50 via-orange-50 to-amber-50;
+  }
+
+  .gradient-mentee {
+    @apply bg-gradient-to-br from-mentee-50 via-emerald-50 to-teal-50;
+  }
+
+  .gradient-admin {
+    @apply bg-gradient-to-br from-admin-50 via-indigo-50 to-blue-50;
+  }
+
+  /* Skeleton Loading */
+  .skeleton {
+    @apply animate-pulse bg-gray-200 rounded;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Smooth scroll */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  /* Add dark mode styles if needed */
+}

@@ -1,0 +1,108 @@
+/* LegalPage.css - Shared styles for Privacy Policy and Terms of Service */
+.legal-page {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 40px 20px;
+}
+
+.legal-container {
+  max-width: 900px;
+  margin: 0 auto;
+  background: white;
+  padding: 60px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.legal-container h1 {
+  font-size: 42px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+  border-bottom: 3px solid var(--primary-color, #667eea);
+  padding-bottom: 16px;
+}
+
+.last-updated {
+  color: #999;
+  font-size: 14px;
+  margin-bottom: 40px;
+  font-style: italic;
+}
+
+section {
+  margin-bottom: 40px;
+}
+
+section h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 16px;
+  margin-top: 32px;
+}
+
+section h3 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+section p {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+section ul {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+section li {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+section a {
+  color: var(--primary-color, #667eea);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+section a:hover {
+  text-decoration: underline;
+}
+
+strong {
+  color: #333;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .legal-container {
+    padding: 30px 20px;
+  }
+
+  .legal-container h1 {
+    font-size: 32px;
+  }
+
+  section h2 {
+    font-size: 24px;
+  }
+
+  section h3 {
+    font-size: 20px;
+  }
+
+  section p,
+  section li {
+    font-size: 15px;
+  }
+}
