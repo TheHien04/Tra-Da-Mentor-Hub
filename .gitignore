@@ -17,6 +17,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Documentation (keep locally only)
+docs/
+
 # Environment variables (NEVER COMMIT!)
 .env
 .env.local
