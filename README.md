@@ -22,18 +22,6 @@ Nền tảng kết nối Mentor và Mentee, hỗ trợ phát triển sự nghi�
 - **Express Rate Limit** - Rate limiting
 - **Bcrypt** - Password hashing
 
-## � Documentation
-
-**NEW!** Comprehensive review and roadmap documents:
-
-- **[📝 EXECUTIVE SUMMARY](./docs/EXECUTIVE_SUMMARY.md)** - Đọc CÁI NÀY TRƯỚC! Quick overview & verdict
-- **[🔍 SENIOR SE REVIEW](./docs/SENIOR_SE_REVIEW.md)** - Đánh giá chi tiết từ góc nhìn Senior SE
-- **[🗺️ IMPLEMENTATION ROADMAP](./docs/IMPLEMENTATION_ROADMAP.md)** - Step-by-step guide với code samples
-- [📋 PROJECT REVIEW](./docs/PROJECT_REVIEW.md) - Feature checklist & structure
-- [🔄 SPEC VS CODEBASE](./docs/SPEC_VS_CODEBASE.md) - Spec comparison
-- [🗺️ SITEMAP & USAGE](./docs/SITEMAP_AND_USAGE.md) - User flows & how to use
-- [🔐 GOOGLE SSO SETUP](./docs/GOOGLE_SSO_SETUP.md) - OAuth configuration
-
 ## �📋 Prerequisites
 
 - Node.js >= 18
