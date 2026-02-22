@@ -198,7 +198,243 @@ API base: `/api`. All protected routes require `Authorization: Bearer <accessTok
 - Input sanitization
 - XSS protection
 
-## 📄 License
+## � Screenshots & Features
+
+### 🔐 Authentication
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4>Login Page</h4>
+      <img src="Images/Login.jpg" alt="Login" />
+      <p>Modern login interface with email/password and Google OAuth</p>
+    </td>
+    <td width="50%">
+      <h4>Registration</h4>
+      <img src="Images/Create account.jpg" alt="Register" />
+      <p>User registration with role selection and validation</p>
+    </td>
+  </tr>
+</table>
+
+### 🌐 Multi-language Support
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="Images/Language.jpg" alt="Language Switcher" width="600" />
+      <p><strong>Language Switcher</strong> - Support for 5 languages (EN, VI, JP, KR, CN)</p>
+    </td>
+  </tr>
+</table>
+
+### 📊 Dashboard
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/Dashboard1.jpg" alt="Dashboard Overview" />
+      <p><strong>Dashboard Overview</strong> - Statistics and quick actions</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Dashboard2.jpg" alt="Dashboard Analytics" />
+      <p><strong>Dashboard Details</strong> - Recent activities and progress tracking</p>
+    </td>
+  </tr>
+</table>
+
+### 👨‍🏫 Mentor Management
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/ManageMentor.jpg" alt="Mentor List" />
+      <p><strong>Mentor Directory</strong> - Browse all mentors with filtering</p>
+    </td>
+    <td width="50%">
+      <img src="Images/MentorDetails.jpg" alt="Mentor Details" />
+      <p><strong>Mentor Profile</strong> - Detailed information and expertise</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="Images/Addnewmentor.jpg" alt="Add Mentor" />
+      <p><strong>Add New Mentor</strong> - Create mentor profile with expertise</p>
+    </td>
+    <td width="50%">
+      <img src="Images/EditMentor.jpg" alt="Edit Mentor" />
+      <p><strong>Edit Mentor</strong> - Update mentor information and skills</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="Images/Mentor1.jpg" alt="Mentor Management" />
+      <p><strong>Mentor Overview</strong> - Track mentees and groups</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Mentor2.jpg" alt="Mentor Analytics" />
+      <p><strong>Mentor Statistics</strong> - Performance and engagement metrics</p>
+    </td>
+  </tr>
+</table>
+
+### 👨‍🎓 Mentee Management
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/ManageMentees.jpg" alt="Mentee List" />
+      <p><strong>Mentee Directory</strong> - View and manage all mentees</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Addnewmentee.jpg" alt="Add Mentee" />
+      <p><strong>Add New Mentee</strong> - Register new mentee with profile</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="Images/EditMentee.jpg" alt="Edit Mentee" />
+      <p><strong>Edit Mentee</strong> - Update mentee information and status</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Applications.jpg" alt="Applications" />
+      <p><strong>Mentee Applications</strong> - Review and approve applications</p>
+    </td>
+  </tr>
+</table>
+
+### 👥 Group Management
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/Groups.jpg" alt="Groups List" />
+      <p><strong>Groups Overview</strong> - Manage mentoring groups</p>
+    </td>
+    <td width="50%">
+      <img src="Images/CreateGroup.jpg" alt="Create Group" />
+      <p><strong>Create Group</strong> - Form new mentoring groups</p>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="Images/EditGroup.jpg" alt="Edit Group" width="600" />
+      <p><strong>Edit Group</strong> - Modify group members and settings</p>
+    </td>
+  </tr>
+</table>
+
+### 📅 Schedule & Sessions
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/Schedule.jpg" alt="Schedule" />
+      <p><strong>Mentoring Schedule</strong> - View and manage sessions</p>
+    </td>
+    <td width="50%">
+      <img src="Images/MentoringSchedule.jpg" alt="Calendar View" />
+      <p><strong>Calendar View</strong> - Weekly schedule overview</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="Images/Session Log.jpg" alt="Session Logs" />
+      <p><strong>Session Logs</strong> - Track completed sessions</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Session Log 2.jpg" alt="Session Details" />
+      <p><strong>Session Details</strong> - Notes and attendance tracking</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="Images/AddNewSession.jpg" alt="Add Session" />
+      <p><strong>Add Session</strong> - Create new mentoring session</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Form Logs.jpg" alt="Session Form" />
+      <p><strong>Session Form</strong> - Detailed session logging</p>
+    </td>
+  </tr>
+</table>
+
+### 🕐 Slots Management
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/Slots Manage.jpg" alt="Slots Overview" />
+      <p><strong>Available Slots</strong> - View and book free time slots</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Slot Manage2.jpg" alt="Slot Details" />
+      <p><strong>Slot Management</strong> - Configure mentor availability</p>
+    </td>
+  </tr>
+</table>
+
+### 📊 Analytics & Reports
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/Analytics.jpg" alt="Analytics Dashboard" />
+      <p><strong>Analytics Overview</strong> - Key performance indicators</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Analytics 2.jpg" alt="Detailed Analytics" />
+      <p><strong>Detailed Reports</strong> - Charts and trends analysis</p>
+    </td>
+  </tr>
+</table>
+
+### 💬 Testimonials & Reviews
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="Images/Testimonials.jpg" alt="Testimonials" />
+      <p><strong>Testimonials Page</strong> - Success stories and feedback</p>
+    </td>
+    <td width="50%">
+      <img src="Images/Testimonials list.jpg" alt="Reviews List" />
+      <p><strong>Reviews Management</strong> - Manage testimonials</p>
+    </td>
+  </tr>
+</table>
+
+### 🔧 Admin Features
+
+<table>
+  <tr>
+    <td width="33%">
+      <img src="Images/Export Data.jpg" alt="Export Data" />
+      <p><strong>Export Data</strong> - Download reports as CSV</p>
+    </td>
+    <td width="33%">
+      <img src="Images/Invite Users.jpg" alt="Invite Users" />
+      <p><strong>Invite Users</strong> - Send email invitations</p>
+    </td>
+    <td width="33%">
+      <img src="Images/Notifications.jpg" alt="Notifications" />
+      <p><strong>Send Notifications</strong> - Broadcast messages</p>
+    </td>
+  </tr>
+</table>
+
+---
+
+## 🎨 Design Features
+
+- ✨ **Modern UI** with Tailwind CSS
+- 🎭 **Glass Morphism** effects and smooth animations
+- 📱 **Responsive Design** for all screen sizes
+- 🌈 **Role-based Color Schemes** (Mentor: Orange, Mentee: Green, Admin: Indigo)
+- 🔔 **Toast Notifications** for user feedback
+- ⚡ **Fast Loading** with optimized components
+
+## �📄 License
 
 MIT
 
