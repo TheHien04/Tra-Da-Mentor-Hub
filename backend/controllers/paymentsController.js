@@ -16,7 +16,7 @@ import env from '../config/env.js';
 export const createCheckout = async (req, res) => {
   try {
     const { plan } = req.body; // 'pro' or 'premium'
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -59,7 +59,7 @@ export const createCheckout = async (req, res) => {
  */
 export const createPortal = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const user = await User.findById(userId);
 
     if (!user || !user.subscription.stripeCustomerId) {
@@ -68,7 +68,7 @@ export const createPortal = async (req, res) => {
 
     const session = await createPortalSession({
       customerId: user.subscription.stripeCustomerId,
-      returnUrl: `${env.frontendUrl}/dashboard`,
+      returnUrl: `${env.frontendUrl}/`,
     });
 
     res.json({ url: session.url });
@@ -84,7 +84,7 @@ export const createPortal = async (req, res) => {
  */
 export const getSubscriptionStatus = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -94,7 +94,7 @@ export const getSubscriptionStatus = async (req, res) => {
     res.json({
       plan: user.subscription.plan,
       status: user.subscription.status,
-      currentPeriodEnd: user.subscription.currentPeriodEnd,
+      currentPeriodEnd: user.subscription.endedAt,
     });
   } catch (error) {
     logger.error(`Get subscription error: ${error.message}`);
@@ -134,8 +134,8 @@ export const handleWebhook = async (req, res) => {
           'subscription.status': 'active',
           'subscription.stripeCustomerId': customerId,
           'subscription.stripeSubscriptionId': subscriptionId,
-          'subscription.currentPeriodStart': new Date(subscription.current_period_start * 1000),
-          'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
+          'subscription.startedAt': new Date(subscription.current_period_start * 1000),
+          'subscription.endedAt': new Date(subscription.current_period_end * 1000),
         });
 
         logger.info(`Subscription activated for user ${userId}: ${plan}`);
@@ -148,8 +148,8 @@ export const handleWebhook = async (req, res) => {
 
         await User.findByIdAndUpdate(userId, {
           'subscription.status': subscription.status,
-          'subscription.currentPeriodStart': new Date(subscription.current_period_start * 1000),
-          'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
+          'subscription.startedAt': new Date(subscription.current_period_start * 1000),
+          'subscription.endedAt': new Date(subscription.current_period_end * 1000),
         });
 
         logger.info(`Subscription updated for user ${userId}: ${subscription.status}`);
@@ -163,7 +163,7 @@ export const handleWebhook = async (req, res) => {
         await User.findByIdAndUpdate(userId, {
           'subscription.plan': 'free',
           'subscription.status': 'cancelled',
-          'subscription.currentPeriodEnd': new Date(subscription.current_period_end * 1000),
+          'subscription.endedAt': new Date(subscription.current_period_end * 1000),
         });
 
         logger.info(`Subscription cancelled for user ${userId}`);

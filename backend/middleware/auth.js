@@ -40,6 +40,7 @@ export function authenticate(req, res, next) {
     // Attach user to request
     req.user = {
       userId: decoded.userId,
+      _id: decoded.userId,
       email: decoded.email,
       role: decoded.role,
     };
@@ -94,6 +95,7 @@ export function optionalAuth(req, res, next) {
       if (decoded) {
         req.user = {
           userId: decoded.userId,
+          _id: decoded.userId,
           email: decoded.email,
           role: decoded.role,
         };

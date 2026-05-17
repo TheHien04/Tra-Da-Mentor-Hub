@@ -1,14 +1,16 @@
 /**
  * Register Page
- * User registration page
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { FaEye, FaEyeSlash, FaUserPlus } from 'react-icons/fa';
 import { useAuth } from '../hooks/useAuth';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 import { registerFormSchema } from '../schemas/forms';
 import { ZodError } from 'zod';
-import './RegisterPage.css';
+import { AuthPageFooter } from '../components/AuthPageFooter';
+import './AuthPage.css';
 
 interface FormData {
   email: string;
@@ -18,7 +20,12 @@ interface FormData {
   role: 'user' | 'mentor' | 'mentee';
 }
 
+function strengthLevel(score: number): number {
+  return Math.min(5, Math.max(0, score));
+}
+
 export default function RegisterPage() {
+  const { t } = useAppTranslation();
   const navigate = useNavigate();
   const { state, register, clearError } = useAuth();
 
@@ -35,70 +42,54 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // If already logged in, redirect to dashboard
   useEffect(() => {
     if (state.isAuthenticated) {
       navigate('/');
     }
   }, [state.isAuthenticated, navigate]);
 
-  // Calculate password strength
   useEffect(() => {
     const password = formData.password;
     let strength = 0;
-
     if (password.length >= 8) strength++;
     if (/[A-Z]/.test(password)) strength++;
     if (/[a-z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
-
     setPasswordStrength(strength);
   }, [formData.password]);
 
-  // Handle input change
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Clear field-specific error when user starts typing
     if (errors[name]) {
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
+        const next = { ...prev };
+        delete next[name];
+        return next;
       });
     }
-
-    // Clear global error
-    if (state.error) {
-      clearError();
-    }
+    if (state.error) clearError();
   };
 
-  // Validate form
   const validateForm = (): boolean => {
     try {
       registerFormSchema.parse(formData);
       setErrors({});
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof ZodError) {
         const newErrors: Record<string, string> = {};
-        error.issues?.forEach((issue: any) => {
+        error.issues?.forEach((issue) => {
           const field = issue.path?.[0];
           if (field) {
-            // Combine multiple errors for same field
-            if (newErrors[field as string]) {
-              newErrors[field as string] += '; ' + issue.message;
-            } else {
-              newErrors[field as string] = issue.message;
-            }
+            const key = field as string;
+            newErrors[key] = newErrors[key]
+              ? `${newErrors[key]}; ${issue.message}`
+              : issue.message;
           }
         });
         setErrors(newErrors);
@@ -107,255 +98,234 @@ export default function RegisterPage() {
     }
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate form
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     try {
       await register(formData);
-      // Auto-login successful, redirect handled by useEffect
-    } catch (error: any) {
-      // Error is already in state.error from auth context
+    } catch (error: unknown) {
       console.error('Register error:', error);
     }
   };
 
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength === 0) return '#e0e0e0';
-    if (passwordStrength <= 2) return '#f44336';
-    if (passwordStrength <= 3) return '#ff9800';
-    if (passwordStrength <= 4) return '#ffc107';
-    return '#4caf50';
-  };
+  const level = strengthLevel(passwordStrength);
 
-  const getPasswordStrengthLabel = () => {
-    if (passwordStrength === 0) return 'No password';
-    if (passwordStrength <= 2) return 'Weak';
-    if (passwordStrength <= 3) return 'Fair';
-    if (passwordStrength <= 4) return 'Good';
-    return 'Strong';
+  const strengthLabel = () => {
+    if (passwordStrength === 0) return t('registerPage.strengthNone');
+    if (passwordStrength <= 2) return t('registerPage.strengthWeak');
+    if (passwordStrength <= 3) return t('registerPage.strengthFair');
+    if (passwordStrength <= 4) return t('registerPage.strengthGood');
+    return t('registerPage.strengthStrong');
   };
 
   return (
-    <div className="register-page">
-      <div className="register-container">
-        <div className="register-header">
-          <h1>🎓 Trà Đá Mentor</h1>
-          <p>Create your account</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="register-form">
-          {/* Global Error Message */}
-          {state.error && (
-            <div className="alert alert-error">
-              <span className="alert-icon">⚠️</span>
-              <span className="alert-message">{state.error}</span>
+    <div className="auth-page">
+      <div className="auth-shell auth-shell-wide">
+        <div className="auth-card">
+          <div className="text-center mb-8">
+            <div className="auth-icon">
+              <FaUserPlus className="h-6 w-6" aria-hidden />
             </div>
-          )}
-
-          {/* Name Field */}
-          <div className="form-group">
-            <label htmlFor="name">Full Name</label>
-            <input
-              id="name"
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="John Doe"
-              disabled={state.isLoading}
-              className={errors.name ? 'input-error' : ''}
-            />
-            {errors.name && (
-              <span className="field-error">
-                <span className="error-icon">✕</span>
-                {errors.name}
-              </span>
-            )}
+            <h1 className="auth-title">{t('registerPage.brand')}</h1>
+            <p className="auth-subtitle">{t('registerPage.subtitle')}</p>
           </div>
 
-          {/* Email Field */}
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="you@example.com"
-              disabled={state.isLoading}
-              className={errors.email ? 'input-error' : ''}
-            />
-            {errors.email && (
-              <span className="field-error">
-                <span className="error-icon">✕</span>
-                {errors.email}
-              </span>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {state.error && (
+              <div className="auth-error" role="alert">
+                {state.error}
+              </div>
             )}
-          </div>
 
-          {/* Role Selection */}
-          <div className="form-group">
-            <label htmlFor="role">I want to join as:</label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleInputChange}
-              disabled={state.isLoading}
-              className={errors.role ? 'input-error' : ''}
-            >
-              <option value="user">User (Learn)</option>
-              <option value="mentee">Mentee (Get Mentorship)</option>
-              <option value="mentor">Mentor (Share Knowledge)</option>
-            </select>
-            {errors.role && (
-              <span className="field-error">
-                <span className="error-icon">✕</span>
-                {errors.role}
-              </span>
-            )}
-          </div>
-
-          {/* Password Field */}
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="password-input-wrapper">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-secondary mb-2">
+                {t('auth.name')}
+              </label>
               <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                value={formData.password}
+                id="name"
+                type="text"
+                name="name"
+                autoComplete="name"
+                value={formData.name}
                 onChange={handleInputChange}
-                placeholder="Enter a strong password"
+                placeholder={t('auth.namePlaceholder')}
                 disabled={state.isLoading}
-                className={errors.password ? 'input-error' : ''}
+                className={`input ${errors.name ? 'input-error' : ''}`}
               />
-              <button
-                type="button"
-                className="toggle-password"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={state.isLoading}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
+              {errors.name && <p className="auth-field-error">{errors.name}</p>}
             </div>
 
-            {/* Password Strength Indicator */}
-            {formData.password && (
-              <div className="password-strength">
-                <div className="strength-bar">
-                  <div
-                    className="strength-fill"
-                    style={{
-                      width: `${(passwordStrength / 5) * 100}%`,
-                      backgroundColor: getPasswordStrengthColor(),
-                    }}
-                  ></div>
-                </div>
-                <span
-                  className="strength-label"
-                  style={{ color: getPasswordStrengthColor() }}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-secondary mb-2">
+                {t('auth.email')}
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                autoComplete="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder={t('auth.emailPlaceholder')}
+                disabled={state.isLoading}
+                className={`input ${errors.email ? 'input-error' : ''}`}
+              />
+              {errors.email && <p className="auth-field-error">{errors.email}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="role" className="block text-sm font-medium text-secondary mb-2">
+                {t('registerPage.joinAs')}
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                disabled={state.isLoading}
+                className={`input ${errors.role ? 'input-error' : ''}`}
+              >
+                <option value="user">{t('registerPage.roleUser')}</option>
+                <option value="mentee">{t('registerPage.roleMentee')}</option>
+                <option value="mentor">{t('registerPage.roleMentor')}</option>
+              </select>
+              {errors.role && <p className="auth-field-error">{errors.role}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-secondary mb-2">
+                {t('auth.password')}
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="new-password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder={t('registerPage.passwordPlaceholder')}
+                  disabled={state.isLoading}
+                  className={`input pr-12 ${errors.password ? 'input-error' : ''}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={state.isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary p-2"
+                  aria-label={
+                    showPassword ? t('registerPage.hidePassword') : t('registerPage.showPassword')
+                  }
                 >
-                  {getPasswordStrengthLabel()}
-                </span>
+                  {showPassword ? <FaEyeSlash className="h-5 w-5" /> : <FaEye className="h-5 w-5" />}
+                </button>
               </div>
-            )}
 
-            {errors.password && (
-              <span className="field-error">
-                <span className="error-icon">✕</span>
-                {errors.password}
-              </span>
-            )}
+              {formData.password && (
+                <div className="auth-password-strength">
+                  <div className="auth-strength-bar">
+                    <div
+                      className={`auth-strength-fill auth-strength-${level}`}
+                      style={{ width: `${(passwordStrength / 5) * 100}%` }}
+                    />
+                  </div>
+                  <span className={`auth-strength-label auth-strength-${level}`}>
+                    {strengthLabel()}
+                  </span>
+                </div>
+              )}
 
-            {/* Password Requirements */}
-            {formData.password && (
-              <div className="password-requirements">
-                <p className="requirements-label">Password must contain:</p>
-                <ul className="requirements-list">
-                  <li className={formData.password.length >= 8 ? 'met' : ''}>
-                    At least 8 characters {formData.password.length >= 8 ? '✓' : ''}
-                  </li>
-                  <li className={/[A-Z]/.test(formData.password) ? 'met' : ''}>
-                    Uppercase letter {/[A-Z]/.test(formData.password) ? '✓' : ''}
-                  </li>
-                  <li className={/[a-z]/.test(formData.password) ? 'met' : ''}>
-                    Lowercase letter {/[a-z]/.test(formData.password) ? '✓' : ''}
-                  </li>
-                  <li className={/[0-9]/.test(formData.password) ? 'met' : ''}>
-                    Number {/[0-9]/.test(formData.password) ? '✓' : ''}
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
+              {errors.password && <p className="auth-field-error">{errors.password}</p>}
 
-          {/* Confirm Password Field */}
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <div className="password-input-wrapper">
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleInputChange}
-                placeholder="Re-enter your password"
-                disabled={state.isLoading}
-                className={errors.confirmPassword ? 'input-error' : ''}
-              />
-              <button
-                type="button"
-                className="toggle-password"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                disabled={state.isLoading}
-                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-              >
-                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
+              {formData.password && (
+                <div className="auth-requirements">
+                  <p className="auth-requirements-title">{t('registerPage.requirementsTitle')}</p>
+                  <ul>
+                    <li className={formData.password.length >= 8 ? 'met' : ''}>
+                      {t('registerPage.reqLength')}
+                    </li>
+                    <li className={/[A-Z]/.test(formData.password) ? 'met' : ''}>
+                      {t('registerPage.reqUpper')}
+                    </li>
+                    <li className={/[a-z]/.test(formData.password) ? 'met' : ''}>
+                      {t('registerPage.reqLower')}
+                    </li>
+                    <li className={/[0-9]/.test(formData.password) ? 'met' : ''}>
+                      {t('registerPage.reqNumber')}
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
-            {errors.confirmPassword && (
-              <span className="field-error">
-                <span className="error-icon">✕</span>
-                {errors.confirmPassword}
-              </span>
-            )}
+
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-secondary mb-2"
+              >
+                {t('auth.confirmPassword')}
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  autoComplete="new-password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
+                  placeholder={t('registerPage.confirmPlaceholder')}
+                  disabled={state.isLoading}
+                  className={`input pr-12 ${errors.confirmPassword ? 'input-error' : ''}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={state.isLoading}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-secondary p-2"
+                  aria-label={
+                    showConfirmPassword
+                      ? t('registerPage.hidePassword')
+                      : t('registerPage.showPassword')
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <FaEyeSlash className="h-5 w-5" />
+                  ) : (
+                    <FaEye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="auth-field-error">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            <button type="submit" className="btn btn-primary w-full mt-2" disabled={state.isLoading}>
+              {state.isLoading ? t('registerPage.creating') : t('auth.createAccount')}
+            </button>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t auth-divider-line" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 auth-divider-text">{t('registerPage.divider')}</span>
+            </div>
           </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className="btn btn-primary btn-full"
-            disabled={state.isLoading}
-          >
-            {state.isLoading ? (
-              <>
-                <span className="spinner"></span>
-                Creating Account...
-              </>
-            ) : (
-              'Create Account'
-            )}
-          </button>
-        </form>
+          <Link to="/login" className="btn btn-secondary w-full">
+            {t('registerPage.loginHere')}
+          </Link>
 
-        {/* Divider */}
-        <div className="divider">
-          <span>Already have an account?</span>
+          <p className="auth-register-text mt-4 text-center">
+            <Link to="/pricing" className="auth-link-muted">
+              {t('auth.viewPricing')}
+            </Link>
+          </p>
         </div>
 
-        {/* Login Link */}
-        <Link to="/login" className="btn btn-secondary btn-full">
-          Login Here
-        </Link>
+        <AuthPageFooter showCopyright={false} />
       </div>
     </div>
   );

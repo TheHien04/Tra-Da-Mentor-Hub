@@ -29,11 +29,27 @@ function getEnvVar(key: string, required = true): string {
 
 // Build config object
 const env: EnvConfig = {
-  apiUrl: getEnvVar("API_URL", false) || "http://localhost:5000/api",
+  apiUrl:
+    getEnvVar("API_URL", false) ||
+    (import.meta.env.PROD ? "/api" : "http://localhost:5000/api"),
   appName: getEnvVar("APP_NAME", false) || "Trà Đá Mentor",
   appVersion: getEnvVar("APP_VERSION", false) || "1.0.0",
-  environment: (getEnvVar("ENVIRONMENT", false) as any) || "development",
-  logLevel: (getEnvVar("LOG_LEVEL", false) as any) || "info",
+  environment: (() => {
+    const v = getEnvVar("ENVIRONMENT", false) || "development";
+    return (["development", "staging", "production"] as const).includes(
+      v as "development" | "staging" | "production"
+    )
+      ? (v as EnvConfig["environment"])
+      : "development";
+  })(),
+  logLevel: (() => {
+    const v = getEnvVar("LOG_LEVEL", false) || "info";
+    return (["debug", "info", "warn", "error"] as const).includes(
+      v as "debug" | "info" | "warn" | "error"
+    )
+      ? (v as EnvConfig["logLevel"])
+      : "info";
+  })(),
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
 };

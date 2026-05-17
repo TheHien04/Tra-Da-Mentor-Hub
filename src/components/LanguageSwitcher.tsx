@@ -1,32 +1,33 @@
-// src/components/LanguageSwitcher.tsx
 import { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { FaGlobe, FaCheck } from 'react-icons/fa';
+import { HiOutlineCheck } from 'react-icons/hi2';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { normalizeLang } from '../i18n/utils';
 
 const languages = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-  { code: 'jp', name: '日本語', flag: '🇯🇵' },
-  { code: 'kr', name: '한국어', flag: '🇰🇷' },
-  { code: 'cn', name: '中文', flag: '🇨🇳' },
+  { code: 'en' as const, nameKey: 'language.en', flag: '🇬🇧' },
+  { code: 'vi' as const, nameKey: 'language.vi', flag: '🇻🇳' },
+  { code: 'jp' as const, nameKey: 'language.jp', flag: '🇯🇵' },
+  { code: 'kr' as const, nameKey: 'language.kr', flag: '🇰🇷' },
+  { code: 'cn' as const, nameKey: 'language.cn', flag: '🇨🇳' },
 ];
 
-export const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+interface LanguageSwitcherProps {
+  compact?: boolean;
+}
+
+export const LanguageSwitcher = ({ compact }: LanguageSwitcherProps) => {
+  const { t, i18n } = useAppTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const currentCode = normalizeLang(i18n.language);
+  const currentLanguage = languages.find((lang) => lang.code === currentCode) || languages[0];
 
-  const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
-
-  const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
+  const handleLanguageChange = async (langCode: string) => {
+    await i18n.changeLanguage(langCode);
     localStorage.setItem('i18nextLng', langCode);
     setIsOpen(false);
-    // Force page reload to apply language change everywhere
-    window.location.reload();
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -44,39 +45,47 @@ export const LanguageSwitcher = () => {
   }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className={`relative ${compact ? '' : 'flex-1'}`} ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 text-white transition-all duration-200"
-        title="Change Language"
+        className={`icon-btn gap-2 text-sm font-medium ${compact ? 'px-3 py-2' : 'px-3 py-2 w-full'}`}
+        title={t('language.change')}
+        aria-label={t('language.change')}
       >
-        <span className="text-lg">{currentLanguage.flag}</span>
-        <span className="text-xs font-semibold uppercase tracking-wide">
-          {currentLanguage.code}
-        </span>
+        <span className="text-lg leading-none">{currentLanguage.flag}</span>
+        <span className="text-xs font-semibold uppercase tracking-wide">{currentLanguage.code}</span>
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 animate-scale-in">
-          <div className="py-2">
-            {languages.map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 ${
-                  i18n.language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                }`}
-              >
-                <span className="text-2xl">{lang.flag}</span>
-                <span className={`flex-1 text-sm ${i18n.language === lang.code ? 'font-semibold' : 'font-medium'}`}>
-                  {lang.name}
-                </span>
-                {i18n.language === lang.code && (
-                  <FaCheck className="text-blue-600 flex-shrink-0" />
-                )}
-              </button>
-            ))}
+        <div
+          className={`absolute mb-2 modal-panel rounded-lg overflow-hidden z-50 animate-scale-in ${
+            compact ? 'right-0 bottom-full w-48' : 'bottom-full left-0 right-0'
+          }`}
+        >
+          <div className="py-1">
+            {languages.map((lang) => {
+              const active = currentCode === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => handleLanguageChange(lang.code)}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:opacity-90 ${
+                    active ? 'font-semibold' : 'text-secondary'
+                  }`}
+                  style={
+                    active
+                      ? { backgroundColor: 'var(--accent-subtle)', color: 'var(--accent-subtle-fg)' }
+                      : undefined
+                  }
+                >
+                  <span className="text-xl leading-none">{lang.flag}</span>
+                  <span className="flex-1">{t(lang.nameKey)}</span>
+                  {active && <HiOutlineCheck className="shrink-0 opacity-80 h-4 w-4" />}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

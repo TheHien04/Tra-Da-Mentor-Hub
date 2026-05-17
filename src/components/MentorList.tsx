@@ -1,21 +1,25 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 import { mentorApi } from '../services/api';
-import { FaUserTie } from 'react-icons/fa';
+import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { Alert } from './ui/Alert';
+import { HiOutlineAcademicCap } from 'react-icons/hi2';
 import Avatar from './Avatar';
 import Badge from './Badge';
 import TrackBadge from './TrackBadge';
 import SearchFilter from './SearchFilter';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
+import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, SkillTags } from './ui';
 
 interface Mentor {
   _id: string;
   name: string;
   email: string;
   phone?: string;
-  track?: 'tech' | 'economics' | 'marketing' | 'hr' | 'sales' | 'social' | 'business' | 'education' | 'startup' | 'design';
+  track?: string;
   expertise?: string[];
   mentees: string[];
   maxMentees?: number;
@@ -24,16 +28,31 @@ interface Mentor {
   duration?: string;
 }
 
+const TRACK_OPTIONS = [
+  { value: '', label: 'All fields' },
+  { value: 'tech', label: 'Technology' },
+  { value: 'economics', label: 'Economics' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'hr', label: 'Human Resources' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'business', label: 'Business' },
+  { value: 'education', label: 'Education' },
+  { value: 'startup', label: 'Startup' },
+  { value: 'design', label: 'Design' },
+];
+
 const MentorList = () => {
+  const { t } = useAppTranslation();
   const [mentors, setMentors] = useState<Mentor[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ active: true, full: false });
   const [advancedFilters, setAdvancedFilters] = useState({
+    track: '',
     mentorshipType: '',
     duration: '',
-    expertise: ''
+    expertise: '',
   });
 
   useEffect(() => {
@@ -41,10 +60,11 @@ const MentorList = () => {
       try {
         setLoading(true);
         const response = await mentorApi.getAll();
-        setMentors(response.data);
-        setLoading(false);
+        setMentors(unwrapList<Mentor>(response));
+        setError(null);
       } catch (err) {
-        setError('Failed to fetch mentors');
+        setError(getApiErrorMessage(err));
+      } finally {
         setLoading(false);
       }
     };
@@ -61,19 +81,20 @@ const MentorList = () => {
         );
 
       const isFull = (mentor.mentees?.length || 0) >= (mentor.maxMentees || 10);
-      const matchesFilter =
-        (filters.active && !isFull) || (filters.full && isFull);
+      const matchesFilter = (filters.active && !isFull) || (filters.full && isFull);
 
-      // Advanced filters
-      if (advancedFilters.mentorshipType && mentor.mentorshipType !== advancedFilters.mentorshipType) {
+      if (advancedFilters.track && mentor.track !== advancedFilters.track) return false;
+      if (advancedFilters.mentorshipType && mentor.mentorshipType !== advancedFilters.mentorshipType)
         return false;
-      }
-      if (advancedFilters.duration && mentor.duration !== advancedFilters.duration) {
+      if (advancedFilters.duration && mentor.duration !== advancedFilters.duration) return false;
+      if (
+        advancedFilters.expertise &&
+        (!mentor.expertise ||
+          !mentor.expertise.some((e) =>
+            e.toLowerCase().includes(advancedFilters.expertise.toLowerCase())
+          ))
+      )
         return false;
-      }
-      if (advancedFilters.expertise && (!mentor.expertise || !mentor.expertise.some(e => e.toLowerCase().includes(advancedFilters.expertise.toLowerCase())))) {
-        return false;
-      }
 
       return matchesSearch && matchesFilter;
     });
@@ -83,407 +104,176 @@ const MentorList = () => {
     const menteeCount = mentor.mentees?.length || 0;
     const maxMentees = mentor.maxMentees || 10;
     const isFull = menteeCount >= maxMentees;
-
-    if (isFull) {
-      return <Badge status="full" label={`Full (${menteeCount}/${maxMentees})`} />;
-    }
+    if (isFull) return <Badge status="full" label={`Full (${menteeCount}/${maxMentees})`} />;
     return <Badge status="active" label={`Active (${menteeCount}/${maxMentees})`} />;
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
-      try {
-        await mentorApi.delete(id);
-        setMentors(mentors.filter(m => m._id !== id));
-        alert('Mentor deleted successfully');
-      } catch (err) {
-        setError('Failed to delete mentor');
-      }
+    if (!window.confirm(`Delete ${name}?`)) return;
+    try {
+      await mentorApi.delete(id);
+      setMentors((prev) => prev.filter((m) => m._id !== id));
+    } catch {
+      setError('Failed to delete mentor');
     }
   };
 
+  const clearFilters = () =>
+    setAdvancedFilters({ track: '', mentorshipType: '', duration: '', expertise: '' });
+
   return (
-    <div style={{ width: '100%', padding: '2rem', minHeight: '100vh', background: '#f8f9fa' }}>
-      <div style={{ width: '100%' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '24px',
-            flexWrap: 'wrap',
-            gap: '16px'
-          }}
-        >
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>
-            <FaUserTie size={32} /> Manage Mentors
-          </h1>
-        <Link to="/mentors/add" className="btn btn-primary">
-          + Add New
-        </Link>
-      </div>
+    <PageShell>
+      <PageHeader
+        title={t('mentor.title')}
+        description={t('lists.mentorsShown', {
+          shown: filteredMentors.length,
+          total: mentors.length,
+        })}
+        icon={<HiOutlineAcademicCap className="h-7 w-7" />}
+        action={{ label: `+ ${t('mentor.addMentor')}`, href: '/mentors/add' }}
+      />
 
       <SearchFilter
         onSearch={setSearchQuery}
-        onFilter={(filters) => setFilters(filters as any)}
+        onFilter={(f) => setFilters(f as typeof filters)}
         filterOptions={[
-          { label: 'Active', value: 'active', checked: true },
-          { label: 'Full Capacity', value: 'full', checked: false }
+          { label: t('lists.filterActive'), value: 'active', checked: true },
+          { label: t('lists.filterFull'), value: 'full', checked: false },
         ]}
+        placeholder={t('lists.searchMentors')}
       />
 
-      {/* Advanced Filters */}
-      <div style={{
-        background: '#fff',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        marginTop: '1rem',
-        marginBottom: '2rem',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '1.5rem',
-        alignItems: 'start'
-      }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.75rem', color: '#333' }}>
-            Track / Field
-          </label>
+      <FilterPanel onClear={clearFilters}>
+        <FilterField label={t('lists.filterTrack')}>
           <select
+            className={filterSelectClass}
+            value={advancedFilters.track}
+            onChange={(e) => setAdvancedFilters({ ...advancedFilters, track: e.target.value })}
+          >
+            {TRACK_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+        <FilterField label={t('lists.filterMentorshipType')}>
+          <select
+            className={filterSelectClass}
             value={advancedFilters.mentorshipType}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, mentorshipType: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem'
-            }}
+            onChange={(e) =>
+              setAdvancedFilters({ ...advancedFilters, mentorshipType: e.target.value })
+            }
           >
-            <option value="">All Fields</option>
-            <option value="tech">💻 Technology</option>
-            <option value="economics">📊 Economics</option>
-            <option value="marketing">📢 Marketing</option>
-            <option value="hr">👥 Human Resources</option>
-            <option value="sales">💼 Sales</option>
-            <option value="social">🌍 Social Studies</option>
-            <option value="business">🏢 Business</option>
-            <option value="education">🎓 Education</option>
-            <option value="startup">🚀 Startup</option>
-            <option value="design">🎨 Design</option>
+            <option value="">{t('lists.allTypes')}</option>
+            <option value="GROUP">{t('lists.typeGroup')}</option>
+            <option value="ONE_ON_ONE">{t('lists.typeOneOnOne')}</option>
           </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: '600', marginBottom: '0.75rem', color: '#333' }}>
-            Mentorship Type
-          </label>
+        </FilterField>
+        <FilterField label={t('lists.filterDuration')}>
           <select
+            className={filterSelectClass}
             value={advancedFilters.duration}
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, duration: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem'
-            }}
           >
-            <option value="">All Types</option>
-            <option value="GROUP">👥 Group</option>
-            <option value="ONE_ON_ONE">👤 1:1</option>
+            <option value="">{t('lists.allDurations')}</option>
+            <option value="LONG_TERM">{t('lists.durationLong')}</option>
+            <option value="SHORT_TERM">{t('lists.durationShort')}</option>
           </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', color: '#333' }}>
-            Duration
-          </label>
-          <select
-            value={advancedFilters.duration}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, duration: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem'
-            }}
-          >
-            <option value="">All Durations</option>
-            <option value="LONG_TERM">🎯 Long-term</option>
-            <option value="SHORT_TERM">⚡ Short-term</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', color: '#333' }}>
-            Expertise
-          </label>
+        </FilterField>
+        <FilterField label={t('lists.filterExpertise')}>
           <input
             type="text"
-            placeholder="Search expertise..."
+            className={filterSelectClass}
+            placeholder={t('lists.expertisePlaceholder')}
             value={advancedFilters.expertise}
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, expertise: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem'
-            }}
           />
-        </div>
+        </FilterField>
+      </FilterPanel>
 
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button
-            onClick={() => {
-              setAdvancedFilters({
-                mentorshipType: '',
-                duration: '',
-                expertise: ''
-              });
-            }}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              background: '#f5f5f5',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ececec';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f5f5f5';
-            }}
-          >
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
+      {error && (
+        <Alert variant="error" title={t('common.loadError')} className="mb-4">
+          {error}
+        </Alert>
+      )}
 
       {loading ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '20px'
-          }}
-        >
-          {Array(6)
-            .fill(0)
-            .map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '20px',
-                  backgroundColor: '#fff',
-                  borderRadius: '12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}
-              >
-                <Skeleton count={3} height={16} />
-              </div>
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="card p-5">
+              <Skeleton count={3} />
+            </div>
+          ))}
         </div>
       ) : filteredMentors.length === 0 ? (
         <EmptyState
-          icon="👨‍🏫"
-          title="No Mentors Found"
-          description={searchQuery ? 'Try adjusting your search' : 'Start by adding your first mentor'}
-          actionLabel="+ Add Mentor"
-          onAction={() => window.location.href = '/mentors/add'}
+          title={t('lists.emptyMentorsTitle')}
+          description={
+            searchQuery ? t('lists.emptyMentorsSearch') : t('lists.emptyMentorsDefault')
+          }
+          actionLabel={`+ ${t('mentor.addMentor')}`}
+          actionHref="/mentors/add"
         />
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '20px'
-          }}
-        >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredMentors.map((mentor) => (
-            <div
-              key={mentor._id}
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: '12px',
-                padding: '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-              onMouseOver={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-                (e.currentTarget as HTMLElement).style.boxShadow =
-                  '0 8px 16px rgba(0,0,0,0.15)';
-              }}
-              onMouseOut={(e) => {
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                (e.currentTarget as HTMLElement).style.boxShadow =
-                  '0 2px 8px rgba(0,0,0,0.1)';
-              }}
-            >
-              {/* Header with avatar and badges */}
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', position: 'relative' }}>
+            <article key={mentor._id} className="card card-hover p-5 flex flex-col">
+              <div className="flex gap-4 mb-4">
                 <Avatar name={mentor.name} size="lg" />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'start', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                    <h3 style={{ margin: 0, color: '#1a1a1a', fontSize: '1.1rem', fontWeight: '700', flex: '1 0 100%' }}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <h3 className="text-base font-semibold text-primary truncate">
                       {mentor.name}
                     </h3>
-                    <TrackBadge track={mentor.track} size="small" />
-                    {(mentor.mentees?.length || 0) >= (mentor.maxMentees || 10) && (
-                      <span style={{
-                        background: '#ffd700',
-                        color: '#1a1a1a',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: '700',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        ⭐ TOP
-                      </span>
-                    )}
+                    {mentor.track && <TrackBadge track={mentor.track as any} size="small" />}
                   </div>
-                  <p
-                    style={{
-                      margin: '0 0 0.5rem 0',
-                      fontSize: '0.85rem',
-                      color: '#666'
-                    }}
-                  >
-                    {mentor.email}
-                  </p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
-                    <span style={{ color: '#f39c12', fontSize: '1rem' }}>⭐⭐⭐⭐⭐</span>
-                    <span style={{ fontSize: '0.8rem', color: '#999' }}>5.0 (12 reviews)</span>
-                  </div>
+                  <p className="text-sm text-muted truncate">{mentor.email}</p>
                 </div>
               </div>
-
-              {/* Status badge */}
-              <div style={{ marginBottom: '12px' }}>
-                {getStatusBadge(mentor)}
-              </div>
-
-              {/* Stats Row */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '0.75rem',
-                marginBottom: '1rem',
-                padding: '1rem',
-                background: 'linear-gradient(135deg, rgba(10, 75, 57, 0.05) 0%, rgba(10, 75, 57, 0.02) 100%)',
-                borderRadius: '8px',
-                border: '1px solid rgba(10, 75, 57, 0.1)'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.25rem 0', fontSize: '1.3rem', fontWeight: '700', color: '#0a4b39' }}>
+              <div className="mb-3">{getStatusBadge(mentor)}</div>
+              <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-lg surface-muted">
+                <div className="text-center">
+                  <p className="text-xl font-semibold tabular-nums text-primary">
                     {mentor.mentees?.length || 0}
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#666' }}>Mentees</p>
+                  <p className="text-xs text-muted">Mentees</p>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ margin: '0 0 0.25rem 0', fontSize: '1.3rem', fontWeight: '700', color: '#27ae60' }}>
-                    87%
+                <div className="text-center">
+                  <p className="text-xl font-semibold tabular-nums text-primary">
+                    {mentor.maxMentees || 10}
                   </p>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#666' }}>Success Rate</p>
+                  <p className="text-xs text-muted">Capacity</p>
                 </div>
               </div>
-
-              {/* Bio */}
               {mentor.bio && (
-                <p
-                  style={{
-                    fontSize: '0.9rem',
-                    color: '#555',
-                    margin: '0 0 12px 0',
-                    lineHeight: '1.4'
-                  }}
-                >
-                  {mentor.bio}
-                </p>
+                <p className="text-sm text-secondary line-clamp-2 mb-3">{mentor.bio}</p>
               )}
-
-              {/* Skills */}
               {mentor.expertise && mentor.expertise.length > 0 && (
-                <div style={{ marginBottom: '12px' }}>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: '700', color: '#1a1a1a' }}>
-                    🎯 Expertise:
-                  </p>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '6px',
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    {mentor.expertise.map((skill, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          background: `linear-gradient(135deg, ${['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a'][i % 5]}, ${['#764ba2', '#f5576c', '#00f2fe', '#38f9d7', '#f5a623'][i % 5]})`,
-                          color: '#fff',
-                          padding: '0.4rem 0.8rem',
-                          borderRadius: '8px',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          boxShadow: `0 2px 8px ${['#667eea', '#f093fb', '#4facfe', '#43e97b', '#fa709a'][i % 5]}40`
-                        }}
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
+                <div className="mb-4">
+                  <SkillTags skills={mentor.expertise} />
                 </div>
               )}
-
-              {/* Contact */}
               {mentor.phone && (
-                <p style={{ fontSize: '0.85rem', color: '#666', margin: '0 0 12px 0' }}>
-                  📞 {mentor.phone}
-                </p>
+                <p className="text-xs text-muted mb-4">{mentor.phone}</p>
               )}
-
-              {/* Actions */}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '8px',
-                  marginTop: 'auto'
-                }}
-              >
-                <Link
-                  to={`/mentors/${mentor._id}`}
-                  className="btn btn-secondary"
-                  style={{ flex: 1, textAlign: 'center' }}
-                >
-                  Details
+              <div className="flex gap-2 mt-auto pt-2">
+                <Link to={`/mentors/${mentor._id}`} className="btn btn-secondary flex-1">
+                  {t('mentor.viewDetails')}
                 </Link>
                 <button
-                  className="btn btn-danger"
-                  style={{ flex: 1 }}
+                  type="button"
+                  className="btn btn-danger flex-1"
                   onClick={() => handleDelete(mentor._id, mentor.name)}
                 >
                   Delete
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
-      </div>
-    </div>
+    </PageShell>
   );
 };
 

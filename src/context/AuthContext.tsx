@@ -14,8 +14,10 @@ import {
   clearAuthData,
   getStoredAccessToken,
   getStoredUserData,
+  getProfile,
 } from '../services/authService';
 import type { LoginRequest, RegisterRequest } from '../services/authService';
+import { normalizeAuthUser } from '../lib/authUser';
 
 // ============ TYPES ============
 
@@ -44,6 +46,11 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   clearError: () => void;
   restoreSession: () => Promise<void>;
+  completeOAuthLogin: (payload: {
+    user: AuthUser;
+    accessToken: string;
+    refreshToken: string;
+  }) => void;
 }
 
 // ============ CONTEXT ============
@@ -131,13 +138,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
-      console.log('🚀 AuthContext: Calling login API...');
       const response = await loginApi(credentials);
-      console.log('✅ AuthContext: Login API response:', response);
 
-      const { user, accessToken, refreshToken } = response.data;
+      const { user: rawUser, accessToken, refreshToken } = response.data;
+      const user = normalizeAuthUser(rawUser as Record<string, unknown>);
 
-      // Store tokens and user data
       storeAuthTokens(accessToken, refreshToken);
       storeUserData(user);
 
@@ -145,10 +150,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'LOGIN_SUCCESS',
         payload: { user, accessToken, refreshToken },
       });
-      console.log('✅ AuthContext: Login successful, user stored');
-    } catch (error: any) {
-      console.error('❌ AuthContext: Login error:', error);
-      const errorMessage = error.message || error.response?.data?.message || 'Login failed';
+    } catch (error: unknown) {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      const errorMessage = err.message || err.response?.data?.message || 'Login failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
@@ -161,9 +165,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await registerApi(userData);
 
-      const { user, accessToken, refreshToken } = response.data;
+      const { user: rawUser, accessToken, refreshToken } = response.data;
+      const user = normalizeAuthUser(rawUser as Record<string, unknown>);
 
-      // Store tokens and user data
       storeAuthTokens(accessToken, refreshToken);
       storeUserData(user);
 
@@ -171,8 +175,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'REGISTER_SUCCESS',
         payload: { user, accessToken, refreshToken },
       });
-    } catch (error: any) {
-      const errorMessage = error.message || 'Registration failed';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
@@ -199,25 +203,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
 
-  // Restore session from localStorage on app load
+  const completeOAuthLogin = useCallback(
+    (payload: { user: AuthUser; accessToken: string; refreshToken: string }) => {
+      storeAuthTokens(payload.accessToken, payload.refreshToken);
+      storeUserData(payload.user);
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          user: payload.user,
+          accessToken: payload.accessToken,
+          refreshToken: payload.refreshToken,
+        },
+      });
+    },
+    []
+  );
+
   const restoreSession = useCallback(async () => {
     const accessToken = getStoredAccessToken();
     const userData = getStoredUserData();
 
     if (accessToken && userData) {
       try {
-        // Optionally verify token is still valid by fetching profile
-        // const profile = await getProfile();
-        // This would require the token to still be valid
+        let user = normalizeAuthUser(userData as Record<string, unknown>);
+        try {
+          const profileRes = await getProfile();
+          const profile =
+            (profileRes as { data?: { data?: Record<string, unknown> } })?.data?.data ??
+            (profileRes as { data?: Record<string, unknown> })?.data ??
+            profileRes;
+          if (profile && typeof profile === 'object') {
+            user = normalizeAuthUser({ ...user, ...profile } as Record<string, unknown>);
+            storeUserData(user);
+          }
+        } catch {
+          // use stored user if profile fetch fails
+        }
 
         dispatch({
           type: 'RESTORE_SESSION',
           payload: {
-            user: userData,
+            user,
             accessToken,
           },
         });
-      } catch (error) {
+      } catch {
         // Token might be expired, clear auth data
         clearAuthData();
         dispatch({ type: 'LOGOUT_SUCCESS' });
@@ -237,6 +267,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     clearError,
     restoreSession,
+    completeOAuthLogin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

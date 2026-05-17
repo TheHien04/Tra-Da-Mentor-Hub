@@ -1,8 +1,11 @@
 {
   "name": "tra-da-mentor",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -12,12 +15,26 @@
     "dev:server": "nodemon backend/server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "seed": "node backend/scripts/seed.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:unit": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js backend/__tests__/utils.test.js backend/__tests__/stores.test.js backend/__tests__/security.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
+    "merge:locales": "node scripts/merge-locales.mjs",
+    "start": "NODE_ENV=production node backend/server.js",
+    "start:prod": "npm run build && npm run start",
+    "verify:env": "node scripts/verify-production-env.mjs",
+    "setup:deploy": "node scripts/setup-production.mjs",
+    "deploy:prep": "node scripts/deploy-prep.mjs",
+    "check:secrets": "node scripts/check-secrets-not-tracked.mjs",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
+    "@sentry/node": "^10.53.1",
+    "@sentry/react": "^10.53.1",
     "@stripe/stripe-js": "^8.7.0",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.3",
@@ -53,6 +70,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/forms": "^0.5.11",
     "@types/jest": "^30.0.0",
     "@types/react": "^19.1.2",

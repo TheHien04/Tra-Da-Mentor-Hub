@@ -1,11 +1,13 @@
-// src/pages/VerifyEmailPage.tsx
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import api from '../services/api';
-import './VerifyEmailPage.css';
+import { authApi } from '../services/api';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { AuthPageFooter } from '../components/AuthPageFooter';
+import './AuthPage.css';
 
 export const VerifyEmailPage = () => {
+  const { t } = useAppTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -17,68 +19,78 @@ export const VerifyEmailPage = () => {
 
       if (!token) {
         setStatus('error');
-        setMessage('Invalid verification link');
+        setMessage(t('pages.verifyEmail.invalidLink'));
         return;
       }
 
       try {
-        const response = await api.get(`/auth/verify-email/${token}`);
+        const response = await authApi.verifyEmail(token);
         setStatus('success');
-        setMessage(response.data.message);
-        toast.success('Email verified successfully!');
-        
-        // Redirect to login after 3 seconds
+        setMessage(response.data.message || t('pages.verifyEmail.success'));
+        toast.success(t('pages.verifyEmail.successToast'));
+
         setTimeout(() => {
           navigate('/login');
         }, 3000);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const err = error as { response?: { data?: { message?: string } } };
         setStatus('error');
-        setMessage(error.response?.data?.message || 'Email verification failed');
-        toast.error('Verification failed');
+        setMessage(err.response?.data?.message || t('pages.verifyEmail.failed'));
+        toast.error(t('pages.verifyEmail.failedToast'));
       }
     };
 
     verifyEmail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per token
   }, [searchParams, navigate]);
 
   return (
-    <div className="verify-email-page">
-      <div className="verify-email-container">
-        {status === 'loading' && (
-          <>
-            <div className="spinner"></div>
-            <h2>Verifying your email...</h2>
-            <p>Please wait while we confirm your email address.</p>
-          </>
-        )}
+    <div className="auth-page">
+      <div className="auth-shell">
+        <div className="auth-card text-center">
+          {status === 'loading' && (
+            <>
+              <div className="auth-status-icon auth-status-icon--loading" aria-label={t('common.loading')} />
+              <h1 className="auth-title">{t('pages.verifyEmail.verifying')}</h1>
+              <p className="auth-subtitle">{t('pages.verifyEmail.pleaseWait')}</p>
+            </>
+          )}
 
-        {status === 'success' && (
-          <>
-            <div className="success-icon">✓</div>
-            <h2>Email Verified!</h2>
-            <p>{message}</p>
-            <p className="redirect-text">Redirecting to login page...</p>
-            <Link to="/login" className="btn btn-primary">
-              Go to Login
-            </Link>
-          </>
-        )}
+          {status === 'success' && (
+            <>
+              <div className="auth-status-icon auth-status-icon--success" aria-hidden>
+                ✓
+              </div>
+              <h1 className="auth-title">{t('pages.verifyEmail.verifiedTitle')}</h1>
+              <p className="auth-subtitle">{message}</p>
+              <p className="auth-note">{t('pages.verifyEmail.redirecting')}</p>
+              <div className="auth-actions">
+                <Link to="/login" className="btn btn-primary w-full">
+                  {t('pages.verifyEmail.goToLogin')}
+                </Link>
+              </div>
+            </>
+          )}
 
-        {status === 'error' && (
-          <>
-            <div className="error-icon">✗</div>
-            <h2>Verification Failed</h2>
-            <p>{message}</p>
-            <div className="action-links">
-              <Link to="/login" className="btn btn-secondary">
-                Back to Login
-              </Link>
-              <Link to="/resend-verification" className="btn btn-primary">
-                Resend Verification
-              </Link>
-            </div>
-          </>
-        )}
+          {status === 'error' && (
+            <>
+              <div className="auth-status-icon auth-status-icon--error" aria-hidden>
+                ✗
+              </div>
+              <h1 className="auth-title">{t('pages.verifyEmail.verificationFailed')}</h1>
+              <p className="auth-subtitle">{message}</p>
+              <div className="auth-actions-row">
+                <Link to="/login" className="btn btn-secondary">
+                  {t('auth.backToLogin')}
+                </Link>
+                <Link to="/register" className="btn btn-primary">
+                  {t('pages.verifyEmail.resendVerification')}
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+        <AuthPageFooter showCopyright={false} />
       </div>
     </div>
   );

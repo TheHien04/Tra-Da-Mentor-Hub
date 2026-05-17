@@ -1,43 +1,44 @@
 /**
  * Unauthorized Page
- * Displayed when user doesn't have required role for a page
  */
 
 import { useNavigate } from 'react-router-dom';
+import { HiOutlineShieldExclamation } from 'react-icons/hi2';
 import { useAuth } from '../hooks/useAuth';
-import './UnauthorizedPage.css';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import './AuthPage.css';
 
 export function UnauthorizedPage() {
   const navigate = useNavigate();
   const { state } = useAuth();
+  const { t } = useAppTranslation();
 
   return (
-    <div className="unauthorized-container">
+    <div className="unauthorized-page">
       <div className="unauthorized-card">
-        <div className="unauthorized-icon">🔒</div>
-        <h1>Access Denied</h1>
-        <p className="unauthorized-message">
-          You don't have permission to access this page.
-        </p>
+        <div className="auth-status-icon auth-status-icon--error mx-auto" aria-hidden>
+          <HiOutlineShieldExclamation className="h-8 w-8" />
+        </div>
+        <h1 className="auth-title mt-4">{t('pages.unauthorized.title')}</h1>
+        <p className="auth-subtitle">{t('pages.unauthorized.message')}</p>
         <div className="unauthorized-details">
-          <p>
-            Your current role: <strong>{state.user?.role || 'None'}</strong>
-          </p>
-          <p>If you believe this is incorrect, please contact support.</p>
+          <p>{t('pages.unauthorized.currentRole', { role: state.user?.role || '—' })}</p>
+          <p>{t('pages.unauthorized.contactSupport')}</p>
         </div>
         <div className="unauthorized-actions">
-          <button className="btn-back" onClick={() => navigate('/')}>
-            ← Back to Home
+          <button type="button" className="btn btn-secondary w-full" onClick={() => navigate('/')}>
+            ← {t('pages.unauthorized.backHome')}
           </button>
-          <button 
-            className="btn-dashboard" 
+          <button
+            type="button"
+            className="btn btn-primary w-full"
             onClick={() => {
               if (state.user?.role === 'mentor') navigate('/mentors');
               else if (state.user?.role === 'mentee') navigate('/mentees');
-              else navigate('/dashboard');
+              else navigate('/');
             }}
           >
-            Go to Dashboard →
+            {t('pages.unauthorized.goDashboard')} →
           </button>
         </div>
       </div>

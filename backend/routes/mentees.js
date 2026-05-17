@@ -1,368 +1,91 @@
 import express from 'express';
 import { validateMentee } from '../middleware/validation.js';
+import {
+  listMentees,
+  getMenteeById,
+  createMentee,
+  updateMentee,
+  updateMenteeApplicationStatus,
+  deleteMentee,
+  APPLICATION_STATUSES,
+} from '../services/menteeStore.js';
+
 const router = express.Router();
 
-// 🔹 Mock data - Vietnamese students from universities, international universities, and high schools
-let mockMentees = [
-  // VIETNAM - Year 1 & 2 Students
-  {
-    _id: '101',
-    name: 'Hoàng Minh Đức',
-    email: 'minh.hoang@hust.edu.vn',
-    phone: '0912345001',
-    track: 'tech',
-    school: 'Hanoi University of Science and Technology (HUST) - Year 1',
-    interests: ['React', 'Frontend', 'Web Design'],
-    progress: 25,
-    mentorId: 'm1',
-    groupId: '201',
-    mentorshipType: 'GROUP',
-    applicationStatus: 'pending',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '102',
-    name: 'Trần Thị Nhi',
-    email: 'thi.nhi@hue.edu.vn',
-    phone: '0912345002',
-    track: 'tech',
-    school: 'University of Sciences, Hue - Year 2',
-    interests: ['Node.js', 'Backend', 'Database Design'],
-    progress: 45,
-    mentorId: 'm2',
-    groupId: '202',
-    mentorshipType: 'GROUP',
-    applicationStatus: 'pending',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '104',
-    name: 'Lê Thị Hương',
-    email: 'huong.le@uef.edu.vn',
-    phone: '0912345004',
-    track: 'economics',
-    school: 'University of Economics - HCMC - Year 1',
-    interests: ['Data Analysis', 'Business Analytics', 'Python'],
-    progress: 30,
-    mentorId: 'm9',
-    groupId: null,
-    mentorshipType: 'ONE_ON_ONE',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '107',
-    name: 'Đỗ Minh Khôi',
-    email: 'minh.khoi@apcs.hcmus.edu.vn',
-    phone: '0912345007',
-    track: 'tech',
-    school: 'Ho Chi Minh City University of Science - APCS - Year 1',
-    interests: ['Web Development', 'JavaScript', 'HTML/CSS'],
-    progress: 28,
-    mentorId: 'm2',
-    groupId: '202',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '111',
-    name: 'Phạm Quang Huy',
-    email: 'quang.huy@fpt.edu.vn',
-    phone: '0912345011',
-    track: 'design',
-    school: 'FPT University - Year 2',
-    interests: ['Mobile App Development', 'Flutter', 'UI/UX'],
-    progress: 38,
-    mentorId: 'm3',
-    groupId: '201',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '112',
-    name: 'Nguyễn Thúy Vy',
-    email: 'thuy.vy@tnu.edu.vn',
-    phone: '0912345012',
-    track: 'marketing',
-    school: 'Thai Nguyen University - Year 1',
-    interests: ['Java Programming', 'OOP', 'Spring Boot Basics'],
-    progress: 22,
-    mentorId: 'm5',
-    groupId: null,
-    mentorshipType: 'ONE_ON_ONE',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-
-  // INTERNATIONAL - Year 1 & 2 Students (Mid-tier Universities)
-  {
-    _id: '105',
-    name: 'Phạm Đức Thắng',
-    email: 'duc.thang.2024@up.edu.ph',
-    phone: '0912345005',
-    track: 'tech',
-    school: 'University of the Philippines - Year 1',
-    interests: ['Python', 'Data Structures', 'Problem Solving'],
-    progress: 32,
-    mentorId: 'm6',
-    groupId: '203',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '106',
-    name: 'Vũ Thanh Hà',
-    email: 'thanh.ha.2023@ui.ac.id',
-    phone: '0912345006',
-    track: 'business',
-    school: 'University of Indonesia - Year 2',
-    interests: ['Web Development', 'JavaScript', 'MySQL'],
-    progress: 40,
-    mentorId: 'm4',
-    groupId: '203',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '108',
-    name: 'Trần Quỳnh Như',
-    email: 'quynh.nhu.2024@um.edu.my',
-    phone: '0912345008',
-    track: 'design',
-    school: 'University of Malaya - Year 1',
-    interests: ['UI/UX Design', 'Web Design', 'Figma'],
-    progress: 26,
-    mentorId: 'm3',
-    groupId: null,
-    mentorshipType: 'ONE_ON_ONE',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '110',
-    name: 'Bùi Đức Mạnh',
-    email: 'duc.manh@rmit.edu.vn',
-    phone: '0912345010',
-    track: 'tech',
-    school: 'RMIT University Vietnam - Year 2',
-    interests: ['Software Engineering', 'Agile', 'Team Collaboration'],
-    progress: 35,
-    mentorId: 'm2',
-    groupId: null,
-    mentorshipType: 'ONE_ON_ONE',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '113',
-    name: 'Trần Lan Anh',
-    email: 'lan.anh.2024@dlsu.edu.ph',
-    phone: '0912345013',
-    track: 'sales',
-    school: 'De La Salle University - Year 1',
-    interests: ['Web Development', 'HTML/CSS', 'JavaScript'],
-    progress: 24,
-    mentorId: 'm10',
-    groupId: '201',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '114',
-    name: 'Lý Khánh Nam',
-    email: 'khanh.nam.2023@binus.ac.id',
-    phone: '0912345014',
-    track: 'hr',
-    school: 'Bina Nusantara University - Year 2',
-    interests: ['Backend Development', 'Node.js', 'Express.js'],
-    progress: 42,
-    mentorId: 'm7',
-    groupId: '202',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '115',
-    name: 'Nguyễn Văn Sơn',
-    email: 'vansont@student.hust.edu.vn',
-    phone: '0912345015',
-    track: 'startup',
-    school: 'Hanoi University of Science and Technology - Year 2',
-    interests: ['Entrepreneurship', 'Business Model', 'Fundraising'],
-    progress: 35,
-    mentorId: 'm8',
-    groupId: null,
-    mentorshipType: 'ONE_ON_ONE',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '116',
-    name: 'Phan Thị Mai',
-    email: 'thaimaip@student.edu.vn',
-    phone: '0912345016',
-    track: 'education',
-    school: 'Pedagogical University - Year 1',
-    interests: ['Teaching Methods', 'Educational Technology', 'Student Development'],
-    progress: 28,
-    mentorId: 'm11',
-    groupId: '201',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '117',
-    name: 'Lê Quốc Hải',
-    email: 'quochail@student.hcmus.edu.vn',
-    phone: '0912345017',
-    track: 'social',
-    school: 'University of Social Sciences and Humanities - Year 2',
-    interests: ['Social Research', 'Community Development', 'Policy Analysis'],
-    progress: 31,
-    mentorId: 'm12',
-    groupId: '202',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '118',
-    name: 'Trương Minh Hiệu',
-    email: 'minhhieuu@student.fpt.edu.vn',
-    phone: '0912345018',
-    track: 'tech',
-    school: 'FPT University - Year 1',
-    interests: ['Mobile Development', 'Swift', 'iOS Development'],
-    progress: 20,
-    mentorId: 'm1',
-    groupId: '201',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '119',
-    name: 'Võ Thị Thanh Tâm',
-    email: 'thanhtamm@student.ufm.edu.vn',
-    phone: '0912345019',
-    track: 'business',
-    school: 'University of Finance and Marketing - Year 1',
-    interests: ['Business Analysis', 'Strategic Planning', 'Market Research'],
-    progress: 27,
-    mentorId: 'm4',
-    groupId: null,
-    mentorshipType: 'ONE_ON_ONE',
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '120',
-    name: 'Đặng Thanh Tùng',
-    email: 'thanhtungg@student.vnu.edu.vn',
-    phone: '0912345020',
-    track: 'economics',
-    school: 'Vietnam National University - Year 2',
-    interests: ['Economic Analysis', 'Financial Modeling', 'Market Trends'],
-    progress: 44,
-    mentorId: 'm9',
-    groupId: '203',
-    mentorshipType: 'GROUP',
-    createdAt: new Date(),
-    updatedAt: new Date()
+router.get('/', async (req, res, next) => {
+  try {
+    res.json(await listMentees());
+  } catch (e) {
+    next(e);
   }
-];
-
-const APPLICATION_STATUSES = ['pending', 'invited_for_interview', 'interviewed', 'accepted', 'rejected'];
-
-// GET all mentees (đảm bảo mỗi mentee có applicationStatus)
-router.get('/', (req, res) => {
-  const list = mockMentees.map(m => ({ ...m, applicationStatus: m.applicationStatus || 'pending' }));
-  res.json(list);
 });
 
-// POST create mentee
-router.post('/', validateMentee, (req, res) => {
-  const newMentee = {
-    _id: Date.now().toString(),
-    ...req.body,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-  mockMentees.push(newMentee);
-  res.status(201).json(newMentee);
-});
-
-// GET mentee by ID
-router.get('/:id', (req, res) => {
-  const mentee = mockMentees.find(m => m._id === req.params.id);
-  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
-  res.json({ ...mentee, applicationStatus: mentee.applicationStatus || 'pending' });
-});
-
-// PATCH chỉ cập nhật applicationStatus (matching flow)
-router.patch('/:id/application-status', (req, res) => {
-  const { applicationStatus } = req.body;
-  if (!applicationStatus || !APPLICATION_STATUSES.includes(applicationStatus)) {
-    return res.status(400).json({ message: 'applicationStatus phải là: ' + APPLICATION_STATUSES.join(', ') });
+router.post('/', validateMentee, async (req, res, next) => {
+  try {
+    const mentee = await createMentee(req.body);
+    res.status(201).json(mentee);
+  } catch (e) {
+    next(e);
   }
-  const mentee = mockMentees.find(m => m._id === req.params.id);
-  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
-  mentee.applicationStatus = applicationStatus;
-  mentee.updatedAt = new Date();
-  res.json(mentee);
 });
 
-// PUT - Update mentee
-router.put('/:id', validateMentee, (req, res) => {
-  const mentee = mockMentees.find(m => m._id === req.params.id);
-  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
-  
-  const updatedMentee = {
-    ...mentee,
-    ...req.body,
-    _id: mentee._id,
-    createdAt: mentee.createdAt,
-    updatedAt: new Date()
-  };
-  
-  const index = mockMentees.findIndex(m => m._id === req.params.id);
-  mockMentees[index] = updatedMentee;
-  res.json(updatedMentee);
+router.get('/:id', async (req, res, next) => {
+  try {
+    const mentee = await getMenteeById(req.params.id);
+    if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+    res.json(mentee);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// PATCH - Partial update mentee
-router.patch('/:id', validateMentee, (req, res) => {
-  const mentee = mockMentees.find(m => m._id === req.params.id);
-  if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
-  
-  const updatedMentee = {
-    ...mentee,
-    ...req.body,
-    _id: mentee._id,
-    createdAt: mentee.createdAt,
-    updatedAt: new Date()
-  };
-  
-  const index = mockMentees.findIndex(m => m._id === req.params.id);
-  mockMentees[index] = updatedMentee;
-  res.json(updatedMentee);
+router.patch('/:id/application-status', async (req, res, next) => {
+  try {
+    const { applicationStatus } = req.body;
+    if (!applicationStatus || !APPLICATION_STATUSES.includes(applicationStatus)) {
+      return res.status(400).json({
+        message: 'applicationStatus phải là: ' + APPLICATION_STATUSES.join(', '),
+      });
+    }
+    const result = await updateMenteeApplicationStatus(req.params.id, applicationStatus);
+    if (result?.error === 'invalid_status') {
+      return res.status(400).json({ message: 'applicationStatus không hợp lệ' });
+    }
+    if (!result) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// DELETE mentee
-router.delete('/:id', (req, res) => {
-  const index = mockMentees.findIndex(m => m._id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy mentee' });
-  mockMentees.splice(index, 1);
-  res.json({ message: 'Đã xóa mentee' });
+router.put('/:id', validateMentee, async (req, res, next) => {
+  try {
+    const mentee = await updateMentee(req.params.id, req.body, { replace: true });
+    if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+    res.json(mentee);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.patch('/:id', validateMentee, async (req, res, next) => {
+  try {
+    const mentee = await updateMentee(req.params.id, req.body);
+    if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+    res.json(mentee);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const mentee = await deleteMentee(req.params.id);
+    if (!mentee) return res.status(404).json({ message: 'Không tìm thấy mentee' });
+    res.json({ message: 'Đã xóa mentee' });
+  } catch (e) {
+    next(e);
+  }
 });
 
 export default router;

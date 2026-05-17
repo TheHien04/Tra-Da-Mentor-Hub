@@ -1,57 +1,22 @@
 import { Link } from 'react-router-dom';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import { HiOutlineExclamationTriangle, HiOutlineHome } from 'react-icons/hi2';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 
 const NotFound = () => {
+  const { t } = useAppTranslation();
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{
-        textAlign: 'center',
-        background: '#fff',
-        padding: '3rem',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        maxWidth: '500px'
-      }}>
-        <FaExclamationTriangle size={64} style={{ color: '#f39c12', marginBottom: '1.5rem' }} />
-        <h1 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#1a1a1a', margin: '0 0 0.5rem 0' }}>
-          404
-        </h1>
-        <h2 style={{ fontSize: '1.5rem', color: '#666', margin: '0 0 1.5rem 0' }}>
-          Page not found
-        </h2>
-        <p style={{ color: '#999', marginBottom: '2rem', lineHeight: '1.6' }}>
-          Sorry, the page you are looking for does not exist or has been moved.
-        </p>
-        <Link
-          to="/"
-          style={{
-            display: 'inline-block',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: '#fff',
-            padding: '0.75rem 2rem',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontWeight: '600',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
-          }}
-        >
-          ← Back to home
+    <div className="min-h-[70vh] flex items-center justify-center p-6">
+      <div className="card max-w-md w-full p-8 text-center">
+        <span className="icon-chip mx-auto mb-4 h-14 w-14">
+          <HiOutlineExclamationTriangle className="h-7 w-7 text-amber-500" />
+        </span>
+        <h1 className="text-4xl font-bold text-primary mb-1">{t('pages.notFound.title')}</h1>
+        <h2 className="text-lg text-secondary mb-3">{t('pages.notFound.heading')}</h2>
+        <p className="text-sm text-muted mb-6">{t('pages.notFound.message')}</p>
+        <Link to="/" className="btn btn-primary inline-flex items-center gap-2">
+          <HiOutlineHome className="h-4 w-4" />
+          {t('pages.notFound.home')}
         </Link>
       </div>
     </div>

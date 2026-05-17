@@ -1,11 +1,14 @@
-// src/pages/ForgotPasswordPage.tsx
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { HiOutlineLockClosed } from 'react-icons/hi2';
 import { toast } from 'react-toastify';
-import api from '../services/api';
-import './ForgotPasswordPage.css';
+import { authApi } from '../services/api';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { AuthPageFooter } from '../components/AuthPageFooter';
+import './AuthPage.css';
 
 export const ForgotPasswordPage = () => {
+  const { t } = useAppTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -14,73 +17,87 @@ export const ForgotPasswordPage = () => {
     e.preventDefault();
 
     if (!email) {
-      toast.error('Please enter your email address');
+      toast.error(t('pages.forgotPassword.enterEmail'));
       return;
     }
 
     setLoading(true);
 
     try {
-      await api.post('/auth/forgot-password', { email });
+      await authApi.forgotPassword(email);
       setSubmitted(true);
-      toast.success('Password reset email sent!');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to send reset email');
+      toast.success(t('pages.forgotPassword.success'));
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || t('pages.forgotPassword.failed'));
     } finally {
       setLoading(false);
     }
   };
 
-  if (submitted) {
-    return (
-      <div className="forgot-password-page">
-        <div className="forgot-password-container">
-          <div className="success-icon">✓</div>
-          <h2>Check Your Email</h2>
-          <p>
-            If an account exists with <strong>{email}</strong>, you'll receive a password reset link shortly.
-          </p>
-          <p className="note">The link will expire in 1 hour.</p>
-          <div className="action-links">
-            <Link to="/login" className="btn btn-primary">
-              Back to Login
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="forgot-password-page">
-      <div className="forgot-password-container">
-        <div className="header-icon">🔒</div>
-        <h2>Forgot Password?</h2>
-        <p>Enter your email address and we'll send you a link to reset your password.</p>
+    <div className="auth-page">
+      <div className="auth-shell">
+        <div className="auth-card">
+          {submitted ? (
+            <>
+              <div className="auth-status-icon auth-status-icon--success" aria-hidden>
+                ✓
+              </div>
+              <h1 className="auth-title">{t('pages.forgotPassword.checkEmail')}</h1>
+              <p className="auth-subtitle">{t('pages.forgotPassword.sentTo', { email })}</p>
+              <p className="auth-note">{t('pages.forgotPassword.expires')}</p>
+              <div className="auth-actions">
+                <Link to="/login" className="btn btn-primary w-full">
+                  {t('auth.backToLogin')}
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center mb-8">
+                <div className="auth-icon">
+                  <HiOutlineLockClosed className="h-7 w-7" aria-hidden />
+                </div>
+                <h1 className="auth-title">{t('pages.forgotPassword.title')}</h1>
+                <p className="auth-subtitle">{t('pages.forgotPassword.subtitle')}</p>
+              </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
-              required
-            />
-          </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-secondary mb-2">
+                    {t('auth.email')}
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                    className="input"
+                    required
+                  />
+                </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Sending...' : 'Send Reset Link'}
-          </button>
-        </form>
+                <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+                  {loading ? t('pages.forgotPassword.sending') : t('auth.sendResetLink')}
+                </button>
+              </form>
 
-        <div className="footer-links">
-          <Link to="/login">← Back to Login</Link>
-          <span className="separator">•</span>
-          <Link to="/register">Create Account</Link>
+              <p className="auth-register-text mt-6 text-center">
+                <Link to="/login" className="auth-link-muted">
+                  ← {t('auth.backToLogin')}
+                </Link>
+                <span className="mx-2 text-muted">·</span>
+                <Link to="/register" className="auth-register-link">
+                  {t('auth.createAccount')}
+                </Link>
+              </p>
+            </>
+          )}
         </div>
+        <AuthPageFooter showCopyright={false} />
       </div>
     </div>
   );

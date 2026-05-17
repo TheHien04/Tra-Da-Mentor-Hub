@@ -5,6 +5,18 @@
 
 import axios from 'axios';
 import env from '../config/env';
+import type { AuthUser } from '../types/auth';
+import {
+  clearAuthTokens,
+  getAccessToken,
+  getRefreshToken,
+  getStoredUserRaw,
+  migrateLegacyTokenStorage,
+  setAuthTokens,
+  setStoredUser,
+} from '../lib/secureStorage';
+
+migrateLegacyTokenStorage();
 
 export interface LoginRequest {
   email: string;
@@ -39,62 +51,47 @@ export interface RefreshTokenRequest {
   refreshToken: string;
 }
 
-// Create axios instance with base URL
 const apiClient = axios.create({
   baseURL: env.apiUrl,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Send cookies with requests
-  timeout: 30000, // 30 seconds timeout
+  withCredentials: true,
+  timeout: 30000,
 });
 
-// Add request interceptor to include auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Add response interceptor for token refresh
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If 401 and not already retried, try to refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = getRefreshToken();
         if (!refreshToken) {
           throw new Error('No refresh token available');
         }
 
-        const response = await axios.post(
-          `${env.apiUrl}/auth/refresh`,
-          { refreshToken }
-        );
-
+        const response = await axios.post(`${env.apiUrl}/auth/refresh`, { refreshToken });
         const { data } = response;
-        localStorage.setItem('accessToken', data.data.accessToken);
-        localStorage.setItem('refreshToken', data.data.refreshToken);
-
-        // Retry original request with new token
+        setAuthTokens(data.data.accessToken, data.data.refreshToken);
         originalRequest.headers.Authorization = `Bearer ${data.data.accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // If refresh fails, logout
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        clearAuthData();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
@@ -104,137 +101,59 @@ apiClient.interceptors.response.use(
   }
 );
 
-/**
- * Login API call
- */
 export async function login(credentials: LoginRequest): Promise<AuthResponse> {
-  try {
-    console.log('🔐 Login attempt:', { email: credentials.email, apiUrl: env.apiUrl });
-    const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
-    console.log('✅ Login success:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('❌ Login error:', error);
-    if (axios.isAxiosError(error)) {
-      console.error('Axios error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        url: error.config?.url
-      });
-      if (error.response?.data) {
-        throw error.response.data;
-      }
-    }
-    throw error;
-  }
+  const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
+  return response.data;
 }
 
-/**
- * Register API call
- */
 export async function register(userData: RegisterRequest): Promise<AuthResponse> {
-  try {
-    const response = await apiClient.post<AuthResponse>('/auth/register', userData);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      throw error.response.data;
-    }
-    throw error;
-  }
+  const response = await apiClient.post<AuthResponse>('/auth/register', userData);
+  return response.data;
 }
 
-/**
- * Get current user profile
- */
-export async function getProfile() {
-  try {
-    const response = await apiClient.get('/auth/profile');
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      throw error.response.data;
-    }
-    throw error;
-  }
+export async function refreshAccessToken(
+  refreshToken: string
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const response = await apiClient.post('/auth/refresh', { refreshToken });
+  return response.data.data;
 }
 
-/**
- * Refresh access token
- */
-export async function refreshAccessToken(refreshToken: string): Promise<AuthResponse> {
-  try {
-    const response = await apiClient.post<AuthResponse>('/auth/refresh', {
-      refreshToken,
-    });
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response?.data) {
-      throw error.response.data;
-    }
-    throw error;
-  }
+export async function getProfile(): Promise<unknown> {
+  const response = await apiClient.get('/auth/profile');
+  return response.data;
 }
 
-/**
- * Logout API call
- */
-export async function logout(): Promise<any> {
+export async function logout(): Promise<unknown> {
   try {
     const response = await apiClient.post('/auth/logout');
     return response.data;
-  } catch (error) {
-    // Even if logout fails on server, we still clear local tokens
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    throw error;
+  } finally {
+    clearAuthData();
   }
 }
 
-/**
- * Clear all auth data from localStorage
- */
 export function clearAuthData() {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
+  clearAuthTokens();
 }
 
-/**
- * Get stored access token
- */
 export function getStoredAccessToken(): string | null {
-  return localStorage.getItem('accessToken');
+  return getAccessToken();
 }
 
-/**
- * Get stored refresh token
- */
 export function getStoredRefreshToken(): string | null {
-  return localStorage.getItem('refreshToken');
+  return getRefreshToken();
 }
 
-/**
- * Store auth tokens
- */
 export function storeAuthTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem('accessToken', accessToken);
-  localStorage.setItem('refreshToken', refreshToken);
+  setAuthTokens(accessToken, refreshToken);
 }
 
-/**
- * Store user data
- */
-export function storeUserData(user: any) {
-  localStorage.setItem('user', JSON.stringify(user));
+export function storeUserData(user: AuthUser) {
+  setStoredUser(user);
 }
 
-/**
- * Get stored user data
- */
 export function getStoredUserData() {
-  const userData = localStorage.getItem('user');
+  const userData = getStoredUserRaw();
   return userData ? JSON.parse(userData) : null;
 }
 

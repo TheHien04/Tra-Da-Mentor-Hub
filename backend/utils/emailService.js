@@ -216,9 +216,52 @@ export async function sendEmailVerification(user, verificationToken) {
   return sendEmail({ to: user.email, subject, text: `Verify your email: ${verificationUrl}`, html });
 }
 
+/**
+ * Broadcast plain-text email to a list of addresses (admin notifications)
+ */
+export async function sendBroadcastEmail({ emails, subject, message }) {
+  const unique = [...new Set((emails || []).filter(Boolean))];
+  if (unique.length === 0) {
+    return { success: false, sent: 0, message: 'No recipient emails' };
+  }
+
+  if (!env.sendgridApiKey) {
+    logger.warn(`Broadcast email skipped (${unique.length} recipients): SendGrid not configured`);
+    return { success: false, sent: 0, message: 'Email service not configured' };
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #0d9488;">${subject}</h2>
+      <p style="white-space: pre-wrap; line-height: 1.6;">${message}</p>
+      <hr style="margin-top: 24px; border: none; border-top: 1px solid #eee;" />
+      <p style="font-size: 12px; color: #666;">Trà Đá Mentor Platform</p>
+    </div>
+  `;
+
+  let sent = 0;
+  const errors = [];
+  for (const to of unique) {
+    try {
+      await sendEmail({ to, subject, text: message, html });
+      sent += 1;
+    } catch (err) {
+      errors.push({ to, error: err.message });
+    }
+  }
+
+  return {
+    success: sent > 0,
+    sent,
+    total: unique.length,
+    errors: errors.length ? errors : undefined,
+  };
+}
+
 export default {
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendSessionReminderEmail,
   sendEmailVerification,
+  sendBroadcastEmail,
 };

@@ -37,6 +37,10 @@ export interface AuthUser {
   name: string;
   role: UserRole;
   avatar?: string;
+  /** Linked mentor profile id (from /auth/profile) */
+  mentorId?: string;
+  /** Linked mentee profile id (from /auth/profile) */
+  menteeId?: string;
 }
 
 export interface AuthContextType {

@@ -18,7 +18,7 @@ import {
  */
 export async function sendVerificationEmail(req, res) {
   try {
-    const userId = req.user._id;
+    const userId = req.user.userId;
     const user = await User.findById(userId);
 
     if (!user) {
@@ -209,31 +209,28 @@ export async function resendVerification(req, res) {
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found',
+      return res.json({
+        success: true,
+        message: 'If that email exists, a verification email has been sent.',
       });
     }
 
     if (user.emailVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Email already verified',
+      return res.json({
+        success: true,
+        message: 'If that email exists, a verification email has been sent.',
       });
     }
 
-    // Generate new token
     const token = await user.generateEmailVerificationToken();
     await user.save();
-
-    // Send email
     await sendEmailVerification(user, token);
 
     logger.info(`Verification email resent to: ${user.email}`);
 
     res.json({
       success: true,
-      message: 'Verification email sent. Please check your inbox.',
+      message: 'If that email exists, a verification email has been sent.',
     });
   } catch (error) {
     logger.error('Resend verification error:', error);

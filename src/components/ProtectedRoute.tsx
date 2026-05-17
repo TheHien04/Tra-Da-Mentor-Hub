@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   // Check role-based access
   if (requiredRole && state.user) {
     const rolesArray = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    const hasRequiredRole = rolesArray.includes(state.user.role as any);
+    const hasRequiredRole = rolesArray.includes(state.user.role);
 
     if (!hasRequiredRole) {
       return <Navigate to="/unauthorized" replace />;

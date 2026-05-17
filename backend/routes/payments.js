@@ -26,15 +26,4 @@ router.post('/portal', auth, paymentsController.createPortal);
  */
 router.get('/subscription', auth, paymentsController.getSubscriptionStatus);
 
-/**
- * @route   POST /api/payments/webhook
- * @desc    Stripe webhook endpoint
- * @access  Public (verified via Stripe signature)
- */
-router.post(
-  '/webhook',
-  express.raw({ type: 'application/json' }),
-  paymentsController.handleWebhook
-);
-
 export default router;

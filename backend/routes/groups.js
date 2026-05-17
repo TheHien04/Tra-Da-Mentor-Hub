@@ -1,160 +1,105 @@
 import express from 'express';
 import { validateGroup } from '../middleware/validation.js';
+import {
+  listGroups,
+  getGroupById,
+  createGroup,
+  updateGroup,
+  deleteGroup,
+  addMenteeToGroup,
+  removeMenteeFromGroup,
+} from '../services/groupStore.js';
+import { updateMentee } from '../services/menteeStore.js';
+
 const router = express.Router();
 
-// 🔹 Mock data - Study groups
-let mockGroups = [
-  {
-    _id: '201',
-    name: 'Frontend Avengers',
-    description: 'Learn React, Next.js and modern frontend development practices. Focus on building scalable UI components and state management.',
-    topic: 'React + TypeScript',
-    mentorId: 'm1',
-    mentor: {
-      name: 'Nguyễn Thị Ánh Dương'
-    },
-    mentees: ['101', '103'],
-    maxSize: 5,
-    meetingSchedule: {
-      frequency: 'Weekly',
-      dayOfWeek: 'Monday',
-      time: '19:00'
-    },
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '202',
-    name: 'Backend Builders',
-    description: 'Master Node.js, Express and database design. Build RESTful APIs and microservices architecture.',
-    topic: 'Node.js & Databases',
-    mentorId: 'm2',
-    mentor: {
-      name: 'Phạm Minh Nhật'
-    },
-    mentees: ['102', '107'],
-    maxSize: 4,
-    meetingSchedule: {
-      frequency: 'Weekly',
-      dayOfWeek: 'Wednesday',
-      time: '19:30'
-    },
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '203',
-    name: 'Product & Strategy Circle',
-    description: 'Discuss product management strategies, user research, and building successful products. Learn from real-world case studies.',
-    topic: 'Product Management',
-    mentorId: 'm4',
-    mentor: {
-      name: 'Lê Văn Kiên'
-    },
-    mentees: ['106'],
-    maxSize: 6,
-    meetingSchedule: {
-      frequency: 'Bi-weekly',
-      dayOfWeek: 'Thursday',
-      time: '18:00'
-    },
-    createdAt: new Date(),
-    updatedAt: new Date()
-  },
-  {
-    _id: '204',
-    name: 'Design Thinkers',
-    description: 'Explore UX/UI principles, design systems, and user research methods. Create portfolio-worthy projects.',
-    topic: 'UI/UX Design',
-    mentorId: 'm3',
-    mentor: {
-      name: 'Trần Quang Huy'
-    },
-    mentees: [],
-    maxSize: 5,
-    meetingSchedule: {
-      frequency: 'Weekly',
-      dayOfWeek: 'Tuesday',
-      time: '18:30'
-    },
-    createdAt: new Date(),
-    updatedAt: new Date()
+router.get('/', async (req, res, next) => {
+  try {
+    res.json(await listGroups());
+  } catch (e) {
+    next(e);
   }
-];
-
-// GET all groups
-router.get('/', (req, res) => {
-  res.json(mockGroups);
 });
 
-// POST create group
-router.post('/', validateGroup, (req, res) => {
-  const newGroup = {
-    _id: Date.now().toString(),
-    ...req.body,
-    createdAt: new Date(),
-    updatedAt: new Date()
-  };
-  mockGroups.push(newGroup);
-  res.status(201).json(newGroup);
+router.post('/', validateGroup, async (req, res, next) => {
+  try {
+    const group = await createGroup(req.body);
+    res.status(201).json(group);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// GET group by ID
-router.get('/:id', (req, res) => {
-  const group = mockGroups.find(g => g._id === req.params.id);
-  if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
-  res.json(group);
+router.post('/:groupId/mentees/:menteeId', async (req, res, next) => {
+  try {
+    const group = await addMenteeToGroup(req.params.groupId, req.params.menteeId);
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    await updateMentee(req.params.menteeId, { groupId: req.params.groupId });
+    res.json(group);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// GET group by ID with full details (mentees info)
-router.get('/:id/full', (req, res) => {
-  const group = mockGroups.find(g => g._id === req.params.id);
-  if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
-  res.json(group);
+router.delete('/:groupId/mentees/:menteeId', async (req, res, next) => {
+  try {
+    const group = await removeMenteeFromGroup(req.params.groupId, req.params.menteeId);
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    await updateMentee(req.params.menteeId, { groupId: null });
+    res.json(group);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// PUT - Update group
-router.put('/:id', validateGroup, (req, res) => {
-  const group = mockGroups.find(g => g._id === req.params.id);
-  if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
-  
-  const updatedGroup = {
-    ...group,
-    ...req.body,
-    _id: group._id, // Keep original ID
-    createdAt: group.createdAt, // Keep original created date
-    updatedAt: new Date()
-  };
-  
-  const index = mockGroups.findIndex(g => g._id === req.params.id);
-  mockGroups[index] = updatedGroup;
-  res.json(updatedGroup);
+router.get('/:id/full', async (req, res, next) => {
+  try {
+    const group = await getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    res.json(group);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// PATCH - Partial update group
-router.patch('/:id', validateGroup, (req, res) => {
-  const group = mockGroups.find(g => g._id === req.params.id);
-  if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
-  
-  const updatedGroup = {
-    ...group,
-    ...req.body,
-    _id: group._id,
-    createdAt: group.createdAt,
-    updatedAt: new Date()
-  };
-  
-  const index = mockGroups.findIndex(g => g._id === req.params.id);
-  mockGroups[index] = updatedGroup;
-  res.json(updatedGroup);
+router.get('/:id', async (req, res, next) => {
+  try {
+    const group = await getGroupById(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    res.json(group);
+  } catch (e) {
+    next(e);
+  }
 });
 
-// DELETE group
-router.delete('/:id', (req, res) => {
-  const index = mockGroups.findIndex(g => g._id === req.params.id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy group' });
-  mockGroups.splice(index, 1);
-  res.json({ message: 'Đã xóa group' });
+router.put('/:id', validateGroup, async (req, res, next) => {
+  try {
+    const group = await updateGroup(req.params.id, req.body, { replace: true });
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    res.json(group);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.patch('/:id', validateGroup, async (req, res, next) => {
+  try {
+    const group = await updateGroup(req.params.id, req.body);
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    res.json(group);
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const group = await deleteGroup(req.params.id);
+    if (!group) return res.status(404).json({ message: 'Không tìm thấy group' });
+    res.json({ message: 'Đã xóa group' });
+  } catch (e) {
+    next(e);
+  }
 });
 
 export default router;
