@@ -49,10 +49,10 @@ export const handleCallback = async (req, res) => {
     logger.info(`Google Calendar connected for user ${userId}`);
 
     // Redirect back to frontend
-    res.redirect(`${env.frontendUrl}/dashboard?calendar=connected`);
+    res.redirect(`${env.frontendUrl}/?calendar=connected`);
   } catch (error) {
     logger.error(`Calendar callback error: ${error.message}`);
-    res.redirect(`${env.frontendUrl}/dashboard?calendar=error`);
+    res.redirect(`${env.frontendUrl}/?calendar=error`);
   }
 };
 

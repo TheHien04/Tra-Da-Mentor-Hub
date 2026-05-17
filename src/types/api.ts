@@ -26,7 +26,7 @@ export interface ApiError {
   statusCode: number;
   type: ErrorType;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export type ErrorType =

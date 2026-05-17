@@ -1,374 +1,186 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 import { groupApi } from '../services/api';
-import { FaUsers } from 'react-icons/fa';
-import Badge from './Badge';
+import { HiOutlineUsers } from 'react-icons/hi2';
 import SearchFilter from './SearchFilter';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
+import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass } from './ui';
+import { Alert } from './ui/Alert';
+import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
 
 interface Group {
   _id: string;
   name: string;
   description?: string;
-  mentor?: {
-    name: string;
-  };
-  mentorId?: string;
+  mentor?: { name: string };
   mentees?: string[];
   maxSize?: number;
   frequency?: string;
   dayOfWeek?: string;
   time?: string;
-  meetingSchedule?: {
-    frequency: string;
-    dayOfWeek: string;
-    time: string;
-  };
+  meetingSchedule?: { frequency: string; dayOfWeek: string; time: string };
 }
 
 const GroupList = () => {
+  const { t } = useAppTranslation();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ active: true });
-  const [advancedFilters, setAdvancedFilters] = useState({
-    frequency: '',
-    mentorName: ''
-  });
+  const [advancedFilters, setAdvancedFilters] = useState({ frequency: '', mentorName: '' });
 
   useEffect(() => {
-    const fetchGroups = async () => {
+    (async () => {
       try {
         setLoading(true);
-        const response = await groupApi.getAll();
-        setGroups(response.data);
-        setLoading(false);
+        const res = await groupApi.getAll();
+        setGroups(unwrapList<Group>(res));
+        setError(null);
       } catch (err) {
-        setError('Failed to fetch groups');
+        setError(getApiErrorMessage(err));
+      } finally {
         setLoading(false);
       }
-    };
-    fetchGroups();
+    })();
   }, []);
 
   const filteredGroups = useMemo(() => {
     return groups.filter((group) => {
+      const q = searchQuery.toLowerCase();
       const matchesSearch =
-        group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        group.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        group.mentor?.name.toLowerCase().includes(searchQuery.toLowerCase());
-
-      // Advanced filters
-      if (advancedFilters.frequency && (group.frequency || group.meetingSchedule?.frequency) !== advancedFilters.frequency) {
-        return false;
+        group.name.toLowerCase().includes(q) ||
+        group.description?.toLowerCase().includes(q) ||
+        group.mentor?.name.toLowerCase().includes(q);
+      if (advancedFilters.frequency) {
+        const freq = group.frequency || group.meetingSchedule?.frequency;
+        if (freq !== advancedFilters.frequency) return false;
       }
-      if (advancedFilters.mentorName && (!group.mentor?.name || !group.mentor.name.toLowerCase().includes(advancedFilters.mentorName.toLowerCase()))) {
+      if (
+        advancedFilters.mentorName &&
+        !group.mentor?.name.toLowerCase().includes(advancedFilters.mentorName.toLowerCase())
+      )
         return false;
-      }
-
-      return matchesSearch && filters.active;
+      return matchesSearch;
     });
-  }, [groups, searchQuery, filters, advancedFilters]);
+  }, [groups, searchQuery, advancedFilters]);
 
-  const getMenteeCount = (group: Group) => group.mentees?.length || 0;
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Delete group ${name}?`)) return;
+    try {
+      await groupApi.delete(id);
+      setGroups((prev) => prev.filter((g) => g._id !== id));
+    } catch (err) {
+      setError(getApiErrorMessage(err));
+    }
+  };
 
   return (
-    <div style={{ width: '100%', padding: '2rem', minHeight: '100vh', background: '#f8f9fa' }}>
-      <div style={{ width: '100%' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '24px',
-            flexWrap: 'wrap',
-            gap: '16px'
-          }}
-        >
-          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '2rem', fontWeight: 'bold' }}>
-            <FaUsers size={32} /> Group Management
-          </h1>
-        <Link to="/groups/add" className="btn btn-primary">
-          + Add New
-        </Link>
-      </div>
-
-      <SearchFilter
-        onSearch={setSearchQuery}
-        onFilter={(filters) => setFilters({ ...filters, active: (filters as Record<string, boolean>).active ?? true })}
-        filterOptions={[
-          { label: 'Active Groups', value: 'active', checked: true }
-        ]}
+    <PageShell>
+      <PageHeader
+        title={t('group.title')}
+        description={`${filteredGroups.length} groups`}
+        icon={<HiOutlineUsers className="h-7 w-7" />}
+        action={{ label: `+ ${t('group.addGroup')}`, href: '/groups/add' }}
       />
 
-      {/* Advanced Filters */}
-      <div style={{
-        background: '#fff',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        marginTop: '1rem',
-        marginBottom: '2rem',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem'
-      }}>
-        <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', color: '#333' }}>
-            Frequency
-          </label>
+      {error && (
+        <Alert variant="error" title={t('common.loadError')} className="mb-4">
+          {error}
+        </Alert>
+      )}
+
+      <SearchFilter onSearch={setSearchQuery} placeholder={t('lists.searchGroups')} />
+
+      <FilterPanel onClear={() => setAdvancedFilters({ frequency: '', mentorName: '' })}>
+        <FilterField label={t('lists.filterFrequency')}>
           <select
+            className={filterSelectClass}
             value={advancedFilters.frequency}
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, frequency: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem'
-            }}
           >
-            <option value="">All Frequencies</option>
-            <option value="Weekly">📅 Weekly</option>
-            <option value="Bi-weekly">📅 Bi-weekly</option>
-            <option value="Monthly">📅 Monthly</option>
+            <option value="">{t('lists.allFrequencies')}</option>
+            <option value="Weekly">{t('lists.freqWeekly')}</option>
+            <option value="Bi-weekly">{t('lists.freqBiweekly')}</option>
+            <option value="Monthly">{t('lists.freqMonthly')}</option>
           </select>
-        </div>
-
-        <div>
-          <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.5rem', color: '#333' }}>
-            Mentor Name
-          </label>
+        </FilterField>
+        <FilterField label={t('lists.filterMentor')}>
           <input
-            type="text"
-            placeholder="Search mentor..."
+            className={filterSelectClass}
+            placeholder={t('lists.mentorNamePlaceholder')}
             value={advancedFilters.mentorName}
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, mentorName: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem'
-            }}
           />
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <button
-            onClick={() => {
-              setAdvancedFilters({
-                frequency: '',
-                mentorName: ''
-              });
-            }}
-            style={{
-              width: '100%',
-              padding: '0.5rem',
-              background: '#f5f5f5',
-              border: '1px solid #ddd',
-              borderRadius: '6px',
-              fontSize: '0.9rem',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ececec';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = '#f5f5f5';
-            }}
-          >
-            Clear Filters
-          </button>
-        </div>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
+        </FilterField>
+      </FilterPanel>
 
       {loading ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '20px'
-          }}
-        >
-          {Array(6)
-            .fill(0)
-            .map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: '20px',
-                  backgroundColor: '#fff',
-                  borderRadius: '12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                }}
-              >
-                <Skeleton count={3} height={16} />
-              </div>
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card p-5">
+              <Skeleton count={3} />
+            </div>
+          ))}
         </div>
       ) : filteredGroups.length === 0 ? (
         <EmptyState
-          icon="👥"
-          title="No Groups Found"
-          description={searchQuery ? 'Try adjusting your search' : 'Create your first study group'}
-          actionLabel="+ Create Group"
-          onAction={() => window.location.href = '/groups/add'}
+          title={t('lists.emptyGroupsTitle')}
+          description={t('lists.emptyGroupsDefault')}
+          actionLabel={`+ ${t('group.addGroup')}`}
+          actionHref="/groups/add"
         />
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '20px'
-          }}
-        >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredGroups.map((group) => {
-            const menteeCount = getMenteeCount(group);
-            const maxSize = group.maxSize || 10;
-            const isFull = menteeCount >= maxSize;
+            const count = group.mentees?.length || 0;
+            const max = group.maxSize || 10;
+            const pct = Math.min(100, (count / max) * 100);
+            const schedule = group.meetingSchedule;
+            const freq = group.frequency || schedule?.frequency;
+            const when = schedule
+              ? `${schedule.frequency} · ${schedule.dayOfWeek} ${schedule.time}`
+              : [freq, group.dayOfWeek, group.time].filter(Boolean).join(' · ');
 
             return (
-              <div
+              <article
                 key={group._id}
-                style={{
-                  backgroundColor: '#fff',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  transition: 'all 0.3s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderLeft: `4px solid ${isFull ? '#dc3545' : '#28a745'}`
-                }}
-                onMouseOver={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    '0 8px 16px rgba(0,0,0,0.15)';
-                }}
-                onMouseOut={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-                  (e.currentTarget as HTMLElement).style.boxShadow =
-                    '0 2px 8px rgba(0,0,0,0.1)';
-                }}
+                className="card card-hover p-5 flex flex-col border-l-4 border-l-brand-500"
               >
-                {/* Header */}
-                <h3
-                  style={{
-                    margin: '0 0 8px 0',
-                    color: '#333',
-                    fontSize: '1.2rem'
-                  }}
-                >
-                  {group.name}
-                </h3>
-
-                {/* Status */}
-                <div style={{ marginBottom: '12px' }}>
-                  <Badge
-                    status={isFull ? 'full' : 'active'}
-                    label={`${menteeCount}/${maxSize} Mentees`}
-                  />
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <h3 className="text-base font-semibold text-primary">{group.name}</h3>
+                  <span className="badge-pill badge-accent shrink-0">
+                    {count}/{max} mentees
+                  </span>
                 </div>
-
-                {/* Description */}
                 {group.description && (
-                  <p
-                    style={{
-                      fontSize: '0.9rem',
-                      color: '#555',
-                      margin: '0 0 12px 0',
-                      lineHeight: '1.4'
-                    }}
-                  >
-                    {group.description}
-                  </p>
+                  <p className="text-sm text-secondary mb-3 line-clamp-2">{group.description}</p>
                 )}
-
-                {/* Mentor */}
-                {group.mentor && (
-                  <p
-                    style={{
-                      fontSize: '0.9rem',
-                      color: '#666',
-                      margin: '0 0 8px 0'
-                    }}
-                  >
-                    👨‍🏫 Mentor: <strong>{group.mentor.name}</strong>
-                  </p>
+                {group.mentor?.name && (
+                  <p className="text-xs text-muted mb-1">Mentor: {group.mentor.name}</p>
                 )}
-
-                {/* Meeting schedule */}
-                {group.meetingSchedule && (
-                  <p
-                    style={{
-                      fontSize: '0.85rem',
-                      color: '#666',
-                      margin: '0 0 12px 0'
-                    }}
-                  >
-                    📅 {group.meetingSchedule.frequency} • {group.meetingSchedule.dayOfWeek} at{' '}
-                    {group.meetingSchedule.time}
-                  </p>
-                )}
-
-                {/* Mentee fill bar */}
-                <div
-                  style={{
-                    width: '100%',
-                    height: '6px',
-                    backgroundColor: '#e9ecef',
-                    borderRadius: '3px',
-                    overflow: 'hidden',
-                    marginBottom: '12px'
-                  }}
-                >
+                {when && <p className="text-xs text-muted mb-3">{when}</p>}
+                <div className="h-1.5 rounded-full surface-muted mb-4 overflow-hidden">
                   <div
-                    style={{
-                      height: '100%',
-                      width: `${(menteeCount / maxSize) * 100}%`,
-                      backgroundColor: isFull ? '#dc3545' : '#28a745',
-                      transition: 'width 0.3s ease'
-                    }}
+                    className="h-full rounded-full"
+                    style={{ width: `${pct}%`, backgroundColor: 'var(--accent)' }}
                   />
                 </div>
-
-                {/* Actions */}
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '8px',
-                    marginTop: 'auto'
-                  }}
-                >
-                  <Link
-                    to={`/groups/${group._id}`}
-                    className="btn btn-secondary"
-                    style={{ flex: 1, textAlign: 'center' }}
-                  >
-                    Details
+                <div className="flex gap-2 mt-auto">
+                  <Link to={`/groups/${group._id}`} className="btn btn-secondary flex-1">
+                    {t('group.viewDetails')}
                   </Link>
-                  <button
-                    className="btn btn-danger"
-                    style={{ flex: 1 }}
-                  >
+                  <button type="button" className="btn btn-danger flex-1" onClick={() => handleDelete(group._id, group.name)}>
                     Delete
                   </button>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       )}
-      </div>
-    </div>
+    </PageShell>
   );
 };
 

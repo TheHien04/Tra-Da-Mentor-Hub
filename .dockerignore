@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.github
+.env
+.env.*
+*.log
+logs
+coverage
+test-results
+playwright-report
+.cursor
+docs
+Tra-Da-Mentor-Hub
+*.md
+!DEPLOY.md

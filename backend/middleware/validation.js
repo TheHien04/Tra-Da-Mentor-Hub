@@ -119,7 +119,13 @@ export const validateGroup = (req, res, next) => {
   }
 
   if (!topic || topic.trim() === '') {
-    errors.push('Topic is required');
+    if (req.body.description?.trim()) {
+      req.body.topic = String(req.body.description).trim().slice(0, 80);
+    } else if (req.body.name?.trim()) {
+      req.body.topic = String(req.body.name).trim();
+    } else {
+      errors.push('Topic is required');
+    }
   }
 
   if (!mentorId || mentorId.trim() === '') {

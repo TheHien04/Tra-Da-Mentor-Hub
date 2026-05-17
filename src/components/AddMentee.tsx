@@ -1,457 +1,170 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// ✅ ADD MENTEE - form có dropdown chọn mentor, nhóm và tiến độ học tập
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { toast } from 'react-toastify';
 import { menteeApi, mentorApi, groupApi } from '../services/api';
-import { FaArrowLeft } from 'react-icons/fa';
+import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { FormShell, FormField, FormActions } from './ui/FormShell';
+import { Alert } from './ui/Alert';
 
 const AddMentee = () => {
+  const { t } = useAppTranslation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [mentors, setMentors] = useState<{ _id: string; name: string }[]>([]);
+  const [groups, setGroups] = useState<{ _id: string; name: string }[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     school: '',
+    track: 'tech',
     interests: '',
     progress: 0,
     mentorId: '',
-    groupId: ''
+    groupId: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
-  const [mentors, setMentors] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [mentorRes, groupRes] = await Promise.all([
-          mentorApi.getAll(),
-          groupApi.getAll()
-        ]);
-        setMentors(mentorRes.data);
-        setGroups(groupRes.data);
-      } catch (err) {
-        console.error('Error loading mentors or groups:', err);
-      }
-    };
-    fetchData();
+    Promise.all([mentorApi.getAll(), groupApi.getAll()])
+      .then(([mRes, gRes]) => {
+        setMentors(unwrapList(mRes));
+        setGroups(unwrapList(gRes));
+      })
+      .catch(() => toast.warn('Could not load mentors/groups for dropdowns'));
   }, []);
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    if (formData.phone && !/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Phone must have at least 10 digits';
-    }
-
-    if (!formData.school.trim()) {
-      newErrors.school = 'School/University is required';
-    }
-
-    if (formData.progress < 0 || formData.progress > 100) {
-      newErrors.progress = 'Progress must be between 0 and 100';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'progress' ? Number(value) || 0 : value,
+    }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    setFormData(prev => {
-      if (name === 'progress') {
-        return { ...prev, [name]: parseInt(value) || 0 };
-      }
-      return { ...prev, [name]: value };
-    });
-
-    if (errors[name]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+  const validate = () => {
+    const next: Record<string, string> = {};
+    if (!formData.name.trim()) next.name = 'Name is required';
+    if (!formData.email.trim()) next.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) next.email = 'Invalid email';
+    if (!formData.school.trim()) next.school = 'School is required';
+    if (formData.progress < 0 || formData.progress > 100) next.progress = '0–100 only';
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validate()) return;
 
     try {
       setLoading(true);
-      const dataToSend = {
-        ...formData,
-        interests: formData.interests ? formData.interests.split(',').map(i => i.trim()) : []
-      };
-      await menteeApi.create(dataToSend);
-      alert('Mentee added successfully!');
+      await menteeApi.create({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        school: formData.school.trim(),
+        track: formData.track,
+        interests: formData.interests
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+        progress: formData.progress,
+        mentorId: formData.mentorId || undefined,
+        groupId: formData.groupId || undefined,
+        applicationStatus: 'pending',
+      });
+      toast.success(t('mentee.addSuccess', 'Mentee created'));
       navigate('/mentees');
     } catch (err) {
-      alert('Error adding mentee. Please try again.');
-      console.error(err);
+      setErrors({ submit: getApiErrorMessage(err) });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa, #f0f2f5)', padding: '2rem' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-          <button
-            onClick={() => navigate('/mentees')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#667eea',
-              cursor: 'pointer',
-              fontSize: '1.5rem',
-              padding: '0.5rem'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#5568d3';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#667eea';
-            }}>
-            <FaArrowLeft />
-          </button>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1a1a1a', margin: 0 }}>
-            👩‍🎓 Add New Mentee
-          </h1>
-        </div>
+    <FormShell
+      title={t('mentee.addMentee', 'Add Mentee')}
+      description={t('form.addMenteeDesc')}
+      backHref="/mentees"
+      onSubmit={handleSubmit}
+    >
+      {errors.submit && <Alert variant="error">{errors.submit}</Alert>}
 
-        {/* Form Container */}
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          padding: '2rem',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <form onSubmit={handleSubmit}>
-            {/* Name Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Full Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Enter mentee name"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: errors.name ? '2px solid #e74c3c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  if (!errors.name) e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = errors.name ? '#e74c3c' : '#ddd';
-                }}
-              />
-              {errors.name && (
-                <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '0.4rem', margin: '0.4rem 0 0 0' }}>
-                  ✗ {errors.name}
-                </p>
-              )}
-            </div>
+      <FormField label="Full name" required>
+        <input className={`input ${errors.name ? 'input-error' : ''}`} name="name" value={formData.name} onChange={handleChange} />
+        {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+      </FormField>
 
-            {/* Email Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Email Address *
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="mentee@example.com"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: errors.email ? '2px solid #e74c3c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  if (!errors.email) e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = errors.email ? '#e74c3c' : '#ddd';
-                }}
-              />
-              {errors.email && (
-                <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '0.4rem', margin: '0.4rem 0 0 0' }}>
-                  ✗ {errors.email}
-                </p>
-              )}
-            </div>
+      <FormField label="Email" required>
+        <input type="email" className={`input ${errors.email ? 'input-error' : ''}`} name="email" value={formData.email} onChange={handleChange} />
+        {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
+      </FormField>
 
-            {/* Phone Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="0912345678"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: errors.phone ? '2px solid #e74c3c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  if (!errors.phone) e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = errors.phone ? '#e74c3c' : '#ddd';
-                }}
-              />
-              {errors.phone && (
-                <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '0.4rem', margin: '0.4rem 0 0 0' }}>
-                  ✗ {errors.phone}
-                </p>
-              )}
-            </div>
+      <FormField label="Phone">
+        <input type="tel" className="input" name="phone" value={formData.phone} onChange={handleChange} />
+      </FormField>
 
-            {/* School Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                School / University *
-              </label>
-              <input
-                type="text"
-                name="school"
-                value={formData.school}
-                onChange={handleChange}
-                placeholder="e.g., Hanoi University of Science and Technology"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: errors.school ? '2px solid #e74c3c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  if (!errors.school) e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = errors.school ? '#e74c3c' : '#ddd';
-                }}
-              />
-              {errors.school && (
-                <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '0.4rem', margin: '0.4rem 0 0 0' }}>
-                  ✗ {errors.school}
-                </p>
-              )}
-            </div>
+      <FormField label="School / university" required>
+        <input className={`input ${errors.school ? 'input-error' : ''}`} name="school" value={formData.school} onChange={handleChange} />
+        {errors.school && <p className="text-xs text-red-600 mt-1">{errors.school}</p>}
+      </FormField>
 
-            {/* Interests Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Interests (comma-separated)
-              </label>
-              <input
-                type="text"
-                name="interests"
-                value={formData.interests}
-                onChange={handleChange}
-                placeholder="e.g., Frontend Development, Web Design, UI/UX"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#ddd';
-                }}
-              />
-            </div>
-
-            {/* Progress Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Progress (%) *
-              </label>
-              <input
-                type="number"
-                name="progress"
-                value={formData.progress}
-                onChange={handleChange}
-                min="0"
-                max="100"
-                placeholder="0-100"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: errors.progress ? '2px solid #e74c3c' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  if (!errors.progress) e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = errors.progress ? '#e74c3c' : '#ddd';
-                }}
-              />
-              {errors.progress && (
-                <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '0.4rem', margin: '0.4rem 0 0 0' }}>
-                  ✗ {errors.progress}
-                </p>
-              )}
-            </div>
-
-            {/* Mentor Selection */}
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Assign Mentor
-              </label>
-              <select
-                name="mentorId"
-                value={formData.mentorId}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#fff',
-                  cursor: 'pointer'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#ddd';
-                }}>
-                <option value="">-- Select Mentor (Optional) --</option>
-                {mentors.map((mentor: any) => (
-                  <option key={mentor._id} value={mentor._id}>
-                    {mentor.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Group Selection */}
-            <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                Study Group
-              </label>
-              <select
-                name="groupId"
-                value={formData.groupId}
-                onChange={handleChange}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '0.95rem',
-                  boxSizing: 'border-box',
-                  backgroundColor: '#fff',
-                  cursor: 'pointer'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#667eea';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = '#ddd';
-                }}>
-                <option value="">-- Select Group (Optional) --</option>
-                {groups.map((group: any) => (
-                  <option key={group._id} value={group._id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '0.9rem',
-                backgroundColor: loading ? '#ccc' : '#2c5f2d',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '1rem',
-                fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                opacity: loading ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.backgroundColor = '#245a27';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(44, 95, 45, 0.3)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!loading) {
-                  e.currentTarget.style.backgroundColor = '#2c5f2d';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }
-              }}>
-              {loading ? 'Adding Mentee...' : 'Add Mentee'}
-            </button>
-          </form>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField label="Track">
+          <select className="input" name="track" value={formData.track} onChange={handleChange}>
+            <option value="tech">Technology</option>
+            <option value="business">Business</option>
+            <option value="design">Design</option>
+            <option value="economics">Economics</option>
+          </select>
+        </FormField>
+        <FormField label="Progress %">
+          <input type="number" min={0} max={100} className="input" name="progress" value={formData.progress} onChange={handleChange} />
+        </FormField>
       </div>
-    </div>
+
+      <FormField label="Interests" hint="Comma-separated skills or topics">
+        <input className="input" name="interests" value={formData.interests} onChange={handleChange} placeholder={t('lists.interestsPlaceholder')} />
+      </FormField>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField label="Mentor (optional)">
+          <select className="input" name="mentorId" value={formData.mentorId} onChange={handleChange}>
+            <option value="">— None —</option>
+            {mentors.map((m) => (
+              <option key={m._id} value={m._id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Group (optional)">
+          <select className="input" name="groupId" value={formData.groupId} onChange={handleChange}>
+            <option value="">— None —</option>
+            {groups.map((g) => (
+              <option key={g._id} value={g._id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      </div>
+
+      <FormActions>
+        <button type="button" className="btn btn-secondary flex-1" onClick={() => navigate('/mentees')}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary flex-1" disabled={loading}>
+          {loading ? 'Creating…' : 'Create mentee'}
+        </button>
+      </FormActions>
+    </FormShell>
   );
 };
 

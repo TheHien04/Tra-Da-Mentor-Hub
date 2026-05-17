@@ -13,29 +13,8 @@ import {
   verifyRefreshToken,
 } from "../utils/jwt.js";
 import logger from '../config/logger.js';
-
-// Mock user for test/demo mode - Always available
-const MOCK_USER = {
-  _id: "mock-user-id-12345",
-  email: "admin@example.com",
-  password: "AdminPass123", // Plain text for demo only
-  name: "Admin User",
-  role: "admin", // Changed to admin role
-  isActive: true,
-  lastLogin: new Date(),
-  toJSON() {
-    return {
-      _id: this._id,
-      email: this.email,
-      name: this.name,
-      role: this.role,
-      isActive: this.isActive,
-    };
-  },
-  async comparePassword(password) {
-    return password === this.password;
-  }
-};
+import { DEMO_USER, isDemoAuthEnabled, isDemoUserId } from '../config/demoAuth.js';
+import { ensureCrmProfileForUser } from '../services/crmProfileSync.js';
 
 /**
  * Login handler
@@ -43,22 +22,13 @@ const MOCK_USER = {
 export async function login(req, res) {
   try {
     const { email, password } = req.body;
-    
-    // Debug logging
-    logger.info(`Login attempt - Email: ${email}, Password length: ${password?.length || 0}`);
-    logger.debug(`Request body:`, { email, password: password ? '***' : undefined });
-
-    // Check mock user first (always available for demo)
-    // Normalize email for comparison (lowercase, trim)
     const normalizedEmail = email?.toLowerCase().trim();
-    if (normalizedEmail === MOCK_USER.email.toLowerCase()) {
-      logger.info("Using mock user for demo");
-      const user = MOCK_USER;
+    if (isDemoAuthEnabled() && normalizedEmail === DEMO_USER.email.toLowerCase()) {
+      logger.info("Using demo admin account");
+      const user = DEMO_USER;
       
       // Check password
       const isValidPassword = await user.comparePassword(password);
-      logger.debug(`Password check - Input: ${password?.substring(0, 3)}***, Expected: ${user.password?.substring(0, 3)}***, Match: ${isValidPassword}`);
-      
       if (!isValidPassword) {
         logger.warn(`Login failed - Invalid password for: ${email} from IP: ${req.ip}`);
         return res.status(401).json({
@@ -124,7 +94,7 @@ export async function login(req, res) {
     const accessToken = generateAccessToken(user._id, user.email, user.role);
     const refreshToken = generateRefreshToken(user._id);
     
-    if (user !== MOCK_USER) {
+    if (!isDemoUserId(user._id)) {
       await user.updateLastLogin();
       await user.addRefreshToken(refreshToken);
     }
@@ -147,7 +117,6 @@ export async function login(req, res) {
     return res.status(500).json({
       success: false,
       message: "Login failed",
-      error: error.message,
     });
   }
 }
@@ -193,6 +162,18 @@ export async function register(req, res) {
       });
     }
 
+    let crmIds = {};
+    try {
+      crmIds = await ensureCrmProfileForUser({
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role,
+        userId: newUser._id.toString(),
+      });
+    } catch (crmErr) {
+      logger.warn('CRM profile sync on register failed:', crmErr.message);
+    }
+
     // Generate tokens
     const accessToken = generateAccessToken(
       newUser._id,
@@ -211,7 +192,7 @@ export async function register(req, res) {
       success: true,
       message: "Registration successful",
       data: {
-        user: newUser.toJSON(),
+        user: { ...newUser.toJSON(), ...crmIds },
         accessToken,
         refreshToken,
         expiresIn: 7 * 24 * 60 * 60,
@@ -222,7 +203,6 @@ export async function register(req, res) {
     return res.status(500).json({
       success: false,
       message: "Registration failed",
-      error: error.message,
     });
   }
 }
@@ -297,6 +277,13 @@ export async function refreshToken(req, res) {
  */
 export async function getProfile(req, res) {
   try {
+    if (isDemoUserId(req.user.userId)) {
+      return res.status(200).json({
+        success: true,
+        data: DEMO_USER.toJSON(),
+      });
+    }
+
     const user = await User.findById(req.user.userId);
 
     if (!user) {
@@ -306,14 +293,27 @@ export async function getProfile(req, res) {
       });
     }
 
-    // If mentor, get mentor data
     let profile = { ...user.toJSON() };
     if (user.role === "mentor") {
       const mentor = await Mentor.findOne({ userId: user._id });
       profile.mentorData = mentor;
+      if (mentor?._id) profile.mentorId = mentor._id.toString();
     } else if (user.role === "mentee") {
       const mentee = await Mentee.findOne({ userId: user._id });
       profile.menteeData = mentee;
+      if (mentee?._id) profile.menteeId = mentee._id.toString();
+    }
+
+    try {
+      const crmIds = await ensureCrmProfileForUser({
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        userId: user._id.toString(),
+      });
+      profile = { ...profile, ...crmIds };
+    } catch {
+      // non-fatal
     }
 
     return res.status(200).json({
@@ -337,10 +337,16 @@ export async function getProfile(req, res) {
  */
 export async function logout(req, res) {
   try {
+    if (isDemoUserId(req.user?.userId)) {
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful",
+      });
+    }
+
     const { refreshToken } = req.body;
-    
+
     if (refreshToken) {
-      // Remove refresh token from user's token list
       const user = await User.findById(req.user.userId);
       if (user) {
         await user.removeRefreshToken(refreshToken);

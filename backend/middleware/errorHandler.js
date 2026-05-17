@@ -36,6 +36,16 @@ export const errorHandler = (err, req, res, next) => {
   error.message = err.message;
   error.statusCode = err.statusCode || 500;
 
+  const safeBody =
+    req.body && typeof req.body === 'object'
+      ? Object.fromEntries(
+          Object.entries(req.body).map(([k, v]) => [
+            k,
+            /password|token|secret/i.test(k) ? '[REDACTED]' : v,
+          ])
+        )
+      : undefined;
+
   // Log error
   if (error.statusCode === 500) {
     logger.error(`Internal Server Error: ${error.message}`, {
@@ -43,7 +53,7 @@ export const errorHandler = (err, req, res, next) => {
       url: req.originalUrl,
       method: req.method,
       ip: req.ip,
-      body: req.body,
+      body: safeBody,
     });
   } else {
     logger.warn(`${error.statusCode} Error: ${error.message}`, {

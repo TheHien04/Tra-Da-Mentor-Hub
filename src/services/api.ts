@@ -1,7 +1,9 @@
 import axios from 'axios';
+import env from '../config/env';
+import { getAccessToken } from '../lib/secureStorage';
 import { handleError } from '../utils/errorHandler';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = env.apiUrl;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,7 +16,7 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,8 +41,8 @@ export const mentorApi = {
   getById: (id: string) => api.get(`/mentors/${id}`),
   getMenteesByMentorId: (id: string) => api.get(`/mentors/${id}/mentees`),
   getGroupsByMentorId: (id: string) => api.get(`/mentors/${id}/groups`),
-  create: (data: any) => api.post('/mentors', data),
-  update: (id: string, data: any) => api.patch(`/mentors/${id}`, data),
+  create: (data: Record<string, unknown>) => api.post('/mentors', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/mentors/${id}`, data),
   delete: (id: string) => api.delete(`/mentors/${id}`)
 };
 
@@ -48,8 +50,8 @@ export const mentorApi = {
 export const menteeApi = {
   getAll: () => api.get('/mentees'),
   getById: (id: string) => api.get(`/mentees/${id}`),
-  create: (data: any) => api.post('/mentees', data),
-  update: (id: string, data: any) => api.patch(`/mentees/${id}`, data),
+  create: (data: Record<string, unknown>) => api.post('/mentees', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/mentees/${id}`, data),
   updateApplicationStatus: (id: string, applicationStatus: string) =>
     api.patch(`/mentees/${id}/application-status`, { applicationStatus }),
   delete: (id: string) => api.delete(`/mentees/${id}`)
@@ -61,8 +63,8 @@ export const groupApi = {
   getById: (id: string) => api.get(`/groups/${id}`),
   getByIdFull: (id: string) => api.get(`/groups/${id}/full`),
   getMenteesByGroupId: (id: string) => api.get(`/groups/${id}/mentees`),
-  create: (data: any) => api.post('/groups', data),
-  update: (id: string, data: any) => api.patch(`/groups/${id}`, data),
+  create: (data: Record<string, unknown>) => api.post('/groups', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/groups/${id}`, data),
   delete: (id: string) => api.delete(`/groups/${id}`),
   addMenteeToGroup: (groupId: string, menteeId: string) => api.post(`/groups/${groupId}/mentees/${menteeId}`),
   removeMenteeFromGroup: (groupId: string, menteeId: string) => api.delete(`/groups/${groupId}/mentees/${menteeId}`)
@@ -71,7 +73,7 @@ export const groupApi = {
 // Activities API
 export const activitiesApi = {
   getAll: (limit?: number) => api.get(`/activities${limit ? `?limit=${limit}` : ''}`),
-  create: (data: any) => api.post('/activities', data)
+  create: (data: Record<string, unknown>) => api.post('/activities', data)
 };
 
 // Slots API (mentor thêm slot rảnh, mentee chọn – meetingLink: paste Google Meet)
@@ -113,20 +115,87 @@ export const invitesApi = {
   validate: (token: string) => api.get(`/invites/validate/${token}`),
 };
 
-// Auth API
-export const authApi = {
-  login: (credentials: { email: string; password: string }) => 
-    api.post('/auth/login', credentials),
-  register: (userData: { name: string; email: string; password: string; role?: string }) => 
-    api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
-  getProfile: () => api.get('/auth/profile')
+export interface AppNotification {
+  _id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  href?: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface MatchSuggestion {
+  mentorId: string;
+  mentorName: string;
+  menteeId: string;
+  menteeName: string;
+  score: number;
+  matchedSkills: string[];
+  reasons: string[];
+  capacity: { active: number; max: number };
+}
+
+export const notificationsApi = {
+  list: (userId?: string) => api.get('/notifications', { params: { userId } }),
+  markRead: (id: string, userId?: string) =>
+    api.patch(`/notifications/${id}/read`, { userId }),
+  markAllRead: (userId?: string) => api.post('/notifications/read-all', { userId }),
 };
 
-export default {
-  mentorApi,
-  menteeApi,
-  groupApi,
-  activitiesApi,
-  authApi
+export const matchingApi = {
+  suggestions: (params?: { menteeId?: string; mentorId?: string; limit?: number }) =>
+    api.get('/matching/suggestions', { params }),
 };
+
+// Auth API
+export const authApi = {
+  login: (credentials: { email: string; password: string }) =>
+    api.post('/auth/login', credentials),
+  register: (userData: { name: string; email: string; password: string; role?: string }) =>
+    api.post('/auth/register', userData),
+  logout: () => api.post('/auth/logout'),
+  getProfile: () => api.get('/auth/profile'),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, data: { password: string; confirmPassword: string }) =>
+    api.post(`/auth/reset-password/${token}`, data),
+  verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
+};
+
+export const paymentsApi = {
+  createCheckout: (plan: string) => api.post('/payments/create-checkout', { plan }),
+};
+
+export interface Testimonial {
+  _id: string;
+  menteeName: string;
+  mentorName: string;
+  content: string;
+  rating: number;
+  track: 'career' | 'personal' | 'soft_skills';
+  date: string;
+  status: 'PUBLISHED' | 'PENDING' | 'REJECTED';
+}
+
+export const testimonialsApi = {
+  getAll: (params?: { status?: string; track?: string; q?: string }) =>
+    api.get('/testimonials', { params }),
+  create: (data: Omit<Testimonial, '_id' | 'status' | 'date'> & { status?: Testimonial['status'] }) =>
+    api.post('/testimonials', data),
+  update: (id: string, data: Partial<Pick<Testimonial, 'status' | 'rating' | 'content' | 'track'>>) =>
+    api.patch(`/testimonials/${id}`, data),
+  delete: (id: string) => api.delete(`/testimonials/${id}`),
+};
+
+export const adminApi = {
+  broadcast: (data: {
+    audience: 'all' | 'mentors' | 'mentees';
+    subject?: string;
+    message: string;
+    channel?: 'email' | 'zalo' | 'both';
+  }) => api.post('/admin/broadcast', data),
+};
+
+/** Axios instance — use named APIs when possible */
+export default api;

@@ -1,235 +1,164 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { toast } from 'react-toastify';
 import { mentorApi } from '../services/api';
-import { FaUserPlus } from 'react-icons/fa';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { FormShell, FormField, FormActions } from './ui/FormShell';
+import { Alert } from './ui/Alert';
+
+const TRACKS = [
+  { value: 'tech', label: 'Technology' },
+  { value: 'design', label: 'Design' },
+  { value: 'business', label: 'Business' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'economics', label: 'Economics' },
+];
 
 const AddMentor = () => {
+  const { t } = useAppTranslation();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
+    track: 'tech',
     expertise: '',
     bio: '',
-    maxMentees: 10
+    maxMentees: 6,
+    mentorshipType: 'GROUP',
+    duration: 'LONG_TERM',
   });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (formData.phone && !/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) newErrors.phone = 'Phone should have at least 10 digits';
-    if (formData.maxMentees < 1) newErrors.maxMentees = 'Max Mentees must be at least 1';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'maxMentees' ? Number(value) || 1 : value,
+    }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+  const validate = () => {
+    const next: Record<string, string> = {};
+    if (!formData.name.trim()) next.name = 'Name is required';
+    if (!formData.email.trim()) next.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) next.email = 'Invalid email';
+    if (formData.phone && !/^\d{10,}$/.test(formData.phone.replace(/\D/g, '')))
+      next.phone = 'Phone needs at least 10 digits';
+    if (formData.maxMentees < 1) next.maxMentees = 'Min 1 mentee slot';
+    setErrors(next);
+    return Object.keys(next).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validate()) return;
 
     try {
       setLoading(true);
-      const dataToSend = {
-        ...formData,
+      await mentorApi.create({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        track: formData.track,
+        bio: formData.bio.trim() || undefined,
         expertise: formData.expertise
           .split(',')
-          .map(item => item.trim())
-          .filter(item => item.length > 0)
-      };
-      await mentorApi.create(dataToSend);
+          .map((s) => s.trim())
+          .filter(Boolean),
+        maxMentees: formData.maxMentees,
+        mentorshipType: formData.mentorshipType,
+        duration: formData.duration,
+      });
+      toast.success(t('mentor.addSuccess', 'Mentor created'));
       navigate('/mentors');
     } catch (err) {
-      setErrors({ submit: 'Error creating mentor. Please try again.' });
+      setErrors({ submit: getApiErrorMessage(err) });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', padding: '32px 16px' }}>
-      <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', color: '#2c3e50' }}>
-        <FaUserPlus size={32} /> Add New Mentor
-      </h1>
-
+    <FormShell
+      title={t('mentor.addMentor', 'Add Mentor')}
+      description={t('form.addMentorDesc')}
+      backHref="/mentors"
+      onSubmit={handleSubmit}
+    >
       {errors.submit && (
-        <div style={{ backgroundColor: '#ffe5e5', color: '#e74c3c', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+        <Alert variant="error" className="mb-2">
           {errors.submit}
-        </div>
+        </Alert>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
-            Name *
-          </label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="John Doe"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: errors.name ? '2px solid #e74c3c' : '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          {errors.name && <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>{errors.name}</p>}
-        </div>
+      <FormField label="Full name" required>
+        <input className={`input ${errors.name ? 'input-error' : ''}`} name="name" value={formData.name} onChange={handleChange} />
+        {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
+      </FormField>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
-            Email *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="john@example.com"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: errors.email ? '2px solid #e74c3c' : '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          {errors.email && <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>{errors.email}</p>}
-        </div>
+      <FormField label="Email" required>
+        <input type="email" className={`input ${errors.email ? 'input-error' : ''}`} name="email" value={formData.email} onChange={handleChange} />
+        {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
+      </FormField>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
-            Phone
-          </label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="+1234567890"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: errors.phone ? '2px solid #e74c3c' : '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          {errors.phone && <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>{errors.phone}</p>}
-        </div>
+      <FormField label="Phone">
+        <input type="tel" className={`input ${errors.phone ? 'input-error' : ''}`} name="phone" value={formData.phone} onChange={handleChange} />
+        {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
+      </FormField>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
-            Skills (comma separated)
-          </label>
-          <input
-            type="text"
-            name="expertise"
-            value={formData.expertise}
-            onChange={handleChange}
-            placeholder="React, Node.js, TypeScript"
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField label="Track / field" required>
+          <select className="input" name="track" value={formData.track} onChange={handleChange}>
+            {TRACKS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Max mentees" required>
+          <input type="number" min={1} max={20} className="input" name="maxMentees" value={formData.maxMentees} onChange={handleChange} />
+        </FormField>
+      </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
-            Bio
-          </label>
-          <textarea
-            name="bio"
-            value={formData.bio}
-            onChange={handleChange}
-            placeholder="Tell about your experience..."
-            rows={4}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box',
-              fontFamily: 'inherit'
-            }}
-          />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField label="Mentorship type">
+          <select className="input" name="mentorshipType" value={formData.mentorshipType} onChange={handleChange}>
+            <option value="GROUP">Group</option>
+            <option value="ONE_ON_ONE">1:1</option>
+          </select>
+        </FormField>
+        <FormField label="Duration">
+          <select className="input" name="duration" value={formData.duration} onChange={handleChange}>
+            <option value="LONG_TERM">Long-term</option>
+            <option value="SHORT_TERM">Short-term</option>
+          </select>
+        </FormField>
+      </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
-            Max Mentees *
-          </label>
-          <input
-            type="number"
-            name="maxMentees"
-            min={1}
-            value={formData.maxMentees}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: errors.maxMentees ? '2px solid #e74c3c' : '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              boxSizing: 'border-box'
-            }}
-          />
-          {errors.maxMentees && <p style={{ color: '#e74c3c', fontSize: '0.85rem', marginTop: '4px' }}>{errors.maxMentees}</p>}
-        </div>
+      <FormField label="Skills" hint="Comma-separated, e.g. React, Node.js">
+        <input className="input" name="expertise" value={formData.expertise} onChange={handleChange} placeholder={t('lists.expertisePlaceholder')} />
+      </FormField>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#2c5f2d',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '1rem',
-            fontWeight: '600',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1,
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => {
-            if (!loading) (e.currentTarget as HTMLElement).style.backgroundColor = '#245a27';
-          }}
-          onMouseOut={(e) => {
-            (e.currentTarget as HTMLElement).style.backgroundColor = '#2c5f2d';
-          }}
-        >
-          {loading ? 'Creating...' : '✓ Create Mentor'}
+      <FormField label="Bio">
+        <textarea className="input min-h-[100px]" name="bio" value={formData.bio} onChange={handleChange} rows={4} />
+      </FormField>
+
+      <FormActions>
+        <button type="button" className="btn btn-secondary flex-1" onClick={() => navigate('/mentors')}>
+          Cancel
         </button>
-      </form>
-    </div>
+        <button type="submit" className="btn btn-primary flex-1" disabled={loading}>
+          {loading ? 'Creating…' : 'Create mentor'}
+        </button>
+      </FormActions>
+    </FormShell>
   );
 };
 

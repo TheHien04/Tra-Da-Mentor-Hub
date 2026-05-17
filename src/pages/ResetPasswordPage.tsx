@@ -1,11 +1,14 @@
-// src/pages/ResetPasswordPage.tsx
 import { useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { HiOutlineKey } from 'react-icons/hi2';
 import { toast } from 'react-toastify';
-import api from '../services/api';
-import './ForgotPasswordPage.css'; // Reuse same styles
+import { authApi } from '../services/api';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { AuthPageFooter } from '../components/AuthPageFooter';
+import './AuthPage.css';
 
 export const ResetPasswordPage = () => {
+  const { t } = useAppTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
@@ -19,122 +22,141 @@ export const ResetPasswordPage = () => {
     e.preventDefault();
 
     if (!token) {
-      toast.error('Invalid reset link');
+      toast.error(t('pages.resetPassword.invalidResetLink'));
       return;
     }
 
     if (password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+      toast.error(t('validation.passwordMin'));
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('validation.passwordMatch'));
       return;
     }
 
     setLoading(true);
 
     try {
-      await api.post(`/auth/reset-password/${token}`, {
-        password,
-        confirmPassword,
-      });
+      await authApi.resetPassword(token, { password, confirmPassword });
       setSuccess(true);
-      toast.success('Password reset successful!');
-      
-      // Redirect to login after 3 seconds
+      toast.success(t('pages.resetPassword.success'));
+
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Password reset failed');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || t('pages.resetPassword.failed'));
     } finally {
       setLoading(false);
     }
   };
 
-  if (!token) {
-    return (
-      <div className="reset-password-page">
-        <div className="reset-password-container">
-          <h2>Invalid Link</h2>
-          <p>This password reset link is invalid or has expired.</p>
-          <Link to="/forgot-password" className="btn btn-primary">
-            Request New Link
-          </Link>
-        </div>
+  const invalidLinkView = (
+    <div className="auth-card">
+      <div className="auth-status-icon auth-status-icon--error" aria-hidden>
+        !
       </div>
-    );
-  }
+      <h1 className="auth-title">{t('pages.resetPassword.invalidLink')}</h1>
+      <p className="auth-subtitle">{t('pages.resetPassword.invalidLinkDesc')}</p>
+      <div className="auth-actions">
+        <Link to="/forgot-password" className="btn btn-primary w-full">
+          {t('pages.resetPassword.requestNewLink')}
+        </Link>
+      </div>
+    </div>
+  );
 
-  if (success) {
-    return (
-      <div className="reset-password-page">
-        <div className="reset-password-container">
-          <div className="success-icon">✓</div>
-          <h2>Password Reset Successful!</h2>
-          <p>Your password has been updated. You can now log in with your new password.</p>
-          <p className="note">Redirecting to login page...</p>
-          <Link to="/login" className="btn btn-primary">
-            Go to Login
-          </Link>
-        </div>
+  const successView = (
+    <div className="auth-card">
+      <div className="auth-status-icon auth-status-icon--success" aria-hidden>
+        ✓
       </div>
-    );
-  }
+      <h1 className="auth-title">{t('pages.resetPassword.successTitle')}</h1>
+      <p className="auth-subtitle">{t('pages.resetPassword.successMessage')}</p>
+      <p className="auth-note">{t('pages.resetPassword.redirecting')}</p>
+      <div className="auth-actions">
+        <Link to="/login" className="btn btn-primary w-full">
+          {t('pages.resetPassword.goToLogin')}
+        </Link>
+      </div>
+    </div>
+  );
+
+  const formView = (
+    <div className="auth-card">
+      <div className="text-center mb-8">
+        <div className="auth-icon">
+          <HiOutlineKey className="h-7 w-7" aria-hidden />
+        </div>
+        <h1 className="auth-title">{t('pages.resetPassword.title')}</h1>
+        <p className="auth-subtitle">{t('pages.resetPassword.subtitle')}</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-secondary mb-2">
+            {t('pages.resetPassword.newPassword')}
+          </label>
+          <input
+            type="password"
+            id="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={t('pages.resetPassword.passwordPlaceholder')}
+            className="input"
+            required
+            minLength={8}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-secondary mb-2">
+            {t('pages.resetPassword.confirmPassword')}
+          </label>
+          <input
+            type="password"
+            id="confirmPassword"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder={t('pages.resetPassword.confirmPlaceholder')}
+            className="input"
+            required
+            minLength={8}
+          />
+        </div>
+
+        <div className="auth-requirements">
+          <p className="auth-requirements-title">{t('pages.resetPassword.requirementsTitle')}</p>
+          <ul>
+            <li>{t('pages.resetPassword.reqMinLength')}</li>
+            <li>{t('pages.resetPassword.reqLettersNumbers')}</li>
+            <li>{t('pages.resetPassword.reqAvoidCommon')}</li>
+          </ul>
+        </div>
+
+        <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+          {loading ? t('pages.resetPassword.resetting') : t('pages.resetPassword.submit')}
+        </button>
+      </form>
+
+      <p className="auth-register-text mt-6 text-center">
+        <Link to="/login" className="auth-link-muted">
+          ← {t('auth.backToLogin')}
+        </Link>
+      </p>
+    </div>
+  );
 
   return (
-    <div className="reset-password-page">
-      <div className="reset-password-container">
-        <div className="header-icon">🔑</div>
-        <h2>Reset Password</h2>
-        <p>Enter your new password below.</p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="password">New Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter new password"
-              required
-              minLength={8}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              required
-              minLength={8}
-            />
-          </div>
-
-          <div className="password-requirements">
-            <h4>Password Requirements:</h4>
-            <ul>
-              <li>At least 8 characters long</li>
-              <li>Include letters and numbers</li>
-              <li>Avoid common passwords</li>
-            </ul>
-          </div>
-
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Resetting...' : 'Reset Password'}
-          </button>
-        </form>
-
-        <div className="footer-links">
-          <Link to="/login">← Back to Login</Link>
-        </div>
+    <div className="auth-page">
+      <div className="auth-shell">
+        {!token ? invalidLinkView : success ? successView : formView}
+        <AuthPageFooter showCopyright={false} />
       </div>
     </div>
   );

@@ -15,7 +15,10 @@ import {
   loginSchema,
   registerSchema,
   refreshTokenSchema,
+  emailOnlySchema,
+  resetPasswordBodySchema,
 } from "../schemas/auth.schema.js";
+import { passwordResetLimiter } from "../middleware/security.js";
 import {
   login,
   register,
@@ -44,11 +47,11 @@ router.post("/refresh", validate(refreshTokenSchema), refreshToken);
 
 // Email verification routes
 router.get("/verify-email/:token", verifyEmail);
-router.post("/resend-verification", resendVerification);
+router.post("/resend-verification", passwordResetLimiter, validate(emailOnlySchema), resendVerification);
 
 // Password reset routes
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password/:token", resetPassword);
+router.post("/forgot-password", passwordResetLimiter, validate(emailOnlySchema), forgotPassword);
+router.post("/reset-password/:token", passwordResetLimiter, validate(resetPasswordBodySchema), resetPassword);
 
 // Protected routes
 router.get("/profile", authenticate, getProfile);

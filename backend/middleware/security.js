@@ -6,162 +6,151 @@
 
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import mongoSanitize from 'express-mongo-sanitize';
 import logger from '../config/logger.js';
+import env from '../config/env.js';
+
+const isProd = env.isProduction;
 
 /**
- * Helmet - Security headers
+ * Helmet - Security headers (production SPA + API)
  */
 export const helmetConfig = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'https:'],
+      imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
+      connectSrc: ["'self'", 'wss:', 'https:'],
+      frameAncestors: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'same-site' },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  hsts: isProd
+    ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+    : false,
 });
 
-/**
- * Rate Limiting - Prevent brute force attacks
- */
-export const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 10000, // 10000 in dev, 100 in production
-  message: 'Too many requests from this IP, please try again later.',
+function buildLimiter(max, message) {
+  return rateLimit({
+    windowMs: env.rateLimitWindowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: false,
+    handler: (req, res) => {
+      logger.warn(`Rate limit exceeded for IP: ${req.ip} path=${req.path}`);
+      res.status(429).json({ success: false, message });
+    },
+  });
+}
+
+export const generalLimiter = buildLimiter(
+  isProd ? env.rateLimitMaxRequests : 10000,
+  'Too many requests, please try again later.'
+);
+
+export const authLimiter = rateLimit({
+  windowMs: env.rateLimitWindowMs,
+  max: isProd ? 10 : 1000,
+  skipSuccessfulRequests: true,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
+    logger.warn(`Auth rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
-      message: 'Too many requests, please try again later.',
+      message: 'Too many authentication attempts. Please try again later.',
     });
   },
 });
 
-/**
- * Auth Rate Limiting - Stricter for login/register
- */
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 5 : 1000, // 1000 in dev, 5 in production
-  skipSuccessfulRequests: true,
-  message: 'Too many login attempts, please try again later.',
+export const passwordResetLimiter = rateLimit({
+  windowMs: env.rateLimitWindowMs,
+  max: isProd ? 5 : 500,
+  standardHeaders: true,
+  legacyHeaders: false,
   handler: (req, res) => {
-    logger.warn(`Auth rate limit exceeded for IP: ${req.ip} - Email: ${req.body?.email}`);
+    logger.warn(`Password reset rate limit for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
-      message: 'Too many authentication attempts. Please try again in 15 minutes.',
+      message: 'Too many password reset requests. Please try again later.',
     });
   },
 });
 
-/**
- * MongoDB Query Sanitization
- * Custom implementation to avoid Express 5.x compatibility issues
- */
-export const sanitizeInputs = (req, res, next) => {
-  try {
-    const sanitizeObject = (obj) => {
-      if (!obj || typeof obj !== 'object') return obj;
-      
-      const keysToDelete = [];
-      
-      for (const key in obj) {
-        // Remove MongoDB operators from keys
-        if (key.startsWith('$')) {
-          logger.warn(`Removed MongoDB operator - Key: ${key}, IP: ${req.ip}`);
-          keysToDelete.push(key);
-          continue;
-        }
-        
-        // Recursively sanitize nested objects
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
-          sanitizeObject(obj[key]);
-        }
-        
-        // Remove $ from string values (but keep dots for emails, etc.)
-        if (typeof obj[key] === 'string' && obj[key].includes('$')) {
-          logger.warn(`Sanitized $ from value - Key: ${key}, IP: ${req.ip}`);
-          obj[key] = obj[key].replace(/\$/g, '');
-        }
-      }
-      
-      // Delete keys after iteration
-      keysToDelete.forEach(key => delete obj[key]);
-      
-      return obj;
-    };
+export const adminLimiter = rateLimit({
+  windowMs: env.rateLimitWindowMs,
+  max: isProd ? 30 : 2000,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({ success: false, message: 'Too many admin requests.' });
+  },
+});
 
-    if (req.body) sanitizeObject(req.body);
-    if (req.params) sanitizeObject(req.params);
-    if (req.query && typeof req.query === 'object') {
-      // Sanitize query without reassigning (avoids Express 5.x read-only issue)
-      sanitizeObject(req.query);
-    }
-    
-    next();
-  } catch (error) {
-    logger.error('Sanitization error:', error);
-    next();
-  }
-};
+/** MongoDB operator sanitization ($ and . in user-controlled keys) */
+export const sanitizeInputs = mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    logger.warn(`Sanitized Mongo operator in key "${key}" from IP: ${req.ip}`);
+  },
+});
 
-/**
- * Request body size limiter
- */
 export const bodySizeLimiter = (req, res, next) => {
   const contentLength = req.headers['content-length'];
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 1024 * 1024; // 1MB
 
-  if (contentLength && parseInt(contentLength) > maxSize) {
-    logger.warn(`Request body too large: ${contentLength} bytes from IP: ${req.ip}`);
+  if (contentLength && parseInt(contentLength, 10) > maxSize) {
+    logger.warn(`Request body too large from IP: ${req.ip}`);
     return res.status(413).json({
       success: false,
-      message: 'Request body too large. Maximum size is 10MB.',
+      message: 'Request body too large.',
     });
   }
-
   next();
 };
 
-/**
- * XSS Protection middleware
- */
-export const xssProtection = (req, res, next) => {
-  // Basic XSS pattern detection
-  const xssPattern = /<script[\s\S]*?>[\s\S]*?<\/script>/gi;
-  
-  const checkXSS = (obj) => {
-    for (let key in obj) {
-      if (typeof obj[key] === 'string') {
-        if (xssPattern.test(obj[key])) {
-          logger.warn(`XSS attempt detected - Key: ${key}, IP: ${req.ip}`);
-          return true;
-        }
-      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-        if (checkXSS(obj[key])) return true;
-      }
-    }
-    return false;
-  };
+const XSS_PATTERNS = [
+  /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
+  /javascript:/gi,
+  /on\w+\s*=/gi,
+  /<iframe[\s\S]*?>/gi,
+];
 
-  if (req.body && checkXSS(req.body)) {
+function hasXssPayload(value) {
+  if (typeof value !== 'string') return false;
+  return XSS_PATTERNS.some((pattern) => {
+    pattern.lastIndex = 0;
+    return pattern.test(value);
+  });
+}
+
+function scanForXss(obj) {
+  if (!obj || typeof obj !== 'object') return false;
+  for (const key of Object.keys(obj)) {
+    if (hasXssPayload(key)) return true;
+    const val = obj[key];
+    if (typeof val === 'string' && hasXssPayload(val)) return true;
+    if (typeof val === 'object' && val !== null && scanForXss(val)) return true;
+  }
+  return false;
+}
+
+export const xssProtection = (req, res, next) => {
+  if ((req.body && scanForXss(req.body)) || (req.query && scanForXss(req.query))) {
+    logger.warn(`XSS attempt blocked from IP: ${req.ip}`);
     return res.status(400).json({
       success: false,
       message: 'Invalid input detected.',
     });
   }
-
-  if (req.query && checkXSS(req.query)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid query parameters.',
-    });
-  }
-
   next();
 };
 
@@ -169,6 +158,8 @@ export default {
   helmetConfig,
   generalLimiter,
   authLimiter,
+  passwordResetLimiter,
+  adminLimiter,
   sanitizeInputs,
   bodySizeLimiter,
   xssProtection,

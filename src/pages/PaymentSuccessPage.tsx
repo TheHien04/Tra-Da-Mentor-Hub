@@ -1,35 +1,47 @@
-// src/pages/PaymentSuccessPage.tsx
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import './PaymentSuccessPage.css';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { AuthPageFooter } from '../components/AuthPageFooter';
+import './AuthPage.css';
 
 export const PaymentSuccessPage = () => {
+  const { t } = useAppTranslation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      window.location.href = '/dashboard';
+    if (countdown <= 0) {
+      navigate('/', { replace: true });
+      return;
     }
-  }, [countdown]);
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, navigate]);
 
   return (
-    <div className="payment-success-page">
-      <div className="success-container">
-        <div className="success-icon">✓</div>
-        <h1>Payment Successful!</h1>
-        <p>Thank you for upgrading your subscription.</p>
-        <p className="session-id">Session ID: {sessionId}</p>
-        <p className="redirect-message">
-          Redirecting to dashboard in {countdown} seconds...
-        </p>
-        <Link to="/dashboard" className="btn btn-primary">
-          Go to Dashboard Now
-        </Link>
+    <div className="auth-page">
+      <div className="auth-shell">
+        <div className="auth-card text-center">
+          <div className="auth-status-icon auth-status-icon--success" aria-hidden>
+            ✓
+          </div>
+          <h1 className="auth-title">{t('legal.paymentSuccess.title')}</h1>
+          <p className="auth-subtitle">{t('legal.paymentSuccess.thanks')}</p>
+          {sessionId && (
+            <p className="auth-note text-xs break-all">
+              {t('legal.paymentSuccess.sessionId')}: {sessionId}
+            </p>
+          )}
+          <p className="auth-note">{t('legal.paymentSuccess.redirect', { count: countdown })}</p>
+          <div className="auth-actions">
+            <Link to="/" className="btn btn-primary w-full">
+              {t('legal.paymentSuccess.goDashboard')}
+            </Link>
+          </div>
+        </div>
+        <AuthPageFooter showCopyright={false} />
       </div>
     </div>
   );

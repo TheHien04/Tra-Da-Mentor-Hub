@@ -1,14 +1,61 @@
-# Dependencies
-node_modules/
-package-lock.json.bak
+# =============================================================================
+# Trà Đá Mentor — .gitignore (security-first)
+# Only commit: source code, .env.example, deploy/*.template, public assets.
+# NEVER commit: secrets, .env, build output, test artifacts, local deploy files.
+# =============================================================================
 
-# Build outputs
+# --- Dependencies ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- Build & bundler output ---
 dist/
 dist-ssr/
 build/
+out/
 .cache/
+.vite/
+*.tsbuildinfo
 
-# Logs
+# --- Environment & secrets (CRITICAL) ---
+.env
+.env.*
+!.env.example
+!.env.test.example
+backend/.env
+backend/.env.*
+
+# Generated deploy env (contains real JWT from npm run setup:deploy)
+deploy/*.generated
+deploy/*.local
+deploy/railway.env
+deploy/*.env
+!deploy/.gitkeep
+!deploy/*.template
+
+# Keys, certs, cloud credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+credentials.json
+**/credentials.json
+**/*-credentials.json
+**/service-account*.json
+**/secrets.json
+**/*.secret
+.gcloud/
+.terraform/
+*.tfvars
+*.tfstate
+*.tfstate.*
+
+# --- Logs & runtime data ---
 logs/
 *.log
 npm-debug.log*
@@ -16,30 +63,31 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+backend/logs/
+pids/
+*.pid
 
-# Documentation (keep locally only)
-docs/
-
-# Environment variables (NEVER COMMIT!)
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.*.local
-backend/.env
-backend/.env.local
-
-# Database files
+# --- Databases & dumps ---
 *.sqlite
 *.sqlite3
 *.db
+dump.rdb
+*.sql.gz
 
-# Test coverage
+# --- Test & coverage (never commit CI/local artifacts) ---
 coverage/
 .nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.jest/
 
-# OS files
+# --- Large / local-only assets ---
+src/assets/logo-source.png
+docs/
+
+# --- OS ---
 .DS_Store
 .DS_Store?
 ._*
@@ -47,11 +95,9 @@ coverage/
 .Trashes
 ehthumbs.db
 Thumbs.db
-*.swp
-*.swo
-*~
+Desktop.ini
 
-# Editor directories and files
+# --- Editors & IDE ---
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
@@ -63,17 +109,22 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+.cursor/
 
-# Temporary files
+# --- Temp & backups ---
 *.tmp
 *.temp
 *.bak
 *.orig
+package-lock.json.bak
+*~
 
-# Local development
-*.local
+# --- Hosting / PaaS local config ---
 .vercel
 .netlify
+.railway/
+.render/
 
-# Duplicate folder (if exists)
+# --- Misc local ---
+*.local
 Tra-Da-Mentor-Hub/

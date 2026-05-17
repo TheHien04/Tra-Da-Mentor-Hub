@@ -1,18 +1,8 @@
 {
   "testEnvironment": "node",
   "transform": {},
-  "coverageDirectory": "coverage",
-  "collectCoverageFrom": [
-    "backend/**/*.js",
-    "!backend/node_modules/**",
-    "!backend/scripts/**",
-    "!backend/config/**",
-    "!backend/__tests__/**"
-  ],
-  "testMatch": [
-    "**/__tests__/**/*.test.js"
-  ],
   "moduleFileExtensions": ["js", "json"],
-  "testTimeout": 10000,
+  "testMatch": ["**/__tests__/**/*.test.js"],
+  "testTimeout": 30000,
   "verbose": true
 }

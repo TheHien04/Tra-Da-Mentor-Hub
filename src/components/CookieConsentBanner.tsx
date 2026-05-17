@@ -1,13 +1,14 @@
 // src/components/CookieConsentBanner.tsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 import './CookieConsentBanner.css';
 
 export const CookieConsentBanner = () => {
+  const { t } = useAppTranslation();
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    // Check if user has already consented
     const consent = localStorage.getItem('cookieConsent');
     if (!consent) {
       setShowBanner(true);
@@ -24,9 +25,6 @@ export const CookieConsentBanner = () => {
     localStorage.setItem('cookieConsent', 'declined');
     localStorage.setItem('cookieConsentDate', new Date().toISOString());
     setShowBanner(false);
-    
-    // Optionally: Disable analytics/tracking scripts here
-    console.log('Cookie consent declined - analytics disabled');
   };
 
   if (!showBanner) {
@@ -38,19 +36,18 @@ export const CookieConsentBanner = () => {
       <div className="cookie-consent-content">
         <div className="cookie-icon">🍪</div>
         <div className="cookie-text">
-          <h3>We Value Your Privacy</h3>
+          <h3>{t('pages.cookie.title')}</h3>
           <p>
-            We use cookies to enhance your experience, analyze site traffic, and for marketing purposes.
-            By clicking "Accept All", you consent to our use of cookies.{' '}
-            <Link to="/privacy-policy">Read our Privacy Policy</Link>.
+            {t('pages.cookie.message')}{' '}
+            <Link to="/privacy-policy">{t('pages.cookie.privacyLink')}</Link>.
           </p>
         </div>
         <div className="cookie-actions">
           <button className="btn btn-secondary" onClick={handleDecline}>
-            Decline
+            {t('pages.cookie.decline')}
           </button>
           <button className="btn btn-primary" onClick={handleAccept}>
-            Accept All
+            {t('pages.cookie.acceptAll')}
           </button>
         </div>
       </div>

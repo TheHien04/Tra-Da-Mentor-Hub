@@ -1,861 +1,356 @@
-import { useState, useMemo } from 'react';
-import { FaQuoteLeft, FaStar, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import {
+  HiOutlineChatBubbleLeftRight,
+  HiOutlinePlus,
+  HiOutlineStar,
+  HiOutlineTrash,
+  HiOutlineCheck,
+  HiOutlineXMark,
+} from 'react-icons/hi2';
+import { toast } from 'react-toastify';
+import { PageShell, PageHeader, Alert } from './ui';
+import { FormField, FormActions } from './ui/FormShell';
+import EmptyState from './EmptyState';
+import Skeleton from './Skeleton';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { testimonialsApi, type Testimonial } from '../services/api';
+import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
 
-interface Testimonial {
-  _id: string;
-  menteeName: string;
-  mentorName: string;
-  content: string;
-  rating: number;
-  track: 'career' | 'personal' | 'soft_skills';
-  date: string;
-  status: 'PUBLISHED' | 'PENDING' | 'REJECTED';
-}
+type TestimonialStatus = Testimonial['status'];
+type Track = Testimonial['track'];
+
+const STATUS_BADGE: Record<TestimonialStatus, string> = {
+  PUBLISHED: 'badge-success',
+  PENDING: 'badge-warning',
+  REJECTED: 'badge-full',
+};
 
 const TestimonialsPage = () => {
-  console.log('TestimonialsPage component loaded');
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([
-    {
-      _id: 't1',
-      menteeName: 'Dat Do',
-      mentorName: 'Huy Hoang',
-      content: 'Before mentoring, my worldview was limited to university or factory work. Thanks to Huy Hoang\'s insightful questions and interesting sharing, I was motivated to explore beyond my boundaries. Now I\'m part of Thinkmay - Southeast Asia\'s first CloudPC startup.',
-      rating: 5,
-      track: 'career',
-      date: '2025-12-15',
-      status: 'PUBLISHED'
-    },
-    {
-      _id: 't2',
-      menteeName: 'Huong Giang Nguyen',
-      mentorName: 'Linh Nguyen',
-      content: 'The mentoring program helped me understand myself better, manage emotions, and develop soft skills. Thank you so much for your dedication and patience throughout the mentoring process.',
-      rating: 5,
-      track: 'personal',
-      date: '2025-12-10',
-      status: 'PUBLISHED'
-    },
-    {
-      _id: 't3',
-      menteeName: 'Minh Khoa Tran',
-      mentorName: 'Viet Hoang',
-      content: 'My mentor helped me build a clear career roadmap and develop leadership skills. Very helpful!',
-      rating: 5,
-      track: 'soft_skills',
-      date: '2025-12-08',
-      status: 'PUBLISHED'
-    },
-    {
-      _id: 't4',
-      menteeName: 'Thanh Tu Pham',
-      mentorName: 'Anh Duong Nguyen',
-      content: 'The mentoring sessions are very detailed and helped me solve many work-related issues. I learned a lot from the mentor\'s experience.',
-      rating: 4,
-      track: 'career',
-      date: '2025-12-05',
-      status: 'PUBLISHED'
-    },
-    {
-      _id: 't5',
-      menteeName: 'Minh Quan Hoang',
-      mentorName: 'Minh Nhat Pham',
-      content: 'This mentoring program is very beneficial. I learned a lot and developed both technical and soft skills.',
-      rating: 4,
-      track: 'career',
-      date: '2025-12-02',
-      status: 'PENDING'
-    },
-    {
-      _id: 't6',
-      menteeName: 'Huong Le Thi',
-      mentorName: 'Van Hung Tran',
-      content: 'The mentor is very dedicated and always ready to help. I am very satisfied with the mentoring quality.',
-      rating: 5,
-      track: 'personal',
-      date: '2025-11-28',
-      status: 'PUBLISHED'
-    },
-    {
-      _id: 't7',
-      menteeName: 'Huong Ngo Thi',
-      mentorName: 'Linh Nguyen',
-      content: 'Good course, but the content was off-topic and not well-organized.',
-      rating: 2,
-      track: 'career',
-      date: '2025-11-25',
-      status: 'REJECTED'
-    }
-  ]);
-
+  const { t } = useAppTranslation();
+  const trackLabel = (track: Track) => {
+    const map: Record<Track, string> = {
+      career: t('pages.testimonials.trackCareer'),
+      personal: t('pages.testimonials.trackPersonal'),
+      soft_skills: t('pages.testimonials.trackSoftSkills'),
+    };
+    return map[track];
+  };
+  const statusLabel = (status: TestimonialStatus) => {
+    const map: Record<TestimonialStatus, string> = {
+      PUBLISHED: t('common.published'),
+      PENDING: t('common.pending'),
+      REJECTED: t('common.rejected'),
+    };
+    return map[status];
+  };
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ALL' | 'PUBLISHED' | 'PENDING' | 'REJECTED'>('PUBLISHED');
-  const [filterTrack, setFilterTrack] = useState<'ALL' | 'career' | 'personal' | 'soft_skills'>('ALL');
-  const [viewMode, setViewMode] = useState<'list' | 'gallery'>('gallery');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newTestimonial, setNewTestimonial] = useState({
+  const [filterStatus, setFilterStatus] = useState<'ALL' | TestimonialStatus>('ALL');
+  const [filterTrack, setFilterTrack] = useState<'ALL' | Track>('ALL');
+  const [viewMode, setViewMode] = useState<'gallery' | 'list'>('gallery');
+  const [showForm, setShowForm] = useState(false);
+  const [draft, setDraft] = useState({
     menteeName: '',
     mentorName: '',
     content: '',
     rating: 5,
-    track: 'career' as 'career' | 'personal' | 'soft_skills'
+    track: 'career' as Track,
   });
 
-  const filteredTestimonials = useMemo(() => {
-    return testimonials.filter(t => {
-      const matchesSearch = 
-        t.menteeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.mentorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.content.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = filterStatus === 'ALL' || t.status === filterStatus;
-      const matchesTrack = filterTrack === 'ALL' || t.track === filterTrack;
+  const fetchTestimonials = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await testimonialsApi.getAll();
+      setTestimonials(unwrapList<Testimonial>(res));
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(getApiErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-      return matchesSearch && matchesStatus && matchesTrack;
+  useEffect(() => {
+    fetchTestimonials();
+  }, [fetchTestimonials]);
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return testimonials.filter((t) => {
+      const matchQ =
+        t.menteeName.toLowerCase().includes(q) ||
+        t.mentorName.toLowerCase().includes(q) ||
+        t.content.toLowerCase().includes(q);
+      const matchStatus = filterStatus === 'ALL' || t.status === filterStatus;
+      const matchTrack = filterTrack === 'ALL' || t.track === filterTrack;
+      return matchQ && matchStatus && matchTrack;
     });
   }, [testimonials, searchQuery, filterStatus, filterTrack]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PUBLISHED':
-        return '#27ae60';
-      case 'PENDING':
-        return '#f39c12';
-      case 'REJECTED':
-        return '#e74c3c';
-      default:
-        return '#95a5a6';
-    }
-  };
+  const stats = useMemo(
+    () => ({
+      total: testimonials.length,
+      published: testimonials.filter((t) => t.status === 'PUBLISHED').length,
+      pending: testimonials.filter((t) => t.status === 'PENDING').length,
+      rejected: testimonials.filter((t) => t.status === 'REJECTED').length,
+      avg: (
+        testimonials.reduce((s, t) => s + t.rating, 0) / (testimonials.length || 1)
+      ).toFixed(1),
+    }),
+    [testimonials]
+  );
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'PUBLISHED':
-        return '✓ Published';
-      case 'PENDING':
-        return '⏳ Pending';
-      case 'REJECTED':
-        return '✗ Rejected';
-      default:
-        return status;
-    }
-  };
-
-  const getTrackLabel = (track: string) => {
-    switch (track) {
-      case 'career':
-        return '💼 Career';
-      case 'personal':
-        return '🌟 Personal Development';
-      case 'soft_skills':
-        return '🎯 Soft Skills';
-      default:
-        return track;
-    }
-  };
-
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Confirm delete testimonial from ${name}?`)) {
-      setTestimonials(testimonials.filter(t => t._id !== id));
-    }
-  };
-
-  const handleAddTestimonial = () => {
-    if (!newTestimonial.menteeName || !newTestimonial.mentorName || !newTestimonial.content) {
-      alert('Please fill in all required fields');
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!draft.menteeName.trim() || !draft.mentorName.trim() || !draft.content.trim()) {
+      toast.warning(t('pages.testimonials.fillRequired'));
       return;
     }
-
-    const testimonial: Testimonial = {
-      _id: `t_${Date.now()}`,
-      menteeName: newTestimonial.menteeName,
-      mentorName: newTestimonial.mentorName,
-      content: newTestimonial.content,
-      rating: newTestimonial.rating,
-      track: newTestimonial.track,
-      date: new Date().toISOString().split('T')[0],
-      status: 'PENDING'
-    };
-
-    setTestimonials([...testimonials, testimonial]);
-    setShowAddModal(false);
-    setNewTestimonial({
-      menteeName: '',
-      mentorName: '',
-      content: '',
-      rating: 5,
-      track: 'career'
-    });
+    try {
+      await testimonialsApi.create(draft);
+      await fetchTestimonials();
+      setShowForm(false);
+      setDraft({ menteeName: '', mentorName: '', content: '', rating: 5, track: 'career' });
+      toast.success(t('pages.testimonials.submitted'));
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
   };
 
-  const handleApprove = (id: string) => {
-    setTestimonials(testimonials.map(t => 
-      t._id === id ? { ...t, status: 'PUBLISHED' } : t
-    ));
+  const setStatus = async (id: string, status: TestimonialStatus) => {
+    try {
+      await testimonialsApi.update(id, { status });
+      setTestimonials((p) => p.map((x) => (x._id === id ? { ...x, status } : x)));
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
   };
 
-  const handleReject = (id: string) => {
-    setTestimonials(testimonials.map(t => 
-      t._id === id ? { ...t, status: 'REJECTED' } : t
-    ));
+  const removeItem = async (id: string, name: string) => {
+    if (!window.confirm(t('pages.testimonials.deleteConfirm', { name }))) return;
+    try {
+      await testimonialsApi.delete(id);
+      setTestimonials((p) => p.filter((x) => x._id !== id));
+      toast.success(t('pages.testimonials.deleted'));
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
   };
 
-  const stats = {
-    total: testimonials.length,
-    published: testimonials.filter(t => t.status === 'PUBLISHED').length,
-    pending: testimonials.filter(t => t.status === 'PENDING').length,
-    rejected: testimonials.filter(t => t.status === 'REJECTED').length,
-    averageRating: (testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length).toFixed(1)
-  };
+  const Stars = ({ n }: { n: number }) => (
+    <span className="inline-flex gap-0.5 text-amber-500">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <HiOutlineStar key={i} className={`h-4 w-4 ${i <= n ? 'fill-current' : 'opacity-30'}`} />
+      ))}
+    </span>
+  );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #f8f9fa, #f0f2f5)', padding: '2rem', width: '100%' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1a1a1a', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <FaQuoteLeft size={32} style={{ color: '#667eea' }} /> 💬 Reviews & Testimonials
-          </h1>
-          <p style={{ color: '#666', fontSize: '0.95rem', margin: 0 }}>
-            Total: {stats.total} | Published: {stats.published} | Pending: {stats.pending} | Rejected: {stats.rejected}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div style={{
-            display: 'flex',
-            gap: '0.5rem',
-            background: '#f0f0f0',
-            padding: '0.5rem',
-            borderRadius: '8px'
-          }}>
+    <PageShell>
+      <PageHeader
+        title={t('pages.testimonials.title')}
+        description={t('pages.testimonials.description', {
+          total: stats.total,
+          published: stats.published,
+          pending: stats.pending,
+          avg: stats.avg,
+        })}
+        icon={<HiOutlineChatBubbleLeftRight className="h-7 w-7" />}
+      >
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <div className="flex rounded-lg border p-0.5" style={{ borderColor: 'var(--border-default)' }}>
             <button
-              onClick={() => setViewMode('list')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: viewMode === 'list' ? '#667eea' : 'transparent',
-                color: viewMode === 'list' ? '#fff' : '#666',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-                transition: 'all 0.2s'
-              }}
-              title="List View"
+              type="button"
+              className={`px-3 py-1.5 text-xs font-medium rounded-md ${viewMode === 'gallery' ? 'btn-primary' : 'text-muted'}`}
+              onClick={() => setViewMode('gallery')}
             >
-              ☰ List
+              {t('pages.testimonials.gallery')}
             </button>
             <button
-              onClick={() => setViewMode('gallery')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: viewMode === 'gallery' ? '#667eea' : 'transparent',
-                color: viewMode === 'gallery' ? '#fff' : '#666',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-                transition: 'all 0.2s'
-              }}
-              title="Gallery View"
+              type="button"
+              className={`px-3 py-1.5 text-xs font-medium rounded-md ${viewMode === 'list' ? 'btn-primary' : 'text-muted'}`}
+              onClick={() => setViewMode('list')}
             >
-              🖼️ Gallery
+              {t('pages.testimonials.list')}
             </button>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            style={{
-              backgroundColor: '#667eea',
-              color: '#fff',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              border: 'none',
-              fontWeight: '600',
-              cursor: 'pointer',
-              fontSize: '0.95rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#5568d3';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#667eea';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <FaPlus /> Add Testimonial
+          <button type="button" className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            <HiOutlinePlus className="h-4 w-4" />
+            {showForm ? t('pages.testimonials.close') : t('pages.testimonials.add')}
           </button>
         </div>
+      </PageHeader>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: t('pages.testimonials.statPublished'), value: stats.published, cls: 'badge-success' },
+          { label: t('pages.testimonials.statPending'), value: stats.pending, cls: 'badge-warning' },
+          { label: t('pages.testimonials.statRejected'), value: stats.rejected, cls: 'badge-full' },
+          { label: t('pages.testimonials.statAvgRating'), value: `${stats.avg}★`, cls: 'badge-accent' },
+        ].map((s) => (
+          <div key={s.label} className="stat-card text-center py-4">
+            <p className="stat-label">{s.label}</p>
+            <p className="text-2xl font-semibold text-primary mt-1">{s.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Stats Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2rem'
-      }}>
-        <div style={{
-          background: 'linear-gradient(135deg, #27ae60, #229954)',
-          color: '#fff',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.9 }}>Published</p>
-          <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '2rem', fontWeight: 'bold' }}>{stats.published}</h3>
-        </div>
-        <div style={{
-          background: 'linear-gradient(135deg, #f39c12, #e67e22)',
-          color: '#fff',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.9 }}>Pending</p>
-          <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '2rem', fontWeight: 'bold' }}>{stats.pending}</h3>
-        </div>
-        <div style={{
-          background: 'linear-gradient(135deg, #e74c3c, #c0392b)',
-          color: '#fff',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.9 }}>Rejected</p>
-          <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '2rem', fontWeight: 'bold' }}>{stats.rejected}</h3>
-        </div>
-        <div style={{
-          background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
-          color: '#1a1a1a',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          textAlign: 'center'
-        }}>
-          <p style={{ margin: '0', fontSize: '0.9rem', opacity: 0.9 }}>Avg Rating</p>
-          <h3 style={{ margin: '0.5rem 0 0 0', fontSize: '2rem', fontWeight: 'bold' }}>⭐ {stats.averageRating}</h3>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div style={{
-        background: '#fff',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        marginBottom: '2rem'
-      }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-          <input
-            type="text"
-            placeholder="🔍 Search mentee, mentor or content..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '0.95rem'
-            }}
-          />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as 'ALL' | 'PUBLISHED' | 'PENDING' | 'REJECTED')}
-            style={{
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '0.95rem'
-            }}
-          >
-            <option value="ALL">All Status</option>
-            <option value="PUBLISHED">Published</option>
-            <option value="PENDING">Pending</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-          <select
-            value={filterTrack}
-            onChange={(e) => setFilterTrack(e.target.value as 'ALL' | 'career' | 'personal' | 'soft_skills')}
-            style={{
-              padding: '0.75rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              fontSize: '0.95rem'
-            }}
-          >
-            <option value="ALL">All Fields</option>
-            <option value="career">Career</option>
-            <option value="personal">Personal Development</option>
-            <option value="soft_skills">Soft Skills</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Testimonials List */}
-      {filteredTestimonials.length === 0 ? (
-        <div style={{
-          background: '#fff',
-          borderRadius: '12px',
-          padding: '3rem',
-          textAlign: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📭</div>
-          <h3 style={{ color: '#1a1a1a', marginBottom: '0.5rem' }}>No testimonials found</h3>
-          <p style={{ color: '#666' }}>Try changing filters or search criteria</p>
-        </div>
-      ) : (
-        <>
-          {/* LIST VIEW */}
-          {viewMode === 'list' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.5rem' }}>
-          {filteredTestimonials.map((testimonial) => (
-            <div
-              key={testimonial._id}
-              style={{
-                background: '#fff',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                transition: 'all 0.3s ease',
-                borderLeft: `4px solid ${getStatusColor(testimonial.status)}`
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-              }}
+      <div className="card p-4 mb-6 space-y-3">
+        <input
+          className="input"
+          placeholder={t('pages.testimonials.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <div className="flex flex-wrap gap-2">
+          {(['ALL', 'PUBLISHED', 'PENDING', 'REJECTED'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`btn text-sm ${filterStatus === s ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFilterStatus(s)}
             >
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+              {s === 'ALL' ? t('common.all') : statusLabel(s as TestimonialStatus)}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(['ALL', 'career', 'personal', 'soft_skills'] as const).map((tr) => (
+            <button
+              key={tr}
+              type="button"
+              className={`btn text-sm ${filterTrack === tr ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setFilterTrack(tr)}
+            >
+              {tr === 'ALL' ? t('pages.testimonials.allTracks') : trackLabel(tr)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleAdd} className="card p-6 mb-6 space-y-4">
+          <h2 className="text-sm font-semibold text-primary">{t('pages.testimonials.newFormTitle')}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField label={t('pages.testimonials.menteeName')} required>
+              <input className="input" value={draft.menteeName} onChange={(e) => setDraft({ ...draft, menteeName: e.target.value })} />
+            </FormField>
+            <FormField label={t('pages.testimonials.mentorName')} required>
+              <input className="input" value={draft.mentorName} onChange={(e) => setDraft({ ...draft, mentorName: e.target.value })} />
+            </FormField>
+          </div>
+          <FormField label={t('common.content')} required>
+            <textarea className="input min-h-[100px]" rows={4} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} />
+          </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormField label={t('common.rating')}>
+              <select className="input" value={draft.rating} onChange={(e) => setDraft({ ...draft, rating: Number(e.target.value) })}>
+                {[5, 4, 3, 2, 1].map((n) => (
+                  <option key={n} value={n}>
+                    {t('pages.testimonials.starsOption', { n })}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label={t('common.track')}>
+              <select className="input" value={draft.track} onChange={(e) => setDraft({ ...draft, track: e.target.value as Track })}>
+                <option value="career">{t('pages.testimonials.trackCareer')}</option>
+                <option value="personal">{t('pages.testimonials.trackPersonal')}</option>
+                <option value="soft_skills">{t('pages.testimonials.trackSoftSkills')}</option>
+              </select>
+            </FormField>
+          </div>
+          <FormActions>
+            <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowForm(false)}>
+              {t('common.cancel')}
+            </button>
+            <button type="submit" className="btn btn-primary flex-1">
+              {t('pages.testimonials.submit')}
+            </button>
+          </FormActions>
+        </form>
+      )}
+
+      {loadError && (
+        <Alert variant="error" className="mb-4">
+          {loadError}
+        </Alert>
+      )}
+
+      {loading ? (
+        <div className="py-4">
+          <Skeleton count={4} />
+        </div>
+      ) : filtered.length === 0 ? (
+        <EmptyState title={t('pages.testimonials.emptyTitle')} description={t('pages.testimonials.emptyFiltered')} />
+      ) : viewMode === 'gallery' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filtered.map((item) => (
+            <article key={item._id} className="card p-5 flex flex-col">
+              <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
-                  <p style={{ margin: '0', fontSize: '0.85rem', color: '#666' }}>
-                    {testimonial.menteeName} → {testimonial.mentorName}
+                  <p className="font-semibold text-primary">{item.menteeName}</p>
+                  <p className="text-xs text-muted">
+                    {t('pages.testimonials.withMentor', { name: item.mentorName })}
                   </p>
-                  <h3 style={{ margin: '0.25rem 0 0 0', fontSize: '0.95rem', fontWeight: '600', color: '#1a1a1a' }}>
-                    {getTrackLabel(testimonial.track)}
-                  </h3>
                 </div>
-                <span style={{
-                  backgroundColor: getStatusColor(testimonial.status) + '20',
-                  color: getStatusColor(testimonial.status),
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '12px',
-                  fontSize: '0.75rem',
-                  fontWeight: '600'
-                }}>
-                  {getStatusLabel(testimonial.status)}
+                <span className={`badge-pill shrink-0 ${STATUS_BADGE[item.status]}`}>
+                  {statusLabel(item.status)}
                 </span>
               </div>
-
-              {/* Rating */}
-              <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1rem' }}>
-                {[...Array(5)].map((_, i) => (
-                  <FaStar
-                    key={i}
-                    size={16}
-                    style={{ color: i < testimonial.rating ? '#ffd700' : '#ddd' }}
-                  />
-                ))}
+              <Stars n={item.rating} />
+              <p className="text-sm text-secondary mt-3 flex-1 line-clamp-4">&ldquo;{item.content}&rdquo;</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+                <span className="badge-pill badge-neutral">{trackLabel(item.track)}</span>
+                <span className="text-xs text-muted">{item.date}</span>
               </div>
-
-              {/* Content */}
-              <div style={{
-                background: '#f8f9fa',
-                padding: '1rem',
-                borderRadius: '8px',
-                marginBottom: '1rem',
-                borderLeft: '3px solid #667eea'
-              }}>
-                <p style={{
-                  margin: '0',
-                  fontSize: '0.9rem',
-                  color: '#555',
-                  lineHeight: '1.6',
-                  fontStyle: 'italic'
-                }}>
-                  "{testimonial.content}"
-                </p>
-              </div>
-
-              {/* Date */}
-              <p style={{ margin: '0 0 1rem 0', fontSize: '0.8rem', color: '#999' }}>
-                📅 {new Date(testimonial.date).toLocaleDateString('en-US')}
-              </p>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {testimonial.status === 'PENDING' && (
+              <div className="flex gap-2 mt-3">
+                {item.status === 'PENDING' && (
                   <>
-                    <button
-                      onClick={() => handleApprove(testimonial._id)}
-                      style={{
-                        flex: 1,
-                        padding: '0.6rem',
-                        background: '#27ae60',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#229954'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#27ae60'; }}
-                    >
-                      ✓ Approve
+                    <button type="button" className="btn btn-primary text-xs flex-1" onClick={() => setStatus(item._id, 'PUBLISHED')}>
+                      <HiOutlineCheck className="h-3.5 w-3.5" /> {t('pages.testimonials.approve')}
                     </button>
-                    <button
-                      onClick={() => handleReject(testimonial._id)}
-                      style={{
-                        flex: 1,
-                        padding: '0.6rem',
-                        background: '#e74c3c',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontWeight: '600',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#c0392b'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#e74c3c'; }}
-                    >
-                      ✗ Reject
+                    <button type="button" className="btn btn-secondary text-xs flex-1" onClick={() => setStatus(item._id, 'REJECTED')}>
+                      <HiOutlineXMark className="h-3.5 w-3.5" /> {t('pages.testimonials.reject')}
                     </button>
                   </>
                 )}
                 <button
-                  style={{
-                    flex: 1,
-                    padding: '0.6rem',
-                    background: '#667eea',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.3rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#5568d3'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#667eea'; }}
+                  type="button"
+                  className="btn btn-secondary text-xs"
+                  onClick={() => removeItem(item._id, item.menteeName)}
                 >
-                  <FaEdit size={12} /> Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(testimonial._id, testimonial.menteeName)}
-                  style={{
-                    flex: 1,
-                    padding: '0.6rem',
-                    background: '#95a5a6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    fontSize: '0.85rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.3rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#7f8c8d'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#95a5a6'; }}
-                >
-                  <FaTrash size={12} /> Delete
+                  <HiOutlineTrash className="h-3.5 w-3.5" />
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
-          )}
-
-          {/* GALLERY VIEW */}
-          {viewMode === 'gallery' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-          {filteredTestimonials.map((testimonial) => (
-            <div key={testimonial._id} style={{
-              background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-              borderRadius: '12px',
-              padding: '2rem 1.5rem',
-              textAlign: 'center',
-              boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              border: '1px solid rgba(255,255,255,0.5)'
-            }}>
-              <div style={{ fontSize: '1.2rem', marginBottom: '1rem', color: '#333', fontStyle: 'italic' }}>
-                "{testimonial.content}"
-              </div>
-              <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.8rem', fontWeight: 'bold' }}>
-                — {testimonial.menteeName}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: '#999', marginBottom: '0.8rem' }}>
-                Mentored by {testimonial.mentorName}
-              </div>
-              <div style={{ fontSize: '1.2rem', color: '#ffd700', marginBottom: '0.8rem' }}>
-                {'⭐'.repeat(Math.min(5, Math.max(0, testimonial.rating)))}
-              </div>
-              {testimonial.status && (
-                <span style={{
-                  background: testimonial.status === 'PUBLISHED' ? '#10b981' : 
-                              testimonial.status === 'PENDING' ? '#f59e0b' : '#ef4444',
-                  color: '#fff',
-                  padding: '0.3rem 0.8rem',
-                  borderRadius: '20px',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold',
-                  display: 'inline-block'
-                }}>
-                  {testimonial.status}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-          )}
-        </>
-      )}
-
-      {/* Add Testimonial Modal */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '1rem'
-        }}>
-          <div style={{
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            padding: '2rem',
-            maxWidth: '600px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
-          }}>
-            <h2 style={{ marginBottom: '1.5rem', color: '#0a4b39', fontSize: '1.5rem', fontWeight: 'bold' }}>
-              Add New Testimonial
-            </h2>
-
-            {/* Form Fields */}
-            <div style={{ display: 'grid', gap: '1.5rem' }}>
-              {/* Mentee Name */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                  Mentee Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., John Smith"
-                  value={newTestimonial.menteeName}
-                  onChange={(e) => setNewTestimonial({...newTestimonial, menteeName: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    transition: 'border-color 0.3s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#0a4b39'}
-                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                />
-              </div>
-
-              {/* Mentor Name */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                  Mentor Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., Jane Doe"
-                  value={newTestimonial.mentorName}
-                  onChange={(e) => setNewTestimonial({...newTestimonial, mentorName: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#0a4b39'}
-                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                />
-              </div>
-
-              {/* Track */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                  Track *
-                </label>
-                <select
-                  value={newTestimonial.track}
-                  onChange={(e) => setNewTestimonial({...newTestimonial, track: e.target.value as 'career' | 'personal' | 'soft_skills'})}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    cursor: 'pointer'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#0a4b39'}
-                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                >
-                  <option value="career">💼 Career</option>
-                  <option value="personal">🌟 Personal Development</option>
-                  <option value="soft_skills">🎯 Soft Skills</option>
-                </select>
-              </div>
-
-              {/* Rating */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                  Rating (1-5 stars) *
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <select
-                    value={newTestimonial.rating}
-                    onChange={(e) => setNewTestimonial({...newTestimonial, rating: parseInt(e.target.value)})}
-                    style={{
-                      padding: '0.75rem',
-                      border: '2px solid #e0e0e0',
-                      borderRadius: '8px',
-                      fontSize: '0.95rem',
-                      cursor: 'pointer',
-                      minWidth: '100px'
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#0a4b39'}
-                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                  >
-                    <option value={1}>1 Star</option>
-                    <option value={2}>2 Stars</option>
-                    <option value={3}>3 Stars</option>
-                    <option value={4}>4 Stars</option>
-                    <option value={5}>5 Stars</option>
-                  </select>
-                  <div style={{ display: 'flex', gap: '0.2rem' }}>
-                    {[...Array(5)].map((_, i) => (
-                      <span
-                        key={i}
-                        style={{
-                          fontSize: '1.5rem',
-                          color: i < newTestimonial.rating ? '#ffd700' : '#ddd'
-                        }}
-                      >
-                        ⭐
-                      </span>
-                    ))}
-                  </div>
+      ) : (
+        <ul className="space-y-3">
+          {filtered.map((item) => (
+            <li key={item._id} className="card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-primary">
+                    {item.menteeName} · {item.mentorName}
+                  </p>
+                  <Stars n={item.rating} />
+                  <p className="text-sm text-secondary mt-2">{item.content}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className={`badge-pill ${STATUS_BADGE[item.status]}`}>{statusLabel(item.status)}</span>
+                  <span className="text-xs text-muted">{item.date}</span>
                 </div>
               </div>
-
-              {/* Content */}
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a1a1a' }}>
-                  Testimonial Content *
-                </label>
-                <textarea
-                  placeholder="Share your experience and what you learned from this mentor..."
-                  value={newTestimonial.content}
-                  onChange={(e) => setNewTestimonial({...newTestimonial, content: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '8px',
-                    fontSize: '0.95rem',
-                    minHeight: '120px',
-                    fontFamily: 'inherit',
-                    resize: 'vertical',
-                    transition: 'border-color 0.3s'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#0a4b39'}
-                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-              <button
-                onClick={handleAddTestimonial}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  backgroundColor: '#0a4b39',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontSize: '0.95rem',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#083e2f';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0a4b39';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                Save Testimonial
-              </button>
-              <button
-                onClick={() => setShowAddModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  backgroundColor: '#f0f0f0',
-                  color: '#666',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontSize: '0.95rem',
-                  transition: 'all 0.3s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e0e0e0';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f0f0f0';
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+
+    </PageShell>
   );
 };
 

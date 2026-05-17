@@ -1,0 +1,30 @@
+name: Docker build
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build -t tra-da-mentor:ci .
+
+      - name: Smoke test container
+        run: |
+          docker run -d --name app-ci -p 5050:5000 \
+            -e NODE_ENV=production \
+            -e JWT_SECRET=ci-jwt-secret-minimum-sixty-four-characters-long-for-github-actions \
+            -e JWT_REFRESH_SECRET=ci-jwt-refresh-secret-minimum-sixty-four-characters-long-for-ci \
+            -e DATABASE_URL=mongodb://127.0.0.1:27017/tra-da-mentor-ci \
+            -e CORS_ORIGIN=http://localhost:5050 \
+            tra-da-mentor:ci
+          sleep 8
+          curl -sf http://localhost:5050/api/health | grep -q '"status":"ok"'
+          curl -sf -o /dev/null -w "%{http_code}" http://localhost:5050/login | grep -q 200
+          docker stop app-ci
