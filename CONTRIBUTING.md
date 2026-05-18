@@ -34,8 +34,9 @@ Open PRs against `main` unless coordinating a release train on `develop`.
 - [ ] Linked issue or ticket (if applicable)
 - [ ] `npm run lint` passes
 - [ ] `npm run build` passes
-- [ ] `npm run test:unit` passes (MongoDB required for auth integration tests)
+- [ ] `npm run test:unit` passes (MongoDB required — see [`docs/TESTING.md`](./docs/TESTING.md))
 - [ ] `npm run test:frontend` passes
+- [ ] Optional full gate: `npm run quality`
 - [ ] `npm run check:locales` passes (if i18n keys changed)
 - [ ] `npm run check:secrets` passes
 - [ ] No secrets, `.env`, or user uploads in the diff

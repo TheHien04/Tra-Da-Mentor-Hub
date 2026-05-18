@@ -5,6 +5,7 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master, develop]
+  workflow_call:
 
 jobs:
   build-and-test:
@@ -51,15 +52,14 @@ jobs:
       - name: Unit and integration tests (with coverage)
         run: npm run test:unit:ci
 
-      - name: Frontend unit tests
-        run: npm run test:frontend
+      - name: Frontend unit tests (with coverage)
+        run: npm run test:frontend:ci
 
       - name: Locale parity
         run: npm run check:locales
 
       - name: Dependency audit (high severity)
         run: npm audit --audit-level=high
-        continue-on-error: true
 
       - name: Verify production env script
         run: |

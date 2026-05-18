@@ -1,0 +1,35 @@
+# Staging CD — runs after CI on develop; wire your host secrets to enable real deploy.
+name: Staging
+
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: staging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-staging:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Staging deploy placeholder
+        run: |
+          echo "CI passed on develop. Connect STAGING_* secrets per docs/STAGING.md"
+          echo "Examples: SSH host, Docker registry, or platform CLI (Railway, Render, Fly)."
+          if [ -z "${{ secrets.STAGING_DEPLOY_COMMAND }}" ]; then
+            echo "STAGING_DEPLOY_COMMAND not set — skipping remote deploy."
+            exit 0
+          fi
+          eval "${{ secrets.STAGING_DEPLOY_COMMAND }}"

@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semver tag (e.g. v1.1.0)'
+        required: true
+        default: 'v1.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-tag:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    env:
+      NODE_ENV: test
+      TEST_DATABASE_URL: mongodb://127.0.0.1:27017/tra-da-mentor-test
+      JWT_SECRET: release-jwt-secret-minimum-sixty-four-characters-long-for-github-actions
+      JWT_REFRESH_SECRET: release-jwt-refresh-secret-minimum-sixty-four-characters-long-for-ci
+      ENABLE_DEMO_AUTH: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:unit:ci
+      - run: npm run test:frontend
+      - run: npm run check:locales
+      - run: npm run check:secrets
+
+      - name: Create git tag
+        run: |
+          TAG="${{ github.event.inputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
