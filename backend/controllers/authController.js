@@ -126,7 +126,26 @@ export async function login(req, res) {
  */
 export async function register(req, res) {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, role: bodyRole, inviteToken } = req.body;
+
+    let role = bodyRole || "user";
+    if (inviteToken) {
+      const { validateInviteToken } = await import("../services/inviteStore.js");
+      const check = await validateInviteToken(inviteToken);
+      if (!check.valid) {
+        return res.status(check.status || 400).json({
+          success: false,
+          message: check.message,
+        });
+      }
+      if (email.trim().toLowerCase() !== check.email) {
+        return res.status(400).json({
+          success: false,
+          message: "Email must match the invited address",
+        });
+      }
+      role = check.role;
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -185,6 +204,11 @@ export async function register(req, res) {
     // Store refresh token
     await newUser.addRefreshToken(refreshToken);
     
+    if (inviteToken) {
+      const { consumeInviteToken } = await import("../services/inviteStore.js");
+      await consumeInviteToken(inviteToken, { email });
+    }
+
     logger.info(`User registered: ${email} (${role}) from IP: ${req.ip}`);
 
     // Return response

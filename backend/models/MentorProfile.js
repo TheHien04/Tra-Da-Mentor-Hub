@@ -18,6 +18,7 @@ const mentorProfileSchema = new mongoose.Schema(
       enum: ['SHORT_TERM', 'LONG_TERM', 'MEDIUM_TERM'],
       default: 'LONG_TERM',
     },
+    avatarUrl: { type: String, default: '' },
   },
   { timestamps: true, versionKey: false }
 );

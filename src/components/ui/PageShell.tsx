@@ -5,10 +5,10 @@ interface PageShellProps {
   className?: string;
 }
 
-/** Standard page container — max width, padding, animation */
+/** Standard page container — max width, padding, entrance animation */
 export function PageShell({ children, className = '' }: PageShellProps) {
   return (
-    <div className={`w-full max-w-7xl mx-auto animate-fade-in ${className}`}>
+    <div className={`page-shell w-full max-w-7xl mx-auto ${className}`}>
       {children}
     </div>
   );

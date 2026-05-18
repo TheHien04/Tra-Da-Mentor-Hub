@@ -25,6 +25,8 @@ export interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** True until initial session restore finishes (prevents login flash) */
+  isBootstrapping: boolean;
   error: string | null;
   accessToken: string | null;
   refreshToken: string | null;
@@ -37,7 +39,8 @@ export type AuthAction =
   | { type: 'LOGOUT_SUCCESS' }
   | { type: 'REGISTER_SUCCESS'; payload: { user: AuthUser; accessToken: string; refreshToken: string } }
   | { type: 'RESTORE_SESSION'; payload: { user: AuthUser; accessToken: string } }
-  | { type: 'UPDATE_USER'; payload: AuthUser };
+  | { type: 'UPDATE_USER'; payload: AuthUser }
+  | { type: 'BOOTSTRAP_COMPLETE' };
 
 export interface AuthContextType {
   state: AuthState;
@@ -73,6 +76,7 @@ const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isBootstrapping: true,
   error: null,
   accessToken: null,
   refreshToken: null,
@@ -101,7 +105,11 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
     case 'LOGOUT_SUCCESS':
       return {
         ...initialState,
+        isBootstrapping: false,
       };
+
+    case 'BOOTSTRAP_COMPLETE':
+      return { ...state, isBootstrapping: false };
 
     case 'RESTORE_SESSION':
       return {
@@ -223,35 +231,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const accessToken = getStoredAccessToken();
     const userData = getStoredUserData();
 
-    if (accessToken && userData) {
-      try {
-        let user = normalizeAuthUser(userData as Record<string, unknown>);
+    try {
+      if (accessToken && userData) {
         try {
-          const profileRes = await getProfile();
-          const profile =
-            (profileRes as { data?: { data?: Record<string, unknown> } })?.data?.data ??
-            (profileRes as { data?: Record<string, unknown> })?.data ??
-            profileRes;
-          if (profile && typeof profile === 'object') {
-            user = normalizeAuthUser({ ...user, ...profile } as Record<string, unknown>);
-            storeUserData(user);
+          let user = normalizeAuthUser(userData as Record<string, unknown>);
+          try {
+            const profileRes = await getProfile();
+            const profile =
+              (profileRes as { data?: { data?: Record<string, unknown> } })?.data?.data ??
+              (profileRes as { data?: Record<string, unknown> })?.data ??
+              profileRes;
+            if (profile && typeof profile === 'object') {
+              user = normalizeAuthUser({ ...user, ...profile } as Record<string, unknown>);
+              storeUserData(user);
+            }
+          } catch {
+            // use stored user if profile fetch fails
           }
-        } catch {
-          // use stored user if profile fetch fails
-        }
 
-        dispatch({
-          type: 'RESTORE_SESSION',
-          payload: {
-            user,
-            accessToken,
-          },
-        });
-      } catch {
-        // Token might be expired, clear auth data
-        clearAuthData();
-        dispatch({ type: 'LOGOUT_SUCCESS' });
+          dispatch({
+            type: 'RESTORE_SESSION',
+            payload: {
+              user,
+              accessToken,
+            },
+          });
+        } catch {
+          clearAuthData();
+          dispatch({ type: 'LOGOUT_SUCCESS' });
+        }
       }
+    } finally {
+      dispatch({ type: 'BOOTSTRAP_COMPLETE' });
     }
   }, []);
 

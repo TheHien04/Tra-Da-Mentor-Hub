@@ -40,4 +40,10 @@ router.delete('/delete-event/:eventId', auth, calendarController.deleteEvent);
  */
 router.get('/status', auth, calendarController.getStatus);
 
+/**
+ * @route   POST /api/calendar/sync-slot/:slotId
+ * @desc    Create Google Calendar event for a slot
+ */
+router.post('/sync-slot/:slotId', auth, calendarController.syncSlot);
+
 export default router;

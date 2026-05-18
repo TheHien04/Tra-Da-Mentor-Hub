@@ -34,6 +34,12 @@ import matchingRoutes from './routes/matching.js';
 import notificationsRoutes from './routes/notifications.js';
 import testimonialsRoutes from './routes/testimonials.js';
 import adminRoutes from './routes/admin.js';
+import analyticsRoutes from './routes/analytics.js';
+import uploadsRoutes from './routes/uploads.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __uploadsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads');
 import { initSentry } from './lib/sentry.js';
 import { getHealthPayload } from './lib/healthStatus.js';
 import { mountFrontend } from './lib/serveFrontend.js';
@@ -46,7 +52,8 @@ import { seedGroupsIfEmpty } from './services/groupStore.js';
 import { seedActivitiesIfEmpty } from './services/activityStore.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { seedDemoNotifications } from './services/notificationStore.js';
+import { seedBroadcastNotificationsIfEmpty } from './services/notificationStore.js';
+import { seedInvitesIfEmpty } from './services/inviteStore.js';
 
 initSentry();
 
@@ -101,7 +108,8 @@ app.post(
   express.raw({ type: 'application/json' }),
   handleStripeWebhook
 );
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '2mb' }));
+app.use('/uploads', express.static(__uploadsDir));
 app.use(sanitizeInputs);
 app.use(xssProtection);
 
@@ -126,6 +134,8 @@ app.use('/api/matching', matchingRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/testimonials', testimonialsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -143,7 +153,9 @@ if (!env.isProduction) {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json(getHealthPayload());
+  const payload = getHealthPayload();
+  const code = payload.status === 'degraded' ? 503 : 200;
+  res.status(code).json(payload);
 });
 
 mountFrontend(app);
@@ -160,8 +172,13 @@ app.use(errorHandler);
 async function bootstrapStores() {
   try {
     await connectDatabase();
-  } catch {
-    logger.warn('MongoDB unavailable — using in-memory store fallback');
+  } catch (err) {
+    if (env.isProduction) {
+      logger.error('MongoDB is required in production. Set DATABASE_URL and ensure MongoDB is reachable.');
+      logger.error(err?.message || err);
+      process.exit(1);
+    }
+    logger.warn('MongoDB unavailable — using in-memory store fallback (development only)');
   }
   await Promise.all([
     seedMentorsIfEmpty(),
@@ -171,18 +188,29 @@ async function bootstrapStores() {
     seedSlotsIfEmpty(),
     seedSessionLogsIfEmpty(),
     seedActivitiesIfEmpty(),
+    seedInvitesIfEmpty(),
   ]);
-  seedDemoNotifications(io);
+  await seedBroadcastNotificationsIfEmpty();
 }
 
-httpServer.listen(env.port, env.host, () => {
-  logger.info(`Server running at http://${env.host}:${env.port}`);
-  logger.info(`Environment: ${env.nodeEnv}`);
-  logger.info(`CORS Origin: ${env.corsOrigin}`);
-  if (env.platformPublicUrl) {
-    logger.info(`Public app URL: ${env.platformPublicUrl}`);
-    logger.info(`Health check: ${env.platformPublicUrl}/api/health`);
+async function startServer() {
+  try {
+    await bootstrapStores();
+  } catch (err) {
+    logger.error('Failed to bootstrap application stores', err);
+    if (env.isProduction) process.exit(1);
   }
-  logger.info('Socket.io enabled');
-  bootstrapStores().catch((err) => logger.warn('Store bootstrap failed', err));
-});
+
+  httpServer.listen(env.port, env.host, () => {
+    logger.info(`Server running at http://${env.host}:${env.port}`);
+    logger.info(`Environment: ${env.nodeEnv}`);
+    logger.info(`CORS Origin: ${env.corsOrigin}`);
+    if (env.platformPublicUrl) {
+      logger.info(`Public app URL: ${env.platformPublicUrl}`);
+      logger.info(`Health check: ${env.platformPublicUrl}/api/health`);
+    }
+    logger.info('Socket.io enabled');
+  });
+}
+
+startServer();

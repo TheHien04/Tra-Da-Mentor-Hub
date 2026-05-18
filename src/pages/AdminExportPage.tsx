@@ -50,7 +50,15 @@ const AdminExportPage = () => {
       const data = res.data?.data ?? res.data ?? [];
       const list = Array.isArray(data) ? data : [];
       const rows: string[][] = [
-        ['ID', 'Name', 'Email', 'Track', 'Expertise', 'Max Mentees', 'Mentee count'],
+        [
+          t('pages.admin.export.colId'),
+          t('pages.admin.export.colName'),
+          t('pages.admin.export.colEmail'),
+          t('pages.admin.export.colTrack'),
+          t('pages.admin.export.colExpertise'),
+          t('pages.admin.export.colMaxMentees'),
+          t('pages.admin.export.colMenteeCount'),
+        ],
         ...list.map((m: Record<string, unknown>) => [
           String(m._id || ''),
           String(m.name || ''),
@@ -78,7 +86,15 @@ const AdminExportPage = () => {
       const data = res.data?.data ?? res.data ?? [];
       const list = Array.isArray(data) ? data : [];
       const rows: string[][] = [
-        ['ID', 'Name', 'Email', 'School', 'Track', 'Progress', 'Mentor ID'],
+        [
+          t('pages.admin.export.colId'),
+          t('pages.admin.export.colName'),
+          t('pages.admin.export.colEmail'),
+          t('pages.admin.export.colSchool'),
+          t('pages.admin.export.colTrack'),
+          t('pages.admin.export.colProgress'),
+          t('pages.admin.export.colMentorId'),
+        ],
         ...list.map((m: Record<string, unknown>) => [
           String(m._id || ''),
           String(m.name || ''),
@@ -106,15 +122,15 @@ const AdminExportPage = () => {
       const list = Array.isArray(res.data) ? res.data : [];
       const rows: string[][] = [
         [
-          'ID',
-          'Mentor ID',
-          'Mentee ID',
-          'Date',
-          'Topic',
-          'M score',
-          'Me score',
-          'M needs support',
-          'Me needs support',
+          t('pages.admin.export.colId'),
+          t('pages.admin.export.colMentorId'),
+          t('pages.admin.export.colMenteeId'),
+          t('pages.admin.export.colDate'),
+          t('pages.admin.export.colTopic'),
+          t('pages.admin.export.colMentorScore'),
+          t('pages.admin.export.colMenteeScore'),
+          t('pages.admin.export.colMentorSupport'),
+          t('pages.admin.export.colMenteeSupport'),
         ],
         ...list.map((l: Record<string, unknown>) => [
           String(l._id || ''),
@@ -126,8 +142,8 @@ const AdminExportPage = () => {
           String(l.topic || ''),
           String(l.mentorScore ?? ''),
           String(l.menteeScore ?? ''),
-          l.mentorNeedsSupport ? 'Yes' : 'No',
-          l.menteeNeedsSupport ? 'Yes' : 'No',
+          l.mentorNeedsSupport ? t('common.yes') : t('common.no'),
+          l.menteeNeedsSupport ? t('common.yes') : t('common.no'),
         ]),
       ];
       downloadCsv(`session-logs-${new Date().toISOString().slice(0, 10)}.csv`, rows);

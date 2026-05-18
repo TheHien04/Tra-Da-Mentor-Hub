@@ -2,36 +2,38 @@
  * Session Log – CRM after each mentoring session
  */
 
-import { useState, useEffect } from 'react';
-import { sessionLogsApi, mentorApi, menteeApi } from '../services/api';
-import { unwrapList } from '../lib/apiHelpers';
-import { HiOutlineClipboardDocumentList, HiOutlinePlus } from 'react-icons/hi2';
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { sessionLogsApi } from '../services/api';
+import { useMentors } from '../hooks/queries/useMentors';
+import { useMentees } from '../hooks/queries/useMentees';
+import { useSessionLogs } from '../hooks/queries/useSessionLogs';
+import { queryKeys } from '../hooks/queries/keys';
+import {
+  HiOutlineClipboardDocumentList,
+  HiOutlinePlus,
+  HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
+import Avatar from '../components/Avatar';
 import { toast } from 'react-toastify';
-import { PageShell, PageHeader, Alert } from '../components/ui';
+import { PageShell, PageHeader, Alert, FilterChips } from '../components/ui';
 import { FormField, FormActions } from '../components/ui/FormShell';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
-interface SessionLogItem {
-  _id: string;
-  mentorId: string;
-  menteeId: string;
-  sessionDate: string;
-  topic: string;
-  mentorScore?: number | null;
-  menteeScore?: number | null;
-  mentorNeedsSupport?: boolean;
-  menteeNeedsSupport?: boolean;
-}
-
 const SessionLogPage = () => {
   const { t, formatDate } = useAppTranslation();
-  const [logs, setLogs] = useState<SessionLogItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: logs = [], isLoading: loading } = useSessionLogs();
+  const { data: mentors = [] } = useMentors();
+  const { data: mentees = [] } = useMentees();
+
   const [showForm, setShowForm] = useState(false);
-  const [mentors, setMentors] = useState<{ _id: string; name?: string; email?: string }[]>([]);
-  const [mentees, setMentees] = useState<{ _id: string; name?: string; email?: string }[]>([]);
+  const [search, setSearch] = useState('');
+  const [mentorFilter, setMentorFilter] = useState('');
+  const [supportFilter, setSupportFilter] = useState<'ALL' | 'YES' | 'NO'>('ALL');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [form, setForm] = useState({
     mentorId: '',
     menteeId: '',
@@ -45,26 +47,50 @@ const SessionLogPage = () => {
     menteeSupportReason: '',
   });
 
-  const fetchLogs = async () => {
-    try {
-      const res = await sessionLogsApi.getAll();
-      setLogs(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) =>
+    list.find((x) => x._id === id)?.name || list.find((x) => x._id === id)?.email || id;
 
-  useEffect(() => {
-    fetchLogs();
-    Promise.all([mentorApi.getAll(), menteeApi.getAll()])
-      .then(([mRes, meRes]) => {
-        setMentors(unwrapList(mRes));
-        setMentees(unwrapList(meRes));
-      })
-      .catch(() => {});
-  }, []);
+  const stats = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const thisMonth = logs.filter((l) => {
+      const d = new Date(l.sessionDate);
+      return d.getMonth() === month && d.getFullYear() === year;
+    }).length;
+    const mentorScores = logs.map((l) => l.mentorScore).filter((s): s is number => typeof s === 'number');
+    const menteeScores = logs.map((l) => l.menteeScore).filter((s): s is number => typeof s === 'number');
+    const avgMentor =
+      mentorScores.length > 0
+        ? (mentorScores.reduce((a, b) => a + b, 0) / mentorScores.length).toFixed(1)
+        : '—';
+    const avgMentee =
+      menteeScores.length > 0
+        ? (menteeScores.reduce((a, b) => a + b, 0) / menteeScores.length).toFixed(1)
+        : '—';
+    const support = logs.filter((l) => l.mentorNeedsSupport || l.menteeNeedsSupport).length;
+    return { total: logs.length, thisMonth, avgMentor, avgMentee, support };
+  }, [logs]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return logs.filter((log) => {
+      const mentorName = nameOf(mentors, log.mentorId).toLowerCase();
+      const menteeName = nameOf(mentees, log.menteeId).toLowerCase();
+      const matchQ =
+        !q ||
+        log.topic.toLowerCase().includes(q) ||
+        mentorName.includes(q) ||
+        menteeName.includes(q);
+      const matchMentor = !mentorFilter || log.mentorId === mentorFilter;
+      const needsSupport = Boolean(log.mentorNeedsSupport || log.menteeNeedsSupport);
+      const matchSupport =
+        supportFilter === 'ALL' ||
+        (supportFilter === 'YES' && needsSupport) ||
+        (supportFilter === 'NO' && !needsSupport);
+      return matchQ && matchMentor && matchSupport;
+    });
+  }, [logs, search, mentorFilter, supportFilter, mentors, mentees]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,21 +127,36 @@ const SessionLogPage = () => {
         menteeNeedsSupport: false,
         menteeSupportReason: '',
       });
-      fetchLogs();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.sessionLogs });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(e.response?.data?.message || t('pages.sessionLog.saveFailed'));
     }
   };
 
-  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) =>
-    list.find((x) => x._id === id)?.name || list.find((x) => x._id === id)?.email || id;
+  const renderScores = (log: (typeof logs)[0]) => (
+    <div className="session-log-scores">
+      <div className="session-log-score">
+        <span className="session-log-score__value">{log.mentorScore ?? '—'}</span>
+        <span className="session-log-score__label">{t('pages.sessionLog.mentorShort')}</span>
+      </div>
+      <div className="session-log-score">
+        <span className="session-log-score__value">{log.menteeScore ?? '—'}</span>
+        <span className="session-log-score__label">{t('pages.sessionLog.menteeShort')}</span>
+      </div>
+    </div>
+  );
 
   return (
     <PageShell>
       <PageHeader
         title={t('pages.sessionLog.title')}
-        description={t('pages.sessionLog.description')}
+        description={t('pages.sessionLog.descriptionStats', {
+          total: stats.total,
+          support: stats.support,
+          avgMentor: stats.avgMentor,
+          avgMentee: stats.avgMentee,
+        })}
         icon={<HiOutlineClipboardDocumentList className="h-7 w-7" />}
       >
         <button type="button" className="btn btn-primary mt-3" onClick={() => setShowForm(!showForm)}>
@@ -124,8 +165,22 @@ const SessionLogPage = () => {
         </button>
       </PageHeader>
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: t('pages.sessionLog.statTotal'), value: stats.total },
+          { label: t('pages.sessionLog.statThisMonth'), value: stats.thisMonth },
+          { label: t('pages.sessionLog.statAvgMentor'), value: stats.avgMentor },
+          { label: t('pages.sessionLog.statNeedsSupport'), value: stats.support },
+        ].map((s) => (
+          <div key={s.label} className="insights-stat-card">
+            <p className="insights-stat-card__value">{s.value}</p>
+            <p className="insights-stat-card__label">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
       {showForm && (
-        <form onSubmit={handleSubmit} className="card p-6 mb-8 space-y-4">
+        <form onSubmit={handleSubmit} className="card p-6 mb-6 space-y-4">
           <h2 className="text-sm font-semibold text-primary">{t('pages.sessionLog.sessionDetails')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={t('pages.sessionLog.mentor')} required>
@@ -264,59 +319,139 @@ const SessionLogPage = () => {
         </form>
       )}
 
+      <div className="card p-4 mb-6 space-y-3">
+        <input
+          className="input"
+          placeholder={t('pages.sessionLog.searchPlaceholder')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="min-w-[12rem] flex-1">
+            <label className="text-xs font-medium text-muted block mb-1">{t('pages.sessionLog.filterMentor')}</label>
+            <select className="input" value={mentorFilter} onChange={(e) => setMentorFilter(e.target.value)}>
+              <option value="">{t('pages.sessionLog.filterAllMentors')}</option>
+              {mentors.map((m) => (
+                <option key={m._id} value={m._id}>
+                  {m.name || m.email}
+                </option>
+              ))}
+            </select>
+          </div>
+          <FilterChips
+            options={[
+              { value: 'ALL' as const, label: t('pages.sessionLog.filterSupportAll') },
+              { value: 'YES' as const, label: t('pages.sessionLog.filterSupportYes') },
+              { value: 'NO' as const, label: t('pages.sessionLog.filterSupportNo') },
+            ]}
+            value={supportFilter}
+            onChange={setSupportFilter}
+            ariaLabel={t('pages.sessionLog.filterSupport')}
+          />
+          <div className="flex rounded-lg border p-0.5 ml-auto" style={{ borderColor: 'var(--border-default)' }}>
+            <button
+              type="button"
+              className={`px-3 py-1.5 text-xs font-medium rounded-md ${viewMode === 'cards' ? 'btn-primary' : 'text-muted'}`}
+              onClick={() => setViewMode('cards')}
+            >
+              {t('pages.sessionLog.viewCards')}
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1.5 text-xs font-medium rounded-md ${viewMode === 'table' ? 'btn-primary' : 'text-muted'}`}
+              onClick={() => setViewMode('table')}
+            >
+              {t('pages.sessionLog.viewTable')}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {loading ? (
         <Skeleton count={4} />
-      ) : logs.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           title={t('pages.sessionLog.emptyTitle')}
           description={t('pages.sessionLog.emptyDesc')}
           actionLabel={t('pages.sessionLog.newLog')}
           onAction={() => setShowForm(true)}
         />
-      ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left text-muted" style={{ borderColor: 'var(--border-default)' }}>
-                  <th className="px-4 py-3 font-medium">{t('pages.sessionLog.dateCol')}</th>
-                  <th className="px-4 py-3 font-medium">{t('pages.sessionLog.mentorCol')}</th>
-                  <th className="px-4 py-3 font-medium">{t('pages.sessionLog.menteeCol')}</th>
-                  <th className="px-4 py-3 font-medium">{t('pages.sessionLog.topicCol')}</th>
-                  <th className="px-4 py-3 font-medium">{t('pages.sessionLog.scoresCol')}</th>
-                  <th className="px-4 py-3 font-medium">{t('pages.sessionLog.supportCol')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log._id} className="border-b" style={{ borderColor: 'var(--border-subtle)' }}>
-                    <td className="px-4 py-3 text-secondary whitespace-nowrap">
+      ) : viewMode === 'table' ? (
+        <div className="card crm-table-wrap p-0 overflow-hidden mb-6">
+          <table className="crm-table">
+            <thead>
+              <tr>
+                <th>{t('pages.sessionLog.dateCol')}</th>
+                <th>{t('pages.sessionLog.topicCol')}</th>
+                <th>{t('pages.sessionLog.mentorCol')}</th>
+                <th>{t('pages.sessionLog.menteeCol')}</th>
+                <th>{t('pages.sessionLog.scoresCol')}</th>
+                <th>{t('pages.sessionLog.supportCol')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((log) => {
+                const needsSupport = log.mentorNeedsSupport || log.menteeNeedsSupport;
+                return (
+                  <tr key={log._id}>
+                    <td className="whitespace-nowrap text-muted">
                       {log.sessionDate ? formatDate(log.sessionDate) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-primary">{nameOf(mentors, log.mentorId)}</td>
-                    <td className="px-4 py-3 text-primary">{nameOf(mentees, log.menteeId)}</td>
-                    <td className="px-4 py-3 text-secondary max-w-[200px] truncate">{log.topic}</td>
-                    <td className="px-4 py-3 text-muted tabular-nums">
+                    <td className="font-medium text-primary max-w-[14rem]">{log.topic}</td>
+                    <td>{nameOf(mentors, log.mentorId)}</td>
+                    <td>{nameOf(mentees, log.menteeId)}</td>
+                    <td className="tabular-nums">
                       {log.mentorScore ?? '—'} / {log.menteeScore ?? '—'}
                     </td>
-                    <td className="px-4 py-3">
-                      {log.mentorNeedsSupport || log.menteeNeedsSupport ? (
-                        <span className="badge-pill badge-warning">{t('common.yes')}</span>
+                    <td>
+                      {needsSupport ? (
+                        <span className="badge-pill badge-warning text-xs">{t('pages.sessionLog.supportYes')}</span>
                       ) : (
-                        <span className="text-muted">—</span>
+                        <span className="text-muted">{t('pages.sessionLog.supportNo')}</span>
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+          {filtered.map((log) => {
+            const mentorName = nameOf(mentors, log.mentorId);
+            const menteeName = nameOf(mentees, log.menteeId);
+            const needsSupport = log.mentorNeedsSupport || log.menteeNeedsSupport;
+            return (
+              <article key={log._id} className="card card-hover people-card p-5 h-full">
+                <div className="session-log-card h-full">
+                  <div className="flex gap-3 min-w-0 flex-1">
+                    <Avatar name={mentorName} size="md" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted mb-1">
+                        {log.sessionDate ? formatDate(log.sessionDate) : '—'}
+                      </p>
+                      <h3 className="text-sm font-semibold text-primary line-clamp-2">{log.topic}</h3>
+                      <p className="text-sm text-secondary mt-2">
+                        {mentorName} → {menteeName}
+                      </p>
+                      {needsSupport && (
+                        <p className="schedule-meta-item mt-2 text-amber-700 dark:text-amber-400">
+                          <HiOutlineExclamationTriangle className="h-4 w-4 shrink-0" />
+                          {t('pages.sessionLog.needsSupportBadge')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {renderScores(log)}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 
-      <Alert variant="info" className="mt-6">
-        {t('pages.sessionLog.realtimeNote')}
-      </Alert>
+      <Alert variant="info">{t('pages.sessionLog.realtimeNote')}</Alert>
     </PageShell>
   );
 };

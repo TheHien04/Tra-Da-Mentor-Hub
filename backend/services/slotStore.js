@@ -4,38 +4,38 @@ import Slot from '../models/Slot.js';
 const memory = [];
 let memSeq = 1;
 
-const SEED = [
-  {
-    mentorId: 'm1',
-    date: '2025-02-20',
-    time: '14:00',
-    duration: 60,
-    meetingLink: 'https://meet.google.com/xxx-xxxx-xxx',
-    bookedBy: null,
-    menteeId: null,
-  },
-  {
-    mentorId: 'm1',
-    date: '2025-02-21',
-    time: '10:00',
-    duration: 45,
-    meetingLink: '',
-    bookedBy: null,
-    menteeId: null,
-  },
-  {
-    mentorId: 'm2',
-    date: '2025-02-22',
-    time: '15:00',
-    duration: 60,
-    meetingLink: 'https://meet.google.com/yyy-yyyy-yyy',
-    bookedBy: '102',
-    menteeId: '102',
-  },
-];
-
 function useDb() {
   return mongoose.connection.readyState === 1;
+}
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Demo slots with dates relative to today (booked + open) */
+function buildUpcomingSeed() {
+  const templates = [
+    { mentorId: 'm1', menteeId: '101', dayOffset: 1, time: '09:00', booked: true },
+    { mentorId: 'm2', menteeId: '102', dayOffset: 2, time: '14:00', booked: true },
+    { mentorId: 'm4', menteeId: '201', dayOffset: 3, time: '16:30', booked: true },
+    { mentorId: 'm1', menteeId: null, dayOffset: 4, time: '10:00', booked: false },
+    { mentorId: 'm3', menteeId: '202', dayOffset: 5, time: '15:00', booked: true },
+    { mentorId: 'm5', menteeId: null, dayOffset: 7, time: '11:00', booked: false },
+  ];
+
+  return templates.map((t) => {
+    const d = new Date();
+    d.setDate(d.getDate() + t.dayOffset);
+    return {
+      mentorId: t.mentorId,
+      date: d.toISOString().slice(0, 10),
+      time: t.time,
+      duration: 60,
+      meetingLink: t.booked ? 'https://meet.google.com/trada-mentor-demo' : '',
+      bookedBy: t.booked ? t.menteeId : null,
+      menteeId: t.booked ? t.menteeId : null,
+    };
+  });
 }
 
 function toClient(doc) {
@@ -50,6 +50,7 @@ function toClient(doc) {
     meetingLink: o.meetingLink || '',
     bookedBy: o.bookedBy ?? null,
     menteeId: o.menteeId ?? null,
+    googleCalendarEventId: o.googleCalendarEventId ?? null,
     createdAt:
       o.createdAt instanceof Date ? o.createdAt.toISOString() : o.createdAt || new Date().toISOString(),
     updatedAt:
@@ -144,6 +145,9 @@ export async function updateSlot(id, updates) {
   if (updates.time) patch.time = String(updates.time).slice(0, 5);
   if (updates.duration != null) patch.duration = Number(updates.duration);
   if (updates.meetingLink !== undefined) patch.meetingLink = updates.meetingLink;
+  if (updates.googleCalendarEventId !== undefined) {
+    patch.googleCalendarEventId = updates.googleCalendarEventId;
+  }
 
   if (useDb()) {
     const doc = await Slot.findByIdAndUpdate(id, { $set: patch }, { new: true });
@@ -156,16 +160,35 @@ export async function updateSlot(id, updates) {
   return slot;
 }
 
-export async function seedSlotsIfEmpty() {
+async function countUpcomingSlots() {
+  const today = todayKey();
   if (useDb()) {
-    const count = await Slot.countDocuments();
-    if (count === 0) await Slot.insertMany(SEED);
+    return Slot.countDocuments({ date: { $gte: today } });
+  }
+  return memory.filter((s) => String(s.date) >= today).length;
+}
+
+export async function seedSlotsIfEmpty() {
+  const upcoming = await countUpcomingSlots();
+  const demos = buildUpcomingSeed();
+
+  if (useDb()) {
+    const total = await Slot.countDocuments();
+    if (total === 0) {
+      await Slot.insertMany(demos);
+      return;
+    }
+    if (upcoming === 0) {
+      await Slot.insertMany(demos);
+    }
     return;
   }
-  if (memory.length === 0) {
-    SEED.forEach((s, i) => {
+
+  if (memory.length === 0 || upcoming === 0) {
+    const base = memory.length;
+    demos.forEach((s, i) => {
       memory.push({
-        _id: `slot_seed_${i}`,
+        _id: `slot_seed_${base + i}`,
         ...s,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

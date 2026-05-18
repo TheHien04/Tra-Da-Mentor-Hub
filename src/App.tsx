@@ -8,6 +8,11 @@ import MobileNav from './components/MobileNav';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { CommandPalette, useCommandPalette } from './components/features/CommandPalette';
+import { OnboardingTour } from './components/features/OnboardingTour';
+import { RouteProgress } from './components/features/RouteProgress';
+import { ScrollToTop } from './components/features/ScrollToTop';
+import { PwaInstallPrompt } from './components/features/PwaInstallPrompt';
+import { SkipToContent } from './components/features/SkipToContent';
 import { NotificationProvider } from './context/NotificationContext';
 import { AuthLanguageBar } from './components/AuthLanguageBar';
 import { PageTitleSync } from './components/PageTitleSync';
@@ -87,13 +92,17 @@ function AppContent() {
     '/auth/callback',
     '/privacy-policy',
     '/terms-of-service',
+    '/unauthorized',
   ].includes(location.pathname);
   const role = state.user?.role || 'user';
 
   return (
     <div className={`app-container role-${role}`} data-role={role}>
+      <SkipToContent />
+      <RouteProgress />
+      <ScrollToTop />
       {isAuthPage ? <AuthLanguageBar /> : <Navbar />}
-      <div className="content">
+      <main id="main-content" className="content" tabIndex={-1}>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -288,7 +297,7 @@ function AppContent() {
             <Route
               path="/testimonials"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['admin', 'mentor']}>
                   <TestimonialsPage />
                 </ProtectedRoute>
               }
@@ -296,10 +305,12 @@ function AppContent() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-      </div>
+      </main>
       <CookieConsentBanner />
       {!isAuthPage && state.isAuthenticated && <MobileNav />}
       {!isAuthPage && <CommandPalette open={command.open} onClose={command.onClose} />}
+      {!isAuthPage && state.isAuthenticated && <OnboardingTour />}
+      {!isAuthPage && state.isAuthenticated && <PwaInstallPrompt />}
     </div>
   );
 }

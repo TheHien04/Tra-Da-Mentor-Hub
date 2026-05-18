@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { HiOutlineTrash, HiOutlineUsers } from 'react-icons/hi2';
 import { groupApi } from '../services/api';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { toast } from 'react-toastify';
+import { ProfileHero } from './ui';
 import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShell';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useConfirm } from '../context/ConfirmContext';
 
 interface Mentee {
   _id: string;
@@ -25,6 +28,7 @@ interface Group {
 
 const GroupDetail = () => {
   const { t } = useAppTranslation();
+  const { confirm } = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [group, setGroup] = useState<Group | null>(null);
@@ -41,7 +45,14 @@ const GroupDetail = () => {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!group || !window.confirm(t('detail.deleteConfirm', { name: group.name }))) return;
+    if (!group) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('detail.deleteConfirm', { name: group.name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await groupApi.delete(id!);
       toast.success(t('messages.deleteSuccess'));
@@ -58,13 +69,30 @@ const GroupDetail = () => {
   const menteeList = group?.mentees || [];
   const count = menteeList.length;
   const max = group?.maxSize || 10;
+  const pct = Math.min(100, (count / max) * 100);
+
+  const hero = group ? (
+    <ProfileHero name={group.name} subtitle={group.description} avatarSize="lg">
+      <span className="badge-pill badge-accent inline-flex items-center gap-1.5">
+        <HiOutlineUsers className="h-3.5 w-3.5" />
+        {t('detail.menteesSlot', { count, max })}
+      </span>
+      <p className="text-sm text-secondary mt-3">{scheduleText}</p>
+      <div className="analytics-load-bar mt-4 max-w-md">
+        <div
+          className={`analytics-load-bar__fill ${pct >= 100 ? 'analytics-load-bar__fill--full' : ''}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </ProfileHero>
+  ) : null;
 
   return (
     <DetailShell
       backHref="/groups"
       backLabel={t('group.title')}
       title={group?.name || t('common.group')}
-      subtitle={group?.description}
+      hero={hero}
       loading={loading}
       error={error}
       notFound={!loading && !group}
@@ -74,8 +102,8 @@ const GroupDetail = () => {
             <Link to={`/groups/${id}/edit`} className="btn btn-primary">
               {t('common.edit')}
             </Link>
-            <button type="button" className="btn btn-secondary text-red-600" onClick={handleDelete}>
-              {t('common.delete')}
+            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+              <HiOutlineTrash className="h-4 w-4" />
             </button>
           </>
         )
@@ -99,21 +127,7 @@ const GroupDetail = () => {
                 )}
               </DetailItem>
               <DetailItem label={t('session.schedule')}>{scheduleText}</DetailItem>
-              <DetailItem label={t('detail.capacity')}>
-                <span className="badge-pill badge-accent">
-                  {t('detail.menteesSlot', { count, max })}
-                </span>
-              </DetailItem>
             </DetailGrid>
-            <div className="mt-4 h-1.5 rounded-full surface-muted overflow-hidden max-w-md">
-              <div
-                className="h-full rounded-full"
-                style={{
-                  width: `${Math.min(100, (count / max) * 100)}%`,
-                  backgroundColor: 'var(--accent)',
-                }}
-              />
-            </div>
           </DetailCard>
 
           <DetailCard title={t('detail.menteesTitle', { count })}>

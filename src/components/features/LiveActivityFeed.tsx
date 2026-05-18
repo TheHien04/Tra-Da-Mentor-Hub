@@ -1,34 +1,12 @@
-import { useEffect, useState } from 'react';
 import { HiOutlineBolt } from 'react-icons/hi2';
-import { activitiesApi } from '../../services/api';
-import { unwrapList } from '../../lib/apiHelpers';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
+import { useActivities } from '../../hooks/queries/useActivities';
 import Skeleton from '../Skeleton';
-
-interface Activity {
-  _id: string;
-  type?: string;
-  message?: string;
-  description?: string;
-  createdAt?: string;
-  timestamp?: string | Date;
-}
+import { Alert } from '../ui';
 
 export function LiveActivityFeed({ limit = 6 }: { limit?: number }) {
   const { t, formatDateTime } = useAppTranslation();
-  const [items, setItems] = useState<Activity[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    activitiesApi
-      .getAll(limit)
-      .then((res) => {
-        const data = unwrapList<Activity>(res);
-        setItems(Array.isArray(data) ? data : []);
-      })
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, [limit]);
+  const { data: items = [], isLoading, isError, refetch } = useActivities(limit);
 
   return (
     <section className="card p-6">
@@ -36,7 +14,14 @@ export function LiveActivityFeed({ limit = 6 }: { limit?: number }) {
         <HiOutlineBolt className="h-5 w-5 text-muted" />
         {t('dashboard.liveActivity')}
       </h2>
-      {loading ? (
+      {isError ? (
+        <Alert variant="error">
+          <p className="text-sm">{t('common.loadError')}</p>
+          <button type="button" className="btn btn-secondary text-sm mt-2" onClick={() => void refetch()}>
+            {t('common.retry')}
+          </button>
+        </Alert>
+      ) : isLoading ? (
         <Skeleton count={4} />
       ) : items.length === 0 ? (
         <p className="text-sm text-muted">{t('dashboard.liveActivityEmpty')}</p>

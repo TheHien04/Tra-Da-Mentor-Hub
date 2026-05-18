@@ -17,15 +17,18 @@
     "seed": "node backend/scripts/seed.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:unit": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js backend/__tests__/utils.test.js backend/__tests__/stores.test.js backend/__tests__/security.test.js",
+    "test:frontend": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
     "merge:locales": "node scripts/merge-locales.mjs",
+    "check:locales": "node scripts/check-locale-parity.mjs",
     "start": "NODE_ENV=production node backend/server.js",
     "start:prod": "npm run build && npm run start",
     "verify:env": "node scripts/verify-production-env.mjs",
     "setup:deploy": "node scripts/setup-production.mjs",
     "deploy:prep": "node scripts/deploy-prep.mjs",
     "check:secrets": "node scripts/check-secrets-not-tracked.mjs",
+    "create:admin": "node scripts/create-admin.mjs",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
     "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
@@ -36,6 +39,7 @@
     "@sentry/node": "^10.53.1",
     "@sentry/react": "^10.53.1",
     "@stripe/stripe-js": "^8.7.0",
+    "@tanstack/react-query": "^5.100.10",
     "axios": "^1.9.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
@@ -91,6 +95,7 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
   }
 }

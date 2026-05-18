@@ -27,6 +27,7 @@ const menteeProfileSchema = new mongoose.Schema(
       default: 'pending',
     },
     goals: { type: [String], default: [] },
+    avatarUrl: { type: String, default: '' },
   },
   { timestamps: true, versionKey: false }
 );

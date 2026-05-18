@@ -1,66 +1,47 @@
-import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { menteeApi, mentorApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { HiOutlineTrash } from 'react-icons/hi2';
+import { menteeApi } from '../services/api';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { toast } from 'react-toastify';
-import Avatar from './Avatar';
 import TrackBadge from './TrackBadge';
-import { SkillTags } from './ui';
+import { SkillTags, ProfileHero } from './ui';
 import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShell';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-
-interface Mentee {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  progress?: number;
-  school?: string;
-  track?: string;
-  interests?: string[];
-  mentorId?: string;
-  groupId?: string;
-}
-
-interface Mentor {
-  _id: string;
-  name: string;
-}
+import { useConfirm } from '../context/ConfirmContext';
+import { useMentee } from '../hooks/queries/useMentee';
+import { useMentor } from '../hooks/queries/useMentor';
+import { queryKeys } from '../hooks/queries/keys';
 
 const MenteeDetail = () => {
   const { t } = useAppTranslation();
+  const { confirm } = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [mentee, setMentee] = useState<Mentee | null>(null);
-  const [mentor, setMentor] = useState<Mentor | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data: mentee, isLoading: loading, isError, error: queryError } = useMentee(id);
+  const error = isError ? getApiErrorMessage(queryError) : null;
 
-  useEffect(() => {
-    if (!id) return;
-    menteeApi
-      .getById(id)
-      .then(async (res) => {
-        const data = res.data;
-        setMentee(data);
-        const mentorId = data.mentorId || data.mentor;
-        if (typeof mentorId === 'string') {
-          try {
-            const mRes = await mentorApi.getById(mentorId);
-            setMentor(mRes.data);
-          } catch {
-            setMentor(null);
-          }
-        }
-      })
-      .catch((err) => setError(getApiErrorMessage(err)))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const mentorId =
+    typeof mentee?.mentorId === 'string'
+      ? mentee.mentorId
+      : typeof mentee?.mentor === 'string'
+        ? mentee.mentor
+        : undefined;
+  const { data: mentor } = useMentor(mentorId);
 
   const handleDelete = async () => {
-    if (!mentee || !window.confirm(t('detail.deleteConfirm', { name: mentee.name }))) return;
+    if (!mentee) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('detail.deleteConfirm', { name: mentee.name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await menteeApi.delete(id!);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mentees });
       toast.success(t('messages.deleteSuccess'));
       navigate('/mentees');
     } catch {
@@ -69,13 +50,39 @@ const MenteeDetail = () => {
   };
 
   const progress = mentee?.progress ?? 0;
+  const progressFillClass =
+    progress === 100
+      ? 'progress-track__fill progress-track__fill--complete'
+      : progress > 0
+        ? 'progress-track__fill'
+        : 'progress-track__fill progress-track__fill--idle';
+
+  const hero = mentee ? (
+    <ProfileHero
+      name={mentee.name}
+      track={mentee.track}
+      subtitle={mentee.school || mentee.email}
+      avatarUrl={mentee.avatarUrl}
+      badges={
+        <>
+          {mentee.track && <TrackBadge track={mentee.track as never} size="small" />}
+          <span className="badge-pill badge-accent">{t('detail.progressPercent', { progress })}</span>
+        </>
+      }
+    >
+      {mentee.interests && mentee.interests.length > 0 && <SkillTags skills={mentee.interests} />}
+      <div className="progress-track mt-4 max-w-md">
+        <div className={progressFillClass} style={{ width: `${progress}%` }} />
+      </div>
+    </ProfileHero>
+  ) : null;
 
   return (
     <DetailShell
       backHref="/mentees"
       backLabel={t('mentee.title')}
       title={mentee?.name || t('roles.mentee')}
-      subtitle={mentee?.school}
+      hero={hero}
       loading={loading}
       error={error}
       notFound={!loading && !mentee}
@@ -85,55 +92,29 @@ const MenteeDetail = () => {
             <Link to={`/mentees/${id}/edit`} className="btn btn-primary">
               {t('common.edit')}
             </Link>
-            <button type="button" className="btn btn-secondary text-red-600" onClick={handleDelete}>
-              {t('common.delete')}
+            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+              <HiOutlineTrash className="h-4 w-4" />
             </button>
           </>
         )
       }
     >
       {mentee && (
-        <>
-          <DetailCard>
-            <div className="flex flex-col sm:flex-row gap-6">
-              <Avatar name={mentee.name} size="lg" />
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {mentee.track && <TrackBadge track={mentee.track as never} size="small" />}
-                  <span className="badge-pill badge-accent">
-                    {t('detail.progressPercent', { progress })}
-                  </span>
-                </div>
-                {mentee.interests && mentee.interests.length > 0 && (
-                  <SkillTags skills={mentee.interests} />
-                )}
-                <div className="mt-4 h-2 rounded-full surface-muted overflow-hidden max-w-md">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${progress}%`, backgroundColor: 'var(--accent)' }}
-                  />
-                </div>
-              </div>
-            </div>
-          </DetailCard>
-
-          <DetailCard title={t('detail.contactAssignment')}>
-            <DetailGrid>
-              <DetailItem label={t('auth.email')}>{mentee.email}</DetailItem>
-              <DetailItem label={t('detail.phone')}>{mentee.phone || t('detail.notAvailable')}</DetailItem>
-              <DetailItem label={t('detail.school')}>{mentee.school || t('detail.notAvailable')}</DetailItem>
-              <DetailItem label={t('roles.mentor')}>
-                {mentor ? (
-                  <Link to={`/mentors/${mentor._id}`} style={{ color: 'var(--accent)' }}>
-                    {mentor.name}
-                  </Link>
-                ) : (
-                  t('detail.notAvailable')
-                )}
-              </DetailItem>
-            </DetailGrid>
-          </DetailCard>
-        </>
+        <DetailCard title={t('detail.contactAssignment')}>
+          <DetailGrid>
+            <DetailItem label={t('auth.email')}>{mentee.email}</DetailItem>
+            <DetailItem label={t('detail.phone')}>{mentee.phone || t('detail.notAvailable')}</DetailItem>
+            <DetailItem label={t('detail.assignedMentor')}>
+              {mentor ? (
+                <Link to={`/mentors/${mentor._id}`} style={{ color: 'var(--accent)' }}>
+                  {mentor.name}
+                </Link>
+              ) : (
+                t('detail.notAssigned')
+              )}
+            </DetailItem>
+          </DetailGrid>
+        </DetailCard>
       )}
     </DetailShell>
   );

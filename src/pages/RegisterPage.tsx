@@ -3,7 +3,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { invitesApi } from '../services/api';
 import { FaEye, FaEyeSlash, FaUserPlus } from 'react-icons/fa';
 import { useAuth } from '../hooks/useAuth';
 import { useAppTranslation } from '../hooks/useAppTranslation';
@@ -17,7 +18,8 @@ interface FormData {
   password: string;
   confirmPassword: string;
   name: string;
-  role: 'user' | 'mentor' | 'mentee';
+  role: 'user' | 'mentor' | 'mentee' | 'admin';
+  inviteToken?: string;
 }
 
 function strengthLevel(score: number): number {
@@ -27,7 +29,13 @@ function strengthLevel(score: number): number {
 export default function RegisterPage() {
   const { t } = useAppTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite') || '';
   const { state, register, clearError } = useAuth();
+
+  const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteLocked, setInviteLocked] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -47,6 +55,33 @@ export default function RegisterPage() {
       navigate('/');
     }
   }, [state.isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (!inviteToken) {
+      setInviteLoading(false);
+      return;
+    }
+    setInviteLoading(true);
+    invitesApi
+      .validate(inviteToken)
+      .then((res) => {
+        const data = res.data as { valid?: boolean; email?: string; role?: string; message?: string };
+        if (!data?.valid || !data.email || !data.role) {
+          setInviteError(data?.message || t('registerPage.inviteInvalid'));
+          return;
+        }
+        const role = data.role as FormData['role'];
+        setFormData((prev) => ({
+          ...prev,
+          email: data.email!,
+          role: ['mentor', 'mentee', 'admin', 'user'].includes(role) ? role : 'mentee',
+          inviteToken,
+        }));
+        setInviteLocked(true);
+      })
+      .catch(() => setInviteError(t('registerPage.inviteInvalid')))
+      .finally(() => setInviteLoading(false));
+  }, [inviteToken, t]);
 
   useEffect(() => {
     const password = formData.password;
@@ -102,7 +137,10 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!validateForm()) return;
     try {
-      await register(formData);
+      await register({
+        ...formData,
+        inviteToken: inviteToken || formData.inviteToken,
+      });
     } catch (error: unknown) {
       console.error('Register error:', error);
     }
@@ -129,6 +167,20 @@ export default function RegisterPage() {
             <h1 className="auth-title">{t('registerPage.brand')}</h1>
             <p className="auth-subtitle">{t('registerPage.subtitle')}</p>
           </div>
+
+          {inviteLoading && (
+            <p className="text-sm text-muted text-center mb-4">{t('registerPage.inviteLoading')}</p>
+          )}
+          {inviteError && (
+            <div className="auth-error mb-4" role="alert">
+              {inviteError}
+            </div>
+          )}
+          {inviteLocked && !inviteError && (
+            <p className="text-sm text-center mb-4" style={{ color: 'var(--accent-subtle-fg)' }}>
+              {t('registerPage.inviteApplied', { role: t(`roles.${formData.role}`) })}
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {state.error && (
@@ -167,7 +219,8 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder={t('auth.emailPlaceholder')}
-                disabled={state.isLoading}
+                disabled={state.isLoading || inviteLocked}
+                readOnly={inviteLocked}
                 className={`input ${errors.email ? 'input-error' : ''}`}
               />
               {errors.email && <p className="auth-field-error">{errors.email}</p>}
@@ -182,12 +235,13 @@ export default function RegisterPage() {
                 name="role"
                 value={formData.role}
                 onChange={handleInputChange}
-                disabled={state.isLoading}
+                disabled={state.isLoading || inviteLocked}
                 className={`input ${errors.role ? 'input-error' : ''}`}
               >
                 <option value="user">{t('registerPage.roleUser')}</option>
                 <option value="mentee">{t('registerPage.roleMentee')}</option>
                 <option value="mentor">{t('registerPage.roleMentor')}</option>
+                {formData.role === 'admin' && <option value="admin">{t('roles.admin')}</option>}
               </select>
               {errors.role && <p className="auth-field-error">{errors.role}</p>}
             </div>

@@ -1,6 +1,9 @@
 import express from 'express';
 import { listMentors, listMentees } from '../services/platformData.js';
 import { getMatchSuggestions } from '../services/matchingEngine.js';
+import { explainMatch } from '../services/matchingAi.js';
+import { getMentorById } from '../services/mentorStore.js';
+import { getMenteeById } from '../services/menteeStore.js';
 
 const router = express.Router();
 
@@ -22,6 +25,25 @@ router.get('/suggestions', async (req, res, next) => {
       data: suggestions,
       meta: { mentors: mentors.length, mentees: mentees.length, algorithm: 'skill-overlap-v1' },
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** GET /api/matching/explain?mentorId=&menteeId= */
+router.get('/explain', async (req, res, next) => {
+  try {
+    const { mentorId, menteeId } = req.query;
+    if (!mentorId || !menteeId) {
+      return res.status(400).json({ success: false, message: 'mentorId and menteeId required' });
+    }
+    const mentor = await getMentorById(String(mentorId));
+    const mentee = await getMenteeById(String(menteeId));
+    if (!mentor || !mentee) {
+      return res.status(404).json({ success: false, message: 'Mentor or mentee not found' });
+    }
+    const result = await explainMatch(mentor, mentee);
+    res.json({ success: true, data: result });
   } catch (e) {
     next(e);
   }

@@ -28,7 +28,8 @@ export interface RegisterRequest {
   password: string;
   confirmPassword: string;
   name: string;
-  role: 'user' | 'mentor' | 'mentee';
+  role: 'user' | 'mentor' | 'mentee' | 'admin';
+  inviteToken?: string;
 }
 
 export interface AuthResponse {

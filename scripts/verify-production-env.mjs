@@ -47,6 +47,8 @@ const recommended = [
   'GOOGLE_CLIENT_ID',
   'BASE_URL',
   'FRONTEND_URL',
+  'SENTRY_DSN',
+  'VITE_SENTRY_DSN',
 ];
 
 const weak = [
@@ -93,6 +95,20 @@ for (const key of ['JWT_SECRET', 'JWT_REFRESH_SECRET']) {
 
 if (!fs.existsSync(path.join(root, 'dist', 'index.html')) && isProd) {
   console.warn('⚠️  dist/ not found — run npm run build before npm start');
+}
+
+const uploadsDir = path.join(root, 'backend', 'uploads');
+if (isProd) {
+  if (!fs.existsSync(uploadsDir)) {
+    console.warn('⚠️  backend/uploads/ missing — avatars will not persist across restarts');
+    console.warn('   Docker: mount a volume at /app/backend/uploads');
+  } else {
+    try {
+      fs.accessSync(uploadsDir, fs.constants.W_OK);
+    } catch {
+      console.warn('⚠️  backend/uploads/ is not writable');
+    }
+  }
 }
 
 console.log('\n📋 Optional integrations:');

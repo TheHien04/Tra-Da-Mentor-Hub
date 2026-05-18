@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { groupApi, mentorApi } from '../services/api';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { groupApi } from '../services/api';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { parseForm } from '../lib/zodForm';
+import { editGroupFormSchema } from '../schemas/forms';
+import { useMentors } from '../hooks/queries/useMentors';
 import { FormShell, FormField, FormActions } from './ui/FormShell';
 import { Alert } from './ui/Alert';
 import Skeleton from './Skeleton';
@@ -14,10 +17,10 @@ const EditGroup = () => {
   const { t } = useAppTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { data: mentors = [] } = useMentors();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [mentors, setMentors] = useState<{ _id: string; name: string }[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -29,10 +32,10 @@ const EditGroup = () => {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([groupApi.getById(id), mentorApi.getAll()])
-      .then(([gRes, mRes]) => {
+    groupApi
+      .getById(id)
+      .then((gRes) => {
         const g = gRes.data;
-        setMentors(unwrapList(mRes));
         const sched = g.meetingSchedule || {};
         setFormData({
           name: g.name || '',
@@ -43,7 +46,7 @@ const EditGroup = () => {
           time: sched.time || g.time || '19:00',
         });
       })
-      .catch((err) => setError(getApiErrorMessage(err)))
+      .catch((err) => setErrors({ submit: getApiErrorMessage(err) }))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -51,16 +54,19 @@ const EditGroup = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (error) setError('');
+    if (errors[e.target.name]) setErrors((prev) => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    if (!formData.name.trim() || !formData.mentorId) {
-      setError(t('form.nameAndMentorRequired'));
+
+    const parsed = parseForm(editGroupFormSchema, formData, t);
+    if (!parsed.success) {
+      setErrors(parsed.errors);
       return;
     }
+
     try {
       setSubmitting(true);
       await groupApi.update(id, {
@@ -77,7 +83,7 @@ const EditGroup = () => {
       toast.success(t('detail.groupUpdated'));
       navigate(`/groups/${id}`);
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      setErrors({ submit: getApiErrorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -93,30 +99,44 @@ const EditGroup = () => {
 
   return (
     <FormShell title={t('group.editGroup')} backHref={`/groups/${id}`} onSubmit={handleSubmit}>
-      {error && <Alert variant="error">{error}</Alert>}
+      {errors.submit && <Alert variant="error">{errors.submit}</Alert>}
 
       <FormField label={t('form.groupName')} required>
-        <input className="input" name="name" value={formData.name} onChange={handleChange} required />
+        <input
+          className={`input ${errors.name ? 'input-error' : ''}`}
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
       </FormField>
-      <FormField label={t('group.description')}>
+      <FormField label={t('form.description')}>
         <textarea className="input min-h-[80px]" name="description" value={formData.description} onChange={handleChange} rows={3} />
       </FormField>
-      <FormField label={t('roles.mentor')} required>
-        <select className="input" name="mentorId" value={formData.mentorId} onChange={handleChange} required>
+      <FormField label={t('mentor.title')} required>
+        <select
+          className={`input ${errors.mentorId ? 'input-error' : ''}`}
+          name="mentorId"
+          value={formData.mentorId}
+          onChange={handleChange}
+          required
+        >
           <option value="">{t('form.selectMentor')}</option>
           {mentors.map((m) => (
             <option key={m._id} value={m._id}>
-              {m.name}
+              {m.name || m.email}
             </option>
           ))}
         </select>
+        {errors.mentorId && <p className="text-xs text-red-600 mt-1">{errors.mentorId}</p>}
       </FormField>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <FormField label={t('form.frequency')}>
           <select className="input" name="frequency" value={formData.frequency} onChange={handleChange}>
-            <option value="Weekly">{t('form.weekly')}</option>
-            <option value="Bi-weekly">{t('form.biweekly')}</option>
-            <option value="Monthly">{t('form.monthly')}</option>
+            <option value="Weekly">{t('form.frequencyWeekly')}</option>
+            <option value="Bi-weekly">{t('form.frequencyBiweekly')}</option>
+            <option value="Monthly">{t('form.frequencyMonthly')}</option>
           </select>
         </FormField>
         <FormField label={t('form.day')}>

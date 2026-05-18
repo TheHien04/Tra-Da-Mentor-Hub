@@ -9,6 +9,7 @@ const slotSchema = new mongoose.Schema(
     meetingLink: { type: String, default: '' },
     bookedBy: { type: String, default: null },
     menteeId: { type: String, default: null },
+    googleCalendarEventId: { type: String, default: null },
   },
   { timestamps: true }
 );

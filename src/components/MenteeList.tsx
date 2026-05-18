@@ -1,9 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { useAppTranslation } from '../hooks/useAppTranslation';
-import { menteeApi } from '../services/api';
 import { HiOutlineUserGroup, HiOutlineArrowRight, HiOutlineTrash } from 'react-icons/hi2';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useConfirm } from '../context/ConfirmContext';
+import { menteeApi } from '../services/api';
+import { useMentees } from '../hooks/queries/useMentees';
+import { queryKeys } from '../hooks/queries/keys';
+import { getTrackOptions } from '../lib/trackOptions';
+import { resolveAssetUrl } from '../lib/assetUrl';
+import { toast } from 'react-toastify';
 import Avatar from './Avatar';
 import TrackBadge from './TrackBadge';
 import SearchFilter from './SearchFilter';
@@ -11,7 +18,7 @@ import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, SkillTags } from './ui';
 import { Alert } from './ui/Alert';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { getApiErrorMessage } from '../lib/apiHelpers';
 
 interface Mentee {
   _id: string;
@@ -21,13 +28,16 @@ interface Mentee {
   track?: string;
   interests?: string[];
   progress: number;
+  avatarUrl?: string;
 }
 
 const MenteeList = () => {
   const { t } = useAppTranslation();
-  const [mentees, setMentees] = useState<Mentee[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { confirm } = useConfirm();
+  const queryClient = useQueryClient();
+  const trackOptions = getTrackOptions(t, true);
+  const { data: mentees = [], isLoading: loading, isError, error: queryError } = useMentees();
+  const error = isError ? getApiErrorMessage(queryError) : null;
   const [successMessage, setSuccessMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ 'just-started': true, 'in-progress': true, completed: true });
@@ -38,35 +48,26 @@ const MenteeList = () => {
     progressMax: '',
   });
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await menteeApi.getAll();
-        setMentees(unwrapList<Mentee>(res));
-        setError(null);
-      } catch (err) {
-        setError(getApiErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete ${name}?`)) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('lists.confirmDelete', { name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await menteeApi.delete(id);
-      setMentees((prev) => prev.filter((m) => m._id !== id));
-      setSuccessMessage(`${name} removed`);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mentees });
+      setSuccessMessage(t('lists.deleteSuccess', { name }));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      toast.error(getApiErrorMessage(err));
     }
   };
 
   const filteredMentees = useMemo(() => {
-    return mentees.filter((mentee) => {
+    return (mentees as Mentee[]).filter((mentee) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         mentee.name.toLowerCase().includes(q) ||
@@ -92,15 +93,15 @@ const MenteeList = () => {
   }, [mentees, searchQuery, filters, advancedFilters]);
 
   const progressLabel = (p: number) => {
-    if (p === 100) return 'Completed';
-    if (p > 0) return 'In progress';
-    return 'Just started';
+    if (p === 100) return t('lists.progressCompleted');
+    if (p > 0) return t('lists.progressInProgress');
+    return t('lists.progressJustStarted');
   };
 
-  const progressBarColor = (p: number) => {
-    if (p === 100) return '#10b981';
-    if (p > 0) return 'var(--accent)';
-    return 'var(--text-muted)';
+  const progressFillClass = (p: number) => {
+    if (p === 100) return 'progress-track__fill progress-track__fill--complete';
+    if (p > 0) return 'progress-track__fill';
+    return 'progress-track__fill progress-track__fill--idle';
   };
 
   const completed = mentees.filter((m) => m.progress === 100).length;
@@ -109,7 +110,11 @@ const MenteeList = () => {
     <PageShell>
       <PageHeader
         title={t('mentee.title')}
-        description={`${filteredMentees.length} shown · ${mentees.length} total · ${completed} completed`}
+        description={t('lists.menteesShown', {
+          shown: filteredMentees.length,
+          total: mentees.length,
+          completed,
+        })}
         icon={<HiOutlineUserGroup className="h-7 w-7" />}
         action={{ label: `+ ${t('mentee.addMentee')}`, href: '/mentees/add' }}
       />
@@ -131,9 +136,9 @@ const MenteeList = () => {
         filters={filters as any}
         setFilters={(f) => setFilters(f as any)}
         filterOptions={[
-          { label: 'Just started', value: 'just-started', checked: true },
-          { label: 'In progress', value: 'in-progress', checked: true },
-          { label: 'Completed', value: 'completed', checked: true },
+          { label: t('lists.progressJustStarted'), value: 'just-started', checked: true },
+          { label: t('lists.progressInProgress'), value: 'in-progress', checked: true },
+          { label: t('lists.progressCompleted'), value: 'completed', checked: true },
         ]}
         placeholder={t('lists.searchMentees')}
       />
@@ -141,19 +146,20 @@ const MenteeList = () => {
       <FilterPanel
         onClear={() => setAdvancedFilters({ track: '', school: '', progressMin: '', progressMax: '' })}
       >
-        <FilterField label="Track">
+        <FilterField label={t('lists.filterTrack')}>
           <select
             className={filterSelectClass}
             value={advancedFilters.track}
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, track: e.target.value })}
           >
-            <option value="">All</option>
-            <option value="tech">Technology</option>
-            <option value="business">Business</option>
-            <option value="design">Design</option>
+            {trackOptions.map((o) => (
+              <option key={o.value || 'all'} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </FilterField>
-        <FilterField label="School">
+        <FilterField label={t('lists.filterSchool')}>
           <input
             className={filterSelectClass}
             placeholder={t('lists.filterSchool')}
@@ -161,7 +167,7 @@ const MenteeList = () => {
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, school: e.target.value })}
           />
         </FilterField>
-        <FilterField label="Progress min %">
+        <FilterField label={t('lists.progressMin')}>
           <input
             type="number"
             min={0}
@@ -171,7 +177,7 @@ const MenteeList = () => {
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, progressMin: e.target.value })}
           />
         </FilterField>
-        <FilterField label="Progress max %">
+        <FilterField label={t('lists.progressMax')}>
           <input
             type="number"
             min={0}
@@ -184,7 +190,7 @@ const MenteeList = () => {
       </FilterPanel>
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="card p-5">
               <Skeleton count={3} />
@@ -199,35 +205,23 @@ const MenteeList = () => {
           actionHref="/mentees/add"
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filteredMentees.map((mentee) => (
-            <article key={mentee._id} className="card card-hover p-5 flex flex-col">
-              <div className="flex gap-4 mb-4">
-                <Avatar name={mentee.name} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-base font-semibold text-primary">{mentee.name}</h3>
+            <article key={mentee._id} className="card card-hover people-card p-5 flex flex-col">
+              <div className="people-card__header mb-4">
+                <Avatar
+                  name={mentee.name}
+                  size="lg"
+                  track={mentee.track}
+                  url={resolveAssetUrl((mentee as Mentee & { avatarUrl?: string }).avatarUrl)}
+                />
+                <div className="people-card__identity">
+                  <div className="people-card__title-row">
+                    <h3 className="people-card__name">{mentee.name}</h3>
                     {mentee.track && <TrackBadge track={mentee.track as any} size="small" />}
                   </div>
-                  <p className="text-sm text-muted truncate">{mentee.email}</p>
-                  {mentee.school && (
-                    <p className="text-xs text-muted mt-1 line-clamp-2">{mentee.school}</p>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1 shrink-0">
-                  <Link
-                    to={`/mentees/${mentee._id}`}
-                    className="btn btn-secondary text-xs py-1.5 px-2.5 inline-flex items-center gap-1"
-                  >
-                    View <HiOutlineArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                  <button
-                    type="button"
-                    className="btn btn-danger text-xs py-1.5 px-2.5 inline-flex items-center gap-1"
-                    onClick={() => handleDelete(mentee._id, mentee.name)}
-                  >
-                    <HiOutlineTrash className="h-3.5 w-3.5" /> Delete
-                  </button>
+                  <p className="people-card__meta">{mentee.email}</p>
+                  {mentee.school && <p className="people-card__submeta">{mentee.school}</p>}
                 </div>
               </div>
 
@@ -237,21 +231,36 @@ const MenteeList = () => {
                 </div>
               )}
 
-              <div className="mt-auto">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="text-muted">{progressLabel(mentee.progress)}</span>
-                  <span className="font-medium text-secondary tabular-nums">{mentee.progress}%</span>
+              <div className="progress-block">
+                <div className="progress-block__row">
+                  <span className="progress-block__label">{progressLabel(mentee.progress)}</span>
+                  <span className="progress-block__pct">{mentee.progress}%</span>
                 </div>
-                <div className="h-1.5 rounded-full surface-muted overflow-hidden">
+                <div className="progress-track">
                   <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${mentee.progress}%`,
-                      backgroundColor: progressBarColor(mentee.progress),
-                    }}
+                    className={progressFillClass(mentee.progress)}
+                    style={{ width: `${mentee.progress}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-muted mt-2">ID: {mentee._id}</p>
+              </div>
+
+              <div className="people-card__footer">
+                <Link
+                  to={`/mentees/${mentee._id}`}
+                  className="btn btn-primary flex-1 inline-flex items-center justify-center gap-1.5"
+                >
+                  {t('mentee.viewDetails')}
+                  <HiOutlineArrowRight className="h-4 w-4" />
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-ghost-danger px-3"
+                  onClick={() => handleDelete(mentee._id, mentee.name)}
+                  aria-label={t('common.delete')}
+                  title={t('common.delete')}
+                >
+                  <HiOutlineTrash className="h-4 w-4" />
+                </button>
               </div>
             </article>
           ))}

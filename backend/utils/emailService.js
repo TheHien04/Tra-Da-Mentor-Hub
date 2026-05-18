@@ -219,6 +219,26 @@ export async function sendEmailVerification(user, verificationToken) {
 /**
  * Broadcast plain-text email to a list of addresses (admin notifications)
  */
+export async function sendInviteEmail({ to, link, role, expiresAt }) {
+  const roleLabel =
+    role === 'admin' ? 'Quản trị viên' : role === 'mentor' ? 'Mentor' : 'Mentee';
+  const subject = `Lời mời tham gia ${FROM_NAME}`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #0d9488;">Bạn được mời tham gia Trà Đá Mentor</h2>
+      <p>Xin chào,</p>
+      <p>Bạn được mời đăng ký với vai trò <strong>${roleLabel}</strong>.</p>
+      <p style="text-align: center; margin: 28px 0;">
+        <a href="${link}" style="display: inline-block; padding: 12px 28px; background: #0d9488; color: #fff; text-decoration: none; border-radius: 6px;">Hoàn tất đăng ký</a>
+      </p>
+      <p style="word-break: break-all; font-size: 13px; color: #555;">${link}</p>
+      <p style="font-size: 12px; color: #888;">Link hết hạn: ${expiresAt ? new Date(expiresAt).toLocaleString('vi-VN') : '7 ngày'}</p>
+    </div>
+  `;
+  const text = `Bạn được mời tham gia ${FROM_NAME} với vai trò ${roleLabel}.\n\nĐăng ký tại: ${link}\n\nLink hết hạn sau 7 ngày.`;
+  return sendEmail({ to, subject, text, html });
+}
+
 export async function sendBroadcastEmail({ emails, subject, message }) {
   const unique = [...new Set((emails || []).filter(Boolean))];
   if (unique.length === 0) {
@@ -264,4 +284,5 @@ export default {
   sendSessionReminderEmail,
   sendEmailVerification,
   sendBroadcastEmail,
+  sendInviteEmail,
 };

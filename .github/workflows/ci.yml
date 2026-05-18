@@ -33,6 +33,12 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      - name: Frontend unit tests
+        run: npm run test:frontend
+
+      - name: Locale parity
+        run: npm run check:locales
+
       - name: Verify production env script
         run: |
           export NODE_ENV=production

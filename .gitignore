@@ -83,6 +83,12 @@ blob-report/
 playwright/.cache/
 .jest/
 
+# --- User uploads (avatars) ---
+backend/uploads/*
+!backend/uploads/avatars/
+backend/uploads/avatars/*
+!backend/uploads/avatars/.gitkeep
+
 # --- Large / local-only assets ---
 src/assets/logo-source.png
 docs/

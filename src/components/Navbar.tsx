@@ -21,6 +21,7 @@ import {
   HiOutlineArrowRightOnRectangle,
 } from 'react-icons/hi2';
 import logoImg from '../assets/logo.png';
+import { resolveAssetUrl } from '../lib/assetUrl';
 import { ThemeToggle } from './features/ThemeToggle';
 import { NotificationBell } from './features/NotificationBell';
 
@@ -32,6 +33,7 @@ const Navbar = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const role = state.user?.role || 'user';
+  const avatarSrc = resolveAssetUrl(state.user?.avatar);
   const isMentorOrAdmin = role === 'mentor' || role === 'admin';
   const isAdmin = role === 'admin';
 
@@ -139,7 +141,15 @@ const Navbar = () => {
             aria-expanded={showDropdown}
             aria-haspopup="true"
           >
-            {state.user?.name?.charAt(0).toUpperCase() || 'U'}
+            {avatarSrc ? (
+              <img
+                src={avatarSrc}
+                alt=""
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              state.user?.name?.charAt(0).toUpperCase() || 'U'
+            )}
           </button>
 
           {showDropdown && (

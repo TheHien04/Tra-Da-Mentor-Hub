@@ -11,15 +11,16 @@ import './AuthPage.css';
 const PLAN_IDS = ['free', 'pro', 'premium'] as const;
 const PLAN_META: Record<
   (typeof PLAN_IDS)[number],
-  { price: string; highlighted: boolean; disabled: boolean }
+  { priceUsd: string; priceVnd: string; highlighted: boolean; disabled: boolean }
 > = {
-  free: { price: '$0', highlighted: false, disabled: true },
-  pro: { price: '$29', highlighted: true, disabled: false },
-  premium: { price: '$99', highlighted: false, disabled: false },
+  free: { priceUsd: '$0', priceVnd: '0₫', highlighted: false, disabled: true },
+  pro: { priceUsd: '$29', priceVnd: '699.000₫', highlighted: true, disabled: false },
+  premium: { priceUsd: '$99', priceVnd: '2.399.000₫', highlighted: false, disabled: false },
 };
 
 export const PricingPage = () => {
-  const { t } = useAppTranslation();
+  const { t, i18n } = useAppTranslation();
+  const useVnd = i18n.language === 'vi';
   const navigate = useNavigate();
   const { state } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
@@ -29,12 +30,13 @@ export const PricingPage = () => {
       PLAN_IDS.map((id) => ({
         id,
         ...PLAN_META[id],
+        price: useVnd ? PLAN_META[id].priceVnd : PLAN_META[id].priceUsd,
         name: t(`pages.pricing.plans.${id}.name`),
         description: t(`pages.pricing.plans.${id}.description`),
         buttonText: t(`pages.pricing.plans.${id}.button`),
         features: t(`pages.pricing.plans.${id}.features`, { returnObjects: true }) as string[],
       })),
-    [t]
+    [t, useVnd]
   );
 
   const handleSubscribe = async (planId: string) => {
