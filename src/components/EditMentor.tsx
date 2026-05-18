@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { mentorApi } from '../services/api';
+import { mentorApi, uploadsApi } from '../services/api';
 import { getApiErrorMessage } from '../lib/apiHelpers';
+import { parseForm } from '../lib/zodForm';
+import { getTrackOptions } from '../lib/trackOptions';
+import { editMentorFormSchema } from '../schemas/forms';
 import { FormShell, FormField, FormActions } from './ui/FormShell';
+import { AvatarUploadField } from './ui/AvatarUploadField';
 import { Alert } from './ui/Alert';
 import Skeleton from './Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-
-const TRACK_VALUES = ['tech', 'design', 'business', 'marketing', 'economics'] as const;
 
 const EditMentor = () => {
   const { t } = useAppTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const trackOptions = getTrackOptions(t);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -27,6 +30,7 @@ const EditMentor = () => {
     maxMentees: 6,
     mentorshipType: 'GROUP',
     duration: 'LONG_TERM',
+    avatarUrl: '',
   });
 
   useEffect(() => {
@@ -45,6 +49,7 @@ const EditMentor = () => {
           maxMentees: m.maxMentees || 6,
           mentorshipType: m.mentorshipType || 'GROUP',
           duration: m.duration || 'LONG_TERM',
+          avatarUrl: m.avatarUrl || '',
         });
       })
       .catch((err) => setErrors({ submit: getApiErrorMessage(err) }))
@@ -59,11 +64,35 @@ const EditMentor = () => {
       ...prev,
       [name]: name === 'maxMentees' ? Number(value) || 1 : value,
     }));
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const handleAvatarUpload = async (dataUrl: string) => {
+    if (!id) return;
+    const res = await uploadsApi.avatar({ entityType: 'mentor', entityId: id, dataUrl });
+    const url = res.data.data.avatarUrl;
+    setFormData((prev) => ({ ...prev, avatarUrl: url }));
+    toast.success(t('form.avatarUpdated'));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
+
+    const parsed = parseForm(editMentorFormSchema, formData, t);
+    if (!parsed.success) {
+      const next = { ...parsed.errors };
+      if (formData.phone && !/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) {
+        next.phone = t('validation.phoneInvalid');
+      }
+      setErrors(next);
+      return;
+    }
+    if (formData.phone && !/^\d{10,}$/.test(formData.phone.replace(/\D/g, ''))) {
+      setErrors({ phone: t('validation.phoneInvalid') });
+      return;
+    }
+
     try {
       setSubmitting(true);
       await mentorApi.update(id, {
@@ -79,6 +108,7 @@ const EditMentor = () => {
         maxMentees: formData.maxMentees,
         mentorshipType: formData.mentorshipType,
         duration: formData.duration,
+        avatarUrl: formData.avatarUrl || undefined,
       });
       toast.success(t('detail.mentorUpdated'));
       navigate(`/mentors/${id}`);
@@ -106,27 +136,60 @@ const EditMentor = () => {
     >
       {errors.submit && <Alert variant="error">{errors.submit}</Alert>}
 
+      <FormField label={t('form.avatar')}>
+        <AvatarUploadField
+          name={formData.name || 'Mentor'}
+          track={formData.track}
+          avatarUrl={formData.avatarUrl}
+          onChange={(url) => setFormData((prev) => ({ ...prev, avatarUrl: url }))}
+          onUpload={handleAvatarUpload}
+        />
+      </FormField>
+
       <FormField label={t('form.fullName')} required>
-        <input className="input" name="name" value={formData.name} onChange={handleChange} required />
+        <input
+          className={`input ${errors.name ? 'input-error' : ''}`}
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
       </FormField>
       <FormField label={t('auth.email')} required>
-        <input type="email" className="input" name="email" value={formData.email} onChange={handleChange} required />
+        <input
+          type="email"
+          className={`input ${errors.email ? 'input-error' : ''}`}
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          required
+        />
+        {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
       </FormField>
       <FormField label={t('detail.phone')}>
         <input type="tel" className="input" name="phone" value={formData.phone} onChange={handleChange} />
+        {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
       </FormField>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label={t('common.track')}>
           <select className="input" name="track" value={formData.track} onChange={handleChange}>
-            {TRACK_VALUES.map((value) => (
-              <option key={value} value={value}>
-                {t(`form.tracks.${value}`)}
+            {trackOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </select>
         </FormField>
         <FormField label={t('form.maxMentees')}>
-          <input type="number" min={1} className="input" name="maxMentees" value={formData.maxMentees} onChange={handleChange} />
+          <input
+            type="number"
+            min={1}
+            className="input"
+            name="maxMentees"
+            value={formData.maxMentees}
+            onChange={handleChange}
+          />
         </FormField>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { HiOutlineSparkles } from 'react-icons/hi2';
 
 interface EmptyStateProps {
   icon?: ReactNode;
@@ -30,14 +31,12 @@ const EmptyState = ({
     ) : null;
 
   return (
-    <div className="card flex flex-col items-center justify-center py-16 px-6 text-center border-dashed">
-      {icon && (
-        <div className="mb-4 text-4xl text-muted opacity-40" aria-hidden>
-          {icon}
-        </div>
-      )}
-      <h2 className="text-lg font-semibold text-primary">{title}</h2>
-      <p className="mt-2 text-sm text-muted max-w-sm">{description}</p>
+    <div className="wow-empty">
+      <div className="wow-empty__icon" aria-hidden>
+        {icon ?? <HiOutlineSparkles className="h-8 w-8" />}
+      </div>
+      <h2 className="wow-empty__title">{title}</h2>
+      <p className="wow-empty__desc">{description}</p>
       {action}
     </div>
   );

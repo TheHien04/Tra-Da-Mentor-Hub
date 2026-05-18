@@ -25,9 +25,12 @@ services:
       FRONTEND_URL: http://localhost:5000
       BASE_URL: http://localhost:5000
       ENABLE_DEMO_AUTH: "true"
+    volumes:
+      - uploads_data:/app/backend/uploads
     depends_on:
       - mongo
     restart: unless-stopped
 
 volumes:
   mongo_data:
+  uploads_data:

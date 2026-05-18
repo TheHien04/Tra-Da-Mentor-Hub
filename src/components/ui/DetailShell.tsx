@@ -12,6 +12,7 @@ interface DetailShellProps {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  hero?: ReactNode;
   loading?: boolean;
   error?: string | null;
   notFound?: boolean;
@@ -24,6 +25,7 @@ export function DetailShell({
   title,
   subtitle,
   actions,
+  hero,
   loading,
   error,
   notFound,
@@ -54,7 +56,7 @@ export function DetailShell({
 
   return (
     <PageShell>
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <Link
           to={backHref}
           className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-secondary transition-colors"
@@ -65,10 +67,12 @@ export function DetailShell({
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
 
-      <header className="mb-8">
-        <h1 className="page-title">{title}</h1>
-        {subtitle && <p className="page-subtitle mt-1 max-w-2xl whitespace-normal">{subtitle}</p>}
-      </header>
+      {hero ?? (
+        <header className="mb-8">
+          <h1 className="page-title">{title}</h1>
+          {subtitle && <p className="page-subtitle mt-1 max-w-2xl whitespace-normal">{subtitle}</p>}
+        </header>
+      )}
 
       {children}
     </PageShell>
@@ -77,8 +81,8 @@ export function DetailShell({
 
 export function DetailCard({ title, children, className = '' }: { title?: string; children: ReactNode; className?: string }) {
   return (
-    <section className={`card p-6 mb-6 ${className}`}>
-      {title && <h2 className="text-sm font-semibold text-primary mb-4">{title}</h2>}
+    <section className={`card detail-card p-6 mb-6 ${className}`}>
+      {title && <h2 className="detail-card__title">{title}</h2>}
       {children}
     </section>
   );

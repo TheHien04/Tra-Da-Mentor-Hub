@@ -35,11 +35,16 @@ export const registerSchema = z
       .min(1, "Name is required")
       .min(3, "Name must be at least 3 characters")
       .max(100, "Name cannot exceed 100 characters"),
-    role: z.enum(["user", "mentor", "mentee"]).default("user"),
+    role: z.enum(["user", "mentor", "mentee", "admin"]).default("user"),
+    inviteToken: z.string().min(1).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  })
+  .refine((data) => data.role !== "admin" || Boolean(data.inviteToken), {
+    message: "Admin registration requires a valid invite",
+    path: ["role"],
   });
 
 // ============ REFRESH TOKEN ============

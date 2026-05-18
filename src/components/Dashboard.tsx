@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-import { mentorApi, menteeApi, groupApi, slotsApi } from '../services/api';
 import type { Mentor, Mentee } from '../types/models';
-import { useAuth } from '../context/AuthContext';
+import { useMentors } from '../hooks/queries/useMentors';
+import { useMentees } from '../hooks/queries/useMentees';
+import { useGroups } from '../hooks/queries/useGroups';
+import { useSlots } from '../hooks/queries/useSlots';
 import {
   HiOutlineUserGroup,
   HiOutlineAcademicCap,
@@ -19,7 +21,10 @@ import Skeleton from './Skeleton';
 import { Alert } from './ui/Alert';
 import { SmartMatchPanel } from './features/SmartMatchPanel';
 import { LiveActivityFeed } from './features/LiveActivityFeed';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { DashboardHero } from './features/DashboardHero';
+import { PageShell } from './ui/PageShell';
+import { HiOutlineSparkles } from 'react-icons/hi2';
+import { getApiErrorMessage } from '../lib/apiHelpers';
 
 interface DashboardStats {
   totalMentors: number;
@@ -38,14 +43,17 @@ interface UpcomingSession {
   date: string;
   time: string;
   type: 'GROUP' | 'ONE_ON_ONE';
+  isBooked: boolean;
+}
+
+function parseSlotDateTime(date: string, time?: string) {
+  const normalized = time && time.length === 5 ? `${time}:00` : time || '00:00:00';
+  return new Date(`${date}T${normalized}`);
 }
 
 const Dashboard = () => {
   const { t } = useAppTranslation();
-  const { state } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const role = state.user?.role || 'user';
-
   useEffect(() => {
     const calendar = searchParams.get('calendar');
     if (!calendar) return;
@@ -60,121 +68,106 @@ const Dashboard = () => {
     next.delete('calendar');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, t]);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalMentors: 0,
-    totalMentees: 0,
-    totalGroups: 0,
-    mentorsAtCapacity: 0,
-    menteesCompleted: 0,
-    menteesInProgress: 0,
-    menteesJustStarted: 0,
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
-  const [trendingSkills, setTrendingSkills] = useState<
-    { skill: string; count: number; percentage: number }[]
-  >([]);
+  const {
+    data: mentorsList = [],
+    isLoading: mentorsLoading,
+    isError: mentorsError,
+    error: mentorsQueryError,
+  } = useMentors();
+  const {
+    data: menteesData = [],
+    isLoading: menteesLoading,
+    isError: menteesError,
+    error: menteesQueryError,
+  } = useMentees();
+  const { data: groupsList = [], isLoading: groupsLoading } = useGroups();
+  const { data: slots = [], isLoading: slotsLoading } = useSlots();
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-        const [mentorsRes, menteesRes, groupsRes, slotsRes] = await Promise.all([
-          mentorApi.getAll(),
-          menteeApi.getAll(),
-          groupApi.getAll(),
-          slotsApi.getAll(),
-        ]);
+  const loading = mentorsLoading || menteesLoading || groupsLoading || slotsLoading;
+  const error =
+    mentorsError || menteesError
+      ? getApiErrorMessage(mentorsQueryError || menteesQueryError)
+      : null;
 
-        const mentorsList = unwrapList<Mentor>(mentorsRes);
-        const menteesData = unwrapList<Mentee>(menteesRes);
-        const groupsList = unwrapList(groupsRes);
+  const { stats, upcomingSessions, trendingSkills } = useMemo((): {
+    stats: DashboardStats;
+    upcomingSessions: UpcomingSession[];
+    trendingSkills: { skill: string; count: number; percentage: number }[];
+  } => {
+    const mentors = mentorsList as Mentor[];
+    const mentees = menteesData as Mentee[];
+    const mentorName = (id: string) => mentors.find((m) => m._id === id)?.name || id;
+    const now = new Date();
 
-        const mentorName = (id: string) =>
-          mentorsList.find((m) => m._id === id)?.name || id;
+    const futureSlots = slots
+      .map((s) => {
+        const date = String(s.date || '');
+        const time = String(s.time || '');
+        const isBooked = Boolean(s.bookedBy || s.menteeId);
+        return {
+          raw: s,
+          date,
+          time,
+          isBooked,
+          at: parseSlotDateTime(date, time),
+        };
+      })
+      .filter((s) => s.date && !Number.isNaN(s.at.getTime()) && s.at >= now);
 
-        const slots = Array.isArray(slotsRes.data) ? slotsRes.data : [];
-        const today = new Date().toISOString().split('T')[0];
-        const upcoming = (slots as Record<string, unknown>[])
-          .filter((s) => String(s.date || '') >= today && (s.bookedBy || s.menteeId))
-          .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))
-          .slice(0, 5)
-          .map((s) => ({
-            _id: String(s._id),
-            title: t('dashboard.slotSession', { mentor: mentorName(String(s.mentorId)) }),
-            mentor: mentorName(String(s.mentorId)),
-            date: String(s.date),
-            time: String(s.time || ''),
-            type: 'ONE_ON_ONE' as const,
-          }));
-        setUpcomingSessions(upcoming);
+    const booked = futureSlots.filter((s) => s.isBooked).sort((a, b) => a.at.getTime() - b.at.getTime());
+    const open = futureSlots.filter((s) => !s.isBooked).sort((a, b) => a.at.getTime() - b.at.getTime());
 
-        const mentorsAtCapacity = mentorsList.filter(
+    const upcoming: UpcomingSession[] = [...booked, ...open].slice(0, 5).map((s) => ({
+      _id: String(s.raw._id),
+      title: s.isBooked
+        ? t('dashboard.slotSession', { mentor: mentorName(String(s.raw.mentorId)) })
+        : t('dashboard.slotOpen', { mentor: mentorName(String(s.raw.mentorId)) }),
+      mentor: mentorName(String(s.raw.mentorId)),
+      date: s.date,
+      time: s.time,
+      type: 'ONE_ON_ONE' as const,
+      isBooked: s.isBooked,
+    }));
+
+    const skillMap = new Map<string, number>();
+    mentees.forEach((m) => {
+      (m.interests || []).forEach((skill: string) => {
+        const key = skill.trim();
+        if (key) skillMap.set(key, (skillMap.get(key) || 0) + 1);
+      });
+    });
+    if (skillMap.size === 0) {
+      mentors.forEach((m) => {
+        (m.expertise || []).forEach((skill: string) => {
+          const key = skill.trim();
+          if (key) skillMap.set(key, (skillMap.get(key) || 0) + 1);
+        });
+      });
+    }
+    const topSkills = [...skillMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const maxCount = topSkills[0]?.[1] || 1;
+
+    return {
+      stats: {
+        totalMentors: mentors.length,
+        totalMentees: mentees.length,
+        totalGroups: groupsList.length,
+        mentorsAtCapacity: mentors.filter(
           (m) => m.maxMentees && m.mentees && m.mentees.length >= m.maxMentees
-        ).length;
-        const menteesCompleted = menteesData.filter((m) => m.progress === 100).length;
-        const menteesInProgress = menteesData.filter(
-          (m) => m.progress && m.progress > 0 && m.progress < 100
-        ).length;
-        const menteesJustStarted = menteesData.filter((m) => !m.progress || m.progress === 0).length;
-
-        const skillMap = new Map<string, number>();
-        menteesData.forEach((m) => {
-          (m.interests || []).forEach((skill: string) => {
-            const key = skill.trim();
-            if (key) skillMap.set(key, (skillMap.get(key) || 0) + 1);
-          });
-        });
-        if (skillMap.size === 0) {
-          mentorsList.forEach((m) => {
-            (m.expertise || []).forEach((skill: string) => {
-              const key = skill.trim();
-              if (key) skillMap.set(key, (skillMap.get(key) || 0) + 1);
-            });
-          });
-        }
-        const topSkills = [...skillMap.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 5);
-        const maxCount = topSkills[0]?.[1] || 1;
-        setTrendingSkills(
-          topSkills.map(([skill, count]) => ({
-            skill,
-            count,
-            percentage: Math.round((count / maxCount) * 100),
-          }))
-        );
-
-        setStats({
-          totalMentors: mentorsList.length,
-          totalMentees: menteesData.length,
-          totalGroups: groupsList.length,
-          mentorsAtCapacity,
-          menteesCompleted,
-          menteesInProgress,
-          menteesJustStarted,
-        });
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError(getApiErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
+        ).length,
+        menteesCompleted: mentees.filter((m) => m.progress === 100).length,
+        menteesInProgress: mentees.filter((m) => m.progress && m.progress > 0 && m.progress < 100)
+          .length,
+        menteesJustStarted: mentees.filter((m) => !m.progress || m.progress === 0).length,
+      },
+      upcomingSessions: upcoming,
+      trendingSkills: topSkills.map(([skill, count]) => ({
+        skill,
+        count,
+        percentage: Math.round((count / maxCount) * 100),
+      })),
     };
-
-    fetchDashboardData();
-  }, [t]);
-
-  const roleSubtitle =
-    role === 'mentor'
-      ? t('dashboard.mentorSubtitle', 'Your mentoring sessions and mentee capacity')
-      : role === 'mentee'
-        ? t('dashboard.menteeSubtitle', 'Your sessions and connected mentor')
-        : role === 'admin'
-          ? t('dashboard.adminSubtitle', 'Platform overview across mentors and mentees')
-          : t('dashboard.defaultSubtitle', 'Guide the future, unlock potential');
+  }, [mentorsList, menteesData, groupsList, slots, t]);
 
   const statCards = [
     {
@@ -206,6 +199,7 @@ const Dashboard = () => {
   const quickActions = [
     { label: t('mentor.addMentor'), href: '/mentors/add', icon: HiOutlinePlus },
     { label: t('mentee.addMentee'), href: '/mentees/add', icon: HiOutlinePlus },
+    { label: t('nav.analytics'), href: '/analytics', icon: HiOutlineChartBar },
     { label: t('nav.sessions'), href: '/session-logs', icon: HiOutlineCalendarDays },
   ];
 
@@ -217,16 +211,37 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto animate-fade-in">
-      <header className="page-header">
-        <h1 className="page-title">
-          {t('dashboard.welcome')}
-          {state.user?.name ? `, ${state.user.name.split(' ')[0]}` : ''}
-        </h1>
-        <p className="page-subtitle">{roleSubtitle}</p>
-      </header>
+    <PageShell>
+      <DashboardHero />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+      <div className="dashboard-promo-grid">
+      <Link to="/analytics" className="analytics-insights-banner group">
+        <span className="analytics-insights-banner__icon">
+          <HiOutlineChartBar className="h-5 w-5" />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-sm font-semibold text-primary">{t('dashboard.analyticsBannerTitle')}</span>
+          <span className="block text-xs text-muted mt-0.5">{t('dashboard.analyticsBannerDesc')}</span>
+        </span>
+        <span className="text-sm font-medium shrink-0" style={{ color: 'var(--accent)' }}>
+          {t('dashboard.viewAnalytics')} →
+        </span>
+      </Link>
+        <Link to="/insights" className="analytics-insights-banner analytics-insights-banner--insights group">
+          <span className="analytics-insights-banner__icon">
+            <HiOutlineSparkles className="h-5 w-5" />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold text-primary">{t('dashboard.insightsBannerTitle')}</span>
+            <span className="block text-xs text-muted mt-0.5">{t('dashboard.insightsBannerDesc')}</span>
+          </span>
+          <span className="text-sm font-medium shrink-0" style={{ color: 'var(--accent)' }}>
+            {t('dashboard.viewInsights')} →
+          </span>
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {quickActions.map((action) => (
           <Link
             key={action.href}
@@ -250,15 +265,17 @@ const Dashboard = () => {
               </div>
             ))
           : statCards.map((card) => (
-              <Link key={card.label} to={card.href} className="stat-card card-hover group">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="stat-label">{card.label}</p>
-                    <p className="stat-value mt-1">{card.value}</p>
-                  </div>
-                  <span className="stat-icon-box">
-                    <card.icon className="h-5 w-5" />
-                  </span>
+              <Link
+                key={card.label}
+                to={card.href}
+                className="analytics-kpi analytics-kpi--default card-hover group no-underline"
+              >
+                <div className="analytics-kpi__icon">
+                  <card.icon className="h-5 w-5" />
+                </div>
+                <div className="analytics-kpi__body">
+                  <p className="analytics-kpi__label">{card.label}</p>
+                  <p className="analytics-kpi__value">{card.value}</p>
                 </div>
               </Link>
             ))}
@@ -291,9 +308,19 @@ const Dashboard = () => {
                   </p>
                 </div>
                 <span
-                  className={`badge-pill shrink-0 ${session.type === 'GROUP' ? 'badge-accent' : 'badge-neutral'}`}
+                  className={`badge-pill shrink-0 ${
+                    session.isBooked
+                      ? session.type === 'GROUP'
+                        ? 'badge-accent'
+                        : 'badge-neutral'
+                      : 'badge-success'
+                  }`}
                 >
-                  {session.type === 'GROUP' ? t('dashboard.sessionTypeGroup') : t('dashboard.sessionTypeOneOnOne')}
+                  {session.isBooked
+                    ? session.type === 'GROUP'
+                      ? t('dashboard.sessionTypeGroup')
+                      : t('dashboard.sessionTypeOneOnOne')
+                    : t('dashboard.sessionOpenBadge')}
                 </span>
               </li>
             ))}
@@ -309,17 +336,17 @@ const Dashboard = () => {
             {trendingSkills.length === 0 && (
               <li className="text-sm text-muted py-4 text-center">{t('dashboard.skillsEmpty')}</li>
             )}
-            {trendingSkills.map((skill) => (
-              <li key={skill.skill}>
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="font-medium text-secondary">{skill.skill}</span>
-                  <span className="text-muted tabular-nums">{skill.count}</span>
-                </div>
-                <div className="h-1.5 rounded-full surface-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${skill.percentage}%`, backgroundColor: 'var(--accent)' }}
-                  />
+            {trendingSkills.map((skill, i) => (
+              <li key={skill.skill} className="analytics-skill-row">
+                <span className="analytics-skill-row__rank">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between text-sm mb-1 gap-2">
+                    <span className="font-medium text-primary truncate">{skill.skill}</span>
+                    <span className="text-muted tabular-nums shrink-0">{skill.count}</span>
+                  </div>
+                  <div className="analytics-skill-bar">
+                    <div className="analytics-skill-bar__fill" style={{ width: `${skill.percentage}%` }} />
+                  </div>
                 </div>
               </li>
             ))}
@@ -374,7 +401,7 @@ const Dashboard = () => {
           {error}
         </Alert>
       )}
-    </div>
+    </PageShell>
   );
 };
 

@@ -49,7 +49,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-80 max-h-[70vh] modal-panel rounded-xl overflow-hidden z-50 shadow-lg animate-scale-in">
+        <div className="notification-panel absolute bottom-full left-0 mb-2 w-80 max-w-[calc(100vw-2rem)] max-h-[70vh] z-50 animate-scale-in">
           <div
             className="flex items-center justify-between px-4 py-3 border-b"
             style={{ borderColor: 'var(--border-default)' }}
@@ -74,7 +74,7 @@ export function NotificationBell() {
                 <li key={n._id}>
                   <button
                     type="button"
-                    className={`w-full text-left px-4 py-3 border-b transition-colors hover:opacity-90 ${n.read ? 'opacity-70' : ''}`}
+                    className={`notification-panel__item w-full text-left px-4 py-3 border-b transition-colors ${n.read ? 'notification-panel__item--read' : 'notification-panel__item--unread'}`}
                     style={{ borderColor: 'var(--border-subtle)' }}
                     onClick={() => handleItemClick(n._id, n.href)}
                   >

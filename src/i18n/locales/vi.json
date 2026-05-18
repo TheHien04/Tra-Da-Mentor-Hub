@@ -80,6 +80,17 @@
   },
   "dashboard": {
     "welcome": "Chào mừng trở lại",
+    "welcomeName": "Chào {{name}}",
+    "greetingMorning": "Chào buổi sáng",
+    "greetingAfternoon": "Chào buổi chiều",
+    "greetingEvening": "Chào buổi tối",
+    "roleAdmin": "Quản trị viên",
+    "roleMentor": "Mentor",
+    "roleMentee": "Mentee",
+    "livePlatform": "Nền tảng đang hoạt động",
+    "insightsBannerTitle": "AI Insights & Smart Match",
+    "insightsBannerDesc": "Điểm ghép cặp và giải thích AI (nếu bật OpenAI).",
+    "viewInsights": "Mở Insights",
     "calendarConnected": "Đã kết nối Google Calendar thành công.",
     "calendarError": "Không thể kết nối Google Calendar. Vui lòng thử lại.",
     "overview": "Tổng quan",
@@ -108,12 +119,16 @@
     "smartMatchNoMatches": "Chưa có gợi ý phù hợp.",
     "smartMatchViewProfile": "Xem hồ sơ",
     "smartMatchCapacity": "{{active}}/{{max}} mentees",
+    "smartMatchExplain": "Vì sao phù hợp?",
+    "smartMatchAiInsight": "Phân tích ghép cặp",
     "atCapacity": "Đã đầy",
     "inProgress": "Đang tiến hành",
     "justStarted": "Mới bắt đầu",
     "completed": "Đã hoàn thành",
     "slotSession": "Buổi với {{mentor}}",
-    "noUpcoming": "Chưa có buổi đã đặt sắp tới.",
+    "slotOpen": "Slot trống — {{mentor}}",
+    "sessionOpenBadge": "Còn trống",
+    "noUpcoming": "Chưa có buổi sắp tới. Thêm slot tại trang Lịch.",
     "sessionTypeGroup": "Nhóm",
     "sessionTypeOneOnOne": "1:1",
     "skillsInDemand": "Kỹ năng được quan tâm",
@@ -122,7 +137,10 @@
     "progressInProgress": "Đang tiến hành",
     "progressJustStarted": "Mới bắt đầu",
     "mentorsAtCapacity": "Mentor đã đầy",
-    "summaryLine": "{{mentors}} mentor · {{mentees}} mentee · {{groups}} nhóm · {{completed}} hoàn thành · {{inProgress}} đang học"
+    "summaryLine": "{{mentors}} mentor · {{mentees}} mentee · {{groups}} nhóm · {{completed}} hoàn thành · {{inProgress}} đang học",
+    "analyticsBannerTitle": "Bảng phân tích chương trình",
+    "analyticsBannerDesc": "Biểu đồ, KPI, track & xuất CSV từ dữ liệu thật",
+    "viewAnalytics": "Xem phân tích"
   },
   "lists": {
     "searchMentors": "Tìm mentor…",
@@ -158,7 +176,21 @@
     "emptyMenteesSearch": "Thử tìm khác hoặc thêm mentee mới.",
     "emptyMenteesDefault": "Thêm mentee đầu tiên để bắt đầu.",
     "emptyGroupsTitle": "Không tìm thấy nhóm",
-    "emptyGroupsDefault": "Tạo nhóm học để bắt đầu."
+    "emptyGroupsDefault": "Tạo nhóm học để bắt đầu.",
+    "menteesShown": "{{shown}} hiển thị · {{total}} tổng · {{completed}} hoàn thành",
+    "statusActive": "Đang hoạt động ({{count}}/{{max}})",
+    "statusFull": "Đã đầy ({{count}}/{{max}})",
+    "confirmDelete": "Xóa {{name}}?",
+    "deleteSuccess": "Đã xóa {{name}}",
+    "deleteMentorFailed": "Không thể xóa mentor",
+    "progressJustStarted": "Mới bắt đầu",
+    "progressInProgress": "Đang tiến hành",
+    "progressCompleted": "Hoàn thành",
+    "progressMin": "Tiến độ tối thiểu %",
+    "progressMax": "Tiến độ tối đa %",
+    "groupsShown": "{{shown}} hiển thị · {{total}} nhóm",
+    "confirmDeleteGroup": "Xóa nhóm {{name}}?",
+    "groupCapacity": "{{count}}/{{max}} mentees"
   },
   "mentor": {
     "title": "Người hướng dẫn",
@@ -266,7 +298,8 @@
     "accepted": "Chấp nhận",
     "interviewed": "Đã phỏng vấn",
     "invited": "Đã mời",
-    "loadError": "Không tải được dữ liệu"
+    "loadError": "Không tải được dữ liệu",
+    "retry": "Thử lại"
   },
   "detail": {
     "profile": "Hồ sơ",
@@ -325,7 +358,12 @@
       "design": "Thiết kế",
       "business": "Kinh doanh",
       "marketing": "Marketing",
-      "economics": "Kinh tế"
+      "economics": "Kinh tế",
+      "hr": "Human Resources",
+      "sales": "Sales",
+      "social": "Social Studies",
+      "education": "Education",
+      "startup": "Startup"
     },
     "days": {
       "Monday": "Thứ Hai",
@@ -335,7 +373,19 @@
       "Friday": "Thứ Sáu",
       "Saturday": "Thứ Bảy",
       "Sunday": "Chủ Nhật"
-    }
+    },
+    "phone": "Phone",
+    "expertiseHint": "Comma-separated, e.g. React, Leadership",
+    "avatar": "Profile photo",
+    "avatarUpload": "Upload photo",
+    "avatarUploading": "Uploading…",
+    "avatarRemove": "Remove photo",
+    "avatarHint": "JPEG, PNG or WebP, max 2MB",
+    "avatarUpdated": "Photo updated",
+    "description": "Description",
+    "frequencyWeekly": "Weekly",
+    "frequencyBiweekly": "Bi-weekly",
+    "frequencyMonthly": "Monthly"
   },
   "registerPage": {
     "brand": "Trà Đá Mentor",
@@ -360,7 +410,10 @@
     "reqNumber": "Số",
     "creating": "Đang tạo tài khoản...",
     "divider": "Đã có tài khoản?",
-    "loginHere": "Đăng nhập"
+    "loginHere": "Đăng nhập",
+    "inviteLoading": "Đang xác minh lời mời…",
+    "inviteInvalid": "Link mời không hợp lệ hoặc đã hết hạn.",
+    "inviteApplied": "Đã áp dụng lời mời — bạn đăng ký với vai trò {{role}}."
   },
   "roles": {
     "mentor": "Mentor",
@@ -380,13 +433,30 @@
       "groupLabel": "Nhóm: {{name}}",
       "menteesCount": "{{count}} mentee",
       "menteesCount_plural": "{{count}} mentees",
-      "futureNote": "Lịch sẽ tích hợp Slots và Google Calendar trong bản cập nhật sau.",
+      "calendarTitle": "Google Calendar",
+      "calendarDesc": "Kết nối để đồng bộ buổi đã đặt và tạo link Google Meet tự động.",
+      "calendarConnect": "Kết nối Google Calendar",
+      "calendarConnected": "Đã kết nối lịch",
+      "calendarError": "Không kết nối được Google Calendar. Kiểm tra OAuth.",
+      "calendarConnectFirst": "Hãy kết nối Google Calendar ở thanh phía trên trước.",
+      "calendarSynced": "Đã đồng bộ lên Google Calendar.",
+      "calendarSyncFailed": "Đồng bộ lịch thất bại.",
+      "calendarAlreadySynced": "Buổi này đã có trên lịch.",
+      "calendarSyncedBadge": "Đã lên lịch",
+      "syncCalendar": "Thêm vào Google Calendar",
       "slotsSourceNote": "Lịch hiển thị từ khung giờ mentor (trang Slots).",
       "slotTitle": "Mentoring với {{mentor}}",
       "bookedMentee": "Mentee đã đặt",
       "bookedDesc": "Slot này đã được đặt.",
       "openDesc": "Slot còn trống — mentee đặt tại trang Slots.",
-      "noLink": "Chưa có link"
+      "noLink": "Chưa có link",
+      "statTotal": "Tổng slot",
+      "statBooked": "Đã đặt",
+      "statOpen": "Slot trống",
+      "openBadge": "Trống",
+      "filterStatus": "Lọc trạng thái",
+      "filterType": "Lọc loại",
+      "manageSlots": "Quản lý slot"
     },
     "testimonials": {
       "title": "Phản hồi",
@@ -425,7 +495,10 @@
       "fillRequired": "Điền đầy đủ các trường bắt buộc",
       "submitted": "Đã gửi phản hồi để duyệt",
       "approved": "Đã xuất bản",
-      "rejected": "Đã từ chối"
+      "rejected": "Đã từ chối",
+      "featuredTitle": "Featured on homepage",
+      "featuredHint": "Published testimonials appear here first.",
+      "statTotal": "Total"
     },
     "applications": {
       "title": "Đơn ứng tuyển Mentee",
@@ -443,7 +516,8 @@
       "statusInvited": "Đã mời",
       "statusInterviewed": "Đã phỏng vấn",
       "statusUpdated": "Trạng thái: {{status}}",
-      "updateFailed": "Cập nhật thất bại"
+      "updateFailed": "Cập nhật thất bại",
+      "filterLabel": "Application status"
     },
     "sessionLog": {
       "title": "Nhật ký buổi học",
@@ -477,7 +551,26 @@
       "mentorScore": "Điểm mentor",
       "menteeScore": "Điểm mentee",
       "needsSupport": "Cần hỗ trợ",
-      "realtimeNote": "Nhật ký đồng bộ thông báo realtime khi backend đang chạy."
+      "realtimeNote": "Nhật ký đồng bộ thông báo realtime khi backend đang chạy.",
+      "needsSupportBadge": "Needs team support",
+      "mentorShort": "Mentor",
+      "menteeShort": "Mentee",
+      "descriptionStats": "{{total}} logs · {{support}} need support · avg {{avgMentor}}/{{avgMentee}} scores",
+      "searchPlaceholder": "Search by topic or name…",
+      "filterAllMentors": "All mentors",
+      "filterSupport": "Support flags",
+      "filterSupportAll": "All logs",
+      "filterSupportYes": "Needs support",
+      "filterSupportNo": "No flags",
+      "viewCards": "Cards",
+      "viewTable": "Table",
+      "statTotal": "Total sessions",
+      "statThisMonth": "This month",
+      "statAvgMentor": "Avg mentor score",
+      "statNeedsSupport": "Needs support",
+      "supportYes": "Yes",
+      "supportNo": "—",
+      "filterMentor": "Filter by mentor"
     },
     "slots": {
       "title": "Khung giờ trống",
@@ -499,28 +592,80 @@
       "joinMeeting": "Tham gia họp",
       "book": "Đặt slot",
       "bookSuccess": "Đã đặt slot.",
+      "calendarMeetCreated": "Đã tạo link Google Meet trên lịch của bạn.",
       "bookFailed": "Đặt thất bại",
       "emptyTitle": "Chưa có khung giờ",
       "emptyDesc": "Chưa có slot. Mentor có thể thêm lịch rảnh ở trên.",
       "noMenteeProfile": "Cần liên kết hồ sơ mentee trước khi đặt (đăng nhập mentee hoặc liên hệ admin)."
     },
     "analytics": {
-      "description": "Số liệu thật từ mentors, mentees & groups",
+      "description": "Sức khỏe chương trình theo thời gian thực — mentor, buổi học, track & kỹ năng",
       "statMentors": "Mentors",
       "statMentees": "Mentees",
       "statGroups": "Nhóm",
       "statCompleted": "Hoàn thành",
-      "chartSkills": "Chuyên môn mentor hàng đầu",
-      "chartProgress": "Tiến độ mentee",
-      "chartTrend": "Xu hướng buổi học (mẫu)",
+      "statCompletionRate": "Tỷ lệ hoàn thành",
+      "statAvgProgress": "Tiến độ TB",
+      "statSessions": "Buổi đã ghi",
+      "statBookedSlots": "Slot đã đặt",
+      "statSatisfaction": "Điểm TB",
+      "statUtilization": "Tải mentor",
+      "statNeedsSupport": "Cần hỗ trợ",
+      "chartSkills": "Kỹ năng & chuyên môn",
+      "chartSkillsSub": "Tag phổ biến từ mentor và mentee",
+      "chartProgress": "Hành trình mentee",
+      "chartProgressSub": "Phân bổ theo giai đoạn tiến độ",
+      "chartTrend": "Mức độ tương tác",
+      "chartTrendSub": "Nhật ký buổi học vs. slot đã đặt (6 tháng)",
+      "chartTracks": "Lĩnh vực / track",
+      "chartTracksSub": "Số người theo từng track",
+      "chartMentorLoad": "Tải mentor",
+      "chartMentorLoadSub": "Mentee hiện tại so với sức chứa",
       "progressJustStarted": "Mới bắt đầu",
       "progressInProgress": "Đang học",
       "progressCompleted": "Hoàn thành",
-      "skillsEmpty": "Chưa có dữ liệu kỹ năng từ mentors."
+      "skillsEmpty": "Chưa có dữ liệu kỹ năng từ mentors.",
+      "tracksEmpty": "Chưa có dữ liệu track.",
+      "mentorsEmpty": "Chưa có mentor.",
+      "noMentees": "Thêm mentee để xem biểu đồ tiến độ.",
+      "avgProgressShort": "Tiến độ TB",
+      "trendEmpty": "Chưa có session hoặc booking trong 6 tháng gần đây.",
+      "periodLabel": "Khoảng thời gian",
+      "period7d": "7 ngày",
+      "period30d": "30 ngày",
+      "period90d": "90 ngày",
+      "periodall": "Tất cả",
+      "refresh": "Làm mới",
+      "export": "Xuất CSV",
+      "exportMetric": "Chỉ số",
+      "exportValue": "Giá trị",
+      "lastUpdated": "Cập nhật {{time}}",
+      "hintMentors": "{{util}}% sức chứa TB đã dùng",
+      "hintMentees": "{{rate}}% đã hoàn thành",
+      "hintAvgProgress": "{{avg}}% tiến độ trung bình",
+      "hintPeriod": "Trong khoảng đã chọn",
+      "hintOpenSlots": "{{open}} slot trống",
+      "hintSatisfaction": "Từ điểm phản hồi buổi học",
+      "hintNoScores": "Ghi nhật ký buổi học để có điểm",
+      "hintActivities": "{{count}} hoạt động trong kỳ",
+      "legendSessions": "Buổi đã ghi",
+      "legendBookings": "Slot đã đặt",
+      "legendPeople": "Người",
+      "insightsCtaTitle": "Ghép mentor–mentee bằng AI",
+      "insightsCtaDesc": "Gợi ý theo kỹ năng để phát triển chương trình nhanh hơn",
+      "insightsCtaLink": "Mở AI Gợi ý"
     },
     "insights": {
       "title": "AI Gợi ý",
-      "description": "Gợi ý ghép mentor–mentee theo kỹ năng"
+      "description": "Ghép thông minh và cơ hội phát triển từ dữ liệu thật",
+      "statUnassigned": "Mentee chưa gán",
+      "statOpenCapacity": "Mentor còn chỗ",
+      "statMatches": "Gợi ý ghép",
+      "statHighMatch": "Ghép mạnh (80%+)",
+      "unassignedHint": "Mentee chưa có mentor",
+      "capacityHint": "Mentor còn nhận thêm mentee",
+      "matchesHint": "Dựa trên kỹ năng & track",
+      "highMatchHint": "Sẵn sàng kết nối ngay"
     },
     "pricing": {
       "title": "Chọn gói của bạn",
@@ -605,7 +750,24 @@
         "enterEmail": "Vui lòng nhập email.",
         "created": "Đã tạo link mời — sao chép và chia sẻ.",
         "failed": "Tạo link thất bại",
-        "copied": "Đã sao chép link"
+        "copied": "Đã sao chép link",
+        "historyTitle": "Recent invites",
+        "historyEmpty": "No invites yet. Create one to see it here.",
+        "colEmail": "Email",
+        "colRole": "Role",
+        "colStatus": "Status",
+        "colCreated": "Created",
+        "colExpires": "Expires",
+        "colActions": "Actions",
+        "statusActive": "Active",
+        "statusExpired": "Expired",
+        "statusUsed": "Used",
+        "revoke": "Revoke",
+        "revoked": "Invite revoked",
+        "revokeConfirm": "Revoke invite for {{email}}?",
+        "statActive": "Active",
+        "statExpired": "Expired",
+        "statTotal": "Total invites"
       },
       "export": {
         "title": "Xuất CSV",
@@ -626,7 +788,24 @@
         "successMentors": "Đã xuất CSV mentors.",
         "successMentees": "Đã xuất CSV mentees.",
         "successSessions": "Đã xuất nhật ký buổi học.",
-        "failed": "Xuất thất bại"
+        "failed": "Xuất thất bại",
+        "colId": "ID",
+        "colName": "Name",
+        "colEmail": "Email",
+        "colTrack": "Track",
+        "colExpertise": "Expertise",
+        "colMaxMentees": "Max mentees",
+        "colMenteeCount": "Mentee count",
+        "colSchool": "School",
+        "colProgress": "Progress",
+        "colMentorId": "Mentor ID",
+        "colMenteeId": "Mentee ID",
+        "colDate": "Date",
+        "colTopic": "Topic",
+        "colMentorScore": "Mentor score",
+        "colMenteeScore": "Mentee score",
+        "colMentorSupport": "Mentor needs support",
+        "colMenteeSupport": "Mentee needs support"
       },
       "notifications": {
         "title": "Gửi thông báo",
@@ -639,6 +818,48 @@
         "channelBoth": "Email + Zalo",
         "channelEmail": "Chỉ Email",
         "channelZalo": "Chỉ Zalo",
+        "channelInApp": "Chuông trong app",
+        "channelInAppDesc": "Hiện ở chuông thông báo khi người dùng mở app.",
+        "channelEmailLabel": "Email",
+        "channelEmailDesc": "Gửi email tới mentors và mentees.",
+        "channelZaloLabel": "Zalo OA",
+        "channelZaloDesc": "Gửi tin qua Zalo Official Account.",
+        "platformServicesTitle": "Dịch vụ nền tảng khác",
+        "serviceGoogleCalendar": "Google Calendar",
+        "serviceGoogleCalendarDesc": "Đồng bộ lịch và link họp.",
+        "serviceOpenai": "OpenAI",
+        "serviceOpenaiDesc": "AI insights và gợi ý ghép cặp.",
+        "serviceStripe": "Stripe",
+        "serviceStripeDesc": "Gói đăng ký và thanh toán.",
+        "statusOff": "Chưa bật",
+        "sendChannelInApp": "Chỉ trong app (không email/Zalo)",
+        "sendChannelEmail": "Chỉ Email",
+        "sendChannelZalo": "Chỉ Zalo",
+        "sendChannelEmailZalo": "Email + Zalo",
+        "setupIntroTitle": "“Chưa cấu hình” nghĩa là gì?",
+        "setupIntroBody": "Các dịch vụ này cần API key trong file `.env` trên server (không phải trên trình duyệt). Chưa có key vẫn gửi được thông báo trong app. Thêm key và khởi động lại backend để bật Email hoặc Zalo.",
+        "statusReady": "Sẵn sàng",
+        "statusNeedsSetup": "Chưa cấu hình",
+        "statusPartial": "Chưa đủ điều kiện",
+        "notConfiguredShort": "chưa cấu hình",
+        "showSetup": "Hiện biến env",
+        "hideSetup": "Ẩn biến env",
+        "emailConfigNote": "Thêm SENDGRID_API_KEY và SENDGRID_FROM_EMAIL vào `.env` server, rồi restart.",
+        "zaloNeedsRecipients": "Đã có token Zalo nhưng ZALO_BROADCAST_USER_IDS trống — thêm ID người theo dõi OA.",
+        "channelNotReady": "Kênh này chưa sẵn sàng. Chọn “Chỉ trong app” hoặc thêm key bên dưới.",
+        "recipientInApp": "{{count}} người sẽ thấy trong app khi mở ứng dụng",
+        "deliveryInApp": "Đã lưu trong app",
+        "deliveryEmailOk": "Đã gửi email {{count}} người",
+        "deliveryEmailSkip": "Bỏ qua email ({{reason}})",
+        "deliveryZaloOk": "Đã gửi Zalo {{count}} người",
+        "deliveryZaloSkip": "Bỏ qua Zalo ({{reason}})",
+        "aboutInAppTitle": "Trong app (luôn bật)",
+        "aboutInApp": "Mọi broadcast đều lưu vào trung tâm thông báo. Email và Zalo là tùy chọn thêm.",
+        "aboutInAppSimple": "Thông báo hiện ở biểu tượng chuông khi người dùng mở app.",
+        "aboutAudienceSimple": "Chọn ai nhận tin: tất cả, chỉ mentors, hoặc chỉ mentees.",
+        "inAppActive": "Thông báo trong app đang bật",
+        "emailActive": "Đã bật email",
+        "subjectOptional": "Tiêu đề (tùy chọn)",
         "subject": "Tiêu đề (cho email)",
         "subjectPlaceholder": "vd: Nhắc: hạn nộp đơn mentee",
         "message": "Nội dung",
@@ -658,8 +879,27 @@
         "implTitle": "Triển khai (sau)",
         "implEmail": "Email: SMTP / SendGrid / SES",
         "implZalo": "Zalo: OA + mẫu ZNS",
-        "zaloConfigNote": "Gửi Zalo cần ZALO_OA_ACCESS_TOKEN và danh sách follower trong `.env` server. Email vẫn gửi được nếu đã cấu hình SendGrid.",
-        "apiNote": "Gửi hàng loạt cần API backend và cấu hình SMTP/Zalo trong `.env`."
+        "zaloConfigNote": "Cấu hình ZALO_OA_ACCESS_TOKEN và ZALO_BROADCAST_USER_IDS trong `.env` server.",
+        "zaloReady": "Zalo OA đã sẵn sàng ({{count}} người nhận trong env).",
+        "zaloNotReady": "Zalo chưa được cấu hình trên server.",
+        "integrationsTitle": "Ứng dụng & kênh đã kết nối",
+        "apiNote": "Thông báo trong app không cần cấu hình thêm. Email dùng SendGrid; Zalo dùng API Official Account trong `.env` server.",
+        "recipientPreview": "Ước tính người nhận",
+        "recipientMentors": "{{count}} mentors",
+        "recipientMentees": "{{count}} mentees",
+        "recipientTotal": "{{count}} người (email)",
+        "connected": "Sẵn sàng",
+        "notConfigured": "Chưa cấu hình",
+        "historyTitle": "Broadcast gần đây",
+        "historyEmpty": "Chưa có broadcast nào.",
+        "colWhen": "Đã gửi",
+        "colAudience": "Đối tượng",
+        "colSubject": "Tiêu đề",
+        "colPreview": "Nội dung",
+        "audienceAllShort": "Tất cả",
+        "audienceMentorsShort": "Mentors",
+        "audienceMenteesShort": "Mentees",
+        "aboutCollapsed": "Mẹo & hướng dẫn"
       }
     },
     "forgotPassword": {
@@ -736,7 +976,16 @@
     "emailInvalid": "Địa chỉ email không hợp lệ",
     "passwordMin": "Mật khẩu phải có ít nhất 8 ký tự",
     "passwordMatch": "Mật khẩu không khớp",
-    "nameMin": "Tên phải có ít nhất 2 ký tự"
+    "nameMin": "Tên phải có ít nhất 2 ký tự",
+    "emailRequired": "Email is required",
+    "nameRequired": "Name is required",
+    "expertiseRequired": "Add at least one skill",
+    "phoneInvalid": "Phone needs at least 10 digits",
+    "maxMenteesMin": "Minimum 1 mentee slot",
+    "schoolRequired": "School is required",
+    "progressRange": "Progress must be between 0 and 100",
+    "descriptionMin": "Description must be at least 10 characters",
+    "mentorRequired": "Please select a mentor"
   },
   "messages": {
     "loginSuccess": "Đăng nhập thành công!",
@@ -749,6 +998,41 @@
     "deleteError": "Xóa thất bại",
     "emailSent": "Email đã được gửi thành công!",
     "emailError": "Gửi email thất bại"
+  },
+  "a11y": {
+    "skipToContent": "Chuyển tới nội dung chính",
+    "chartProgress": "Biểu đồ tiến độ mentee, trung bình {{avg}} phần trăm",
+    "chartTrend": "Biểu đồ xu hướng tương tác, session và booking trong 6 tháng"
+  },
+  "theme": {
+    "switchToLight": "Chuyển sang giao diện sáng",
+    "switchToDark": "Chuyển sang giao diện tối"
+  },
+  "pwa": {
+    "installTitle": "Cài Tea Mentor",
+    "installDesc": "Thêm vào màn hình chính để mở nhanh hơn.",
+    "install": "Cài đặt"
+  },
+  "onboarding": {
+    "progress": "Bước {{current}}/{{total}}",
+    "skip": "Bỏ qua",
+    "next": "Tiếp",
+    "finish": "Bắt đầu",
+    "step1Title": "Chào mừng đến Tea Mentor",
+    "step1Body": "Trung tâm quản lý mentor, mentee, lịch hẹn và phân tích chương trình.",
+    "stepMentorTitle": "Mentor & slot",
+    "stepMentorBody": "Quản lý mentor, mở slot phỏng vấn và duyệt đơn.",
+    "stepMenteeTitle": "Mentee & ghép cặp",
+    "stepMenteeBody": "Theo dõi tiến độ mentee, đặt slot và dùng Smart Match.",
+    "stepAnalyticsTitle": "Analytics & Insights",
+    "stepAnalyticsBody": "Mở Analytics xem KPI; Insights có gợi ý ghép cặp thông minh.",
+    "stepDoneTitle": "Sẵn sàng",
+    "stepDoneBody": "Nhấn ⌘K để tìm nhanh. Bật dark mode ở sidebar."
+  },
+  "errorBoundary": {
+    "title": "Đã xảy ra lỗi",
+    "message": "Vui lòng tải lại trang và thử lại.",
+    "reload": "Tải lại trang"
   },
   "footer": {
     "privacy": "Chính sách bảo mật",
@@ -771,25 +1055,81 @@
     "privacy": {
       "title": "Chính sách bảo mật",
       "sections": [
-        { "title": "1. Giới thiệu", "body": "Chúng tôi bảo vệ thông tin cá nhân khi bạn sử dụng nền tảng Trà Đá Mentor." },
-        { "title": "2. Thông tin thu thập", "body": "Chúng tôi thu thập tài khoản, hồ sơ, phân tích sử dụng và metadata thanh toán qua Stripe.", "list": ["Họ tên, email, liên hệ", "Hồ sơ mentor/mentee", "Hoạt động slot & session", "Cookie tùy chọn"] },
-        { "title": "3. Cách sử dụng", "body": "Dữ liệu dùng để vận hành mentoring, ghép cặp, gửi thông báo và cải thiện sản phẩm." },
-        { "title": "4. Chia sẻ", "body": "Chúng tôi không bán dữ liệu. Chia sẻ với Stripe, SendGrid, Google (SSO) và nhà cung cấp hosting." },
-        { "title": "5. Quyền của bạn", "body": "Bạn có thể yêu cầu truy cập, chỉnh sửa hoặc xóa dữ liệu theo quy định pháp luật." },
-        { "title": "6. Bảo mật", "body": "Mã hóa truyền tải, mật khẩu băm và kiểm soát truy cập." },
-        { "title": "7. Lưu trữ", "body": "Lưu dữ liệu khi tài khoản còn hoạt động và theo nghĩa vụ pháp lý." }
+        {
+          "title": "1. Giới thiệu",
+          "body": "Chúng tôi bảo vệ thông tin cá nhân khi bạn sử dụng nền tảng Trà Đá Mentor."
+        },
+        {
+          "title": "2. Thông tin thu thập",
+          "body": "Chúng tôi thu thập tài khoản, hồ sơ, phân tích sử dụng và metadata thanh toán qua Stripe.",
+          "list": [
+            "Họ tên, email, liên hệ",
+            "Hồ sơ mentor/mentee",
+            "Hoạt động slot & session",
+            "Cookie tùy chọn"
+          ]
+        },
+        {
+          "title": "3. Cách sử dụng",
+          "body": "Dữ liệu dùng để vận hành mentoring, ghép cặp, gửi thông báo và cải thiện sản phẩm."
+        },
+        {
+          "title": "4. Chia sẻ",
+          "body": "Chúng tôi không bán dữ liệu. Chia sẻ với Stripe, SendGrid, Google (SSO) và nhà cung cấp hosting."
+        },
+        {
+          "title": "5. Quyền của bạn",
+          "body": "Bạn có thể yêu cầu truy cập, chỉnh sửa hoặc xóa dữ liệu theo quy định pháp luật."
+        },
+        {
+          "title": "6. Bảo mật",
+          "body": "Mã hóa truyền tải, mật khẩu băm và kiểm soát truy cập."
+        },
+        {
+          "title": "7. Lưu trữ",
+          "body": "Lưu dữ liệu khi tài khoản còn hoạt động và theo nghĩa vụ pháp lý."
+        },
+        {
+          "title": "8. Người dùng tại Việt Nam",
+          "body": "Nếu bạn ở Việt Nam, bạn có thể thực hiện quyền theo pháp luật Việt Nam về bảo vệ dữ liệu cá nhân. Liên hệ chúng tôi để yêu cầu truy cập, chỉnh sửa hoặc xóa dữ liệu khi được phép."
+        }
       ]
     },
     "terms": {
       "title": "Điều khoản dịch vụ",
       "sections": [
-        { "title": "1. Chấp nhận", "body": "Sử dụng dịch vụ đồng nghĩa bạn đồng ý các điều khoản này." },
-        { "title": "2. Mô tả dịch vụ", "body": "Trà Đá Mentor kết nối mentor và mentee với lịch, nhóm và phân tích." },
-        { "title": "3. Tài khoản", "body": "Bạn chịu trách nhiệm bảo mật thông tin đăng nhập." },
-        { "title": "4. Hành vi", "body": "Cấm quấy rối, spam, nội dung trái phép và lạm dụng dữ liệu người khác." },
-        { "title": "5. Mentoring", "body": "Mentor và mentee tự thỏa thuận; nền tảng không đảm bảo kết quả cụ thể." },
-        { "title": "6. Thanh toán", "body": "Gói trả phí qua Stripe; gia hạn đến khi hủy trong portal." },
-        { "title": "7. Trách nhiệm", "body": "Dịch vụ cung cấp theo nguyên trạng trong phạm vi pháp luật cho phép." }
+        {
+          "title": "1. Chấp nhận",
+          "body": "Sử dụng dịch vụ đồng nghĩa bạn đồng ý các điều khoản này."
+        },
+        {
+          "title": "2. Mô tả dịch vụ",
+          "body": "Trà Đá Mentor kết nối mentor và mentee với lịch, nhóm và phân tích."
+        },
+        {
+          "title": "3. Tài khoản",
+          "body": "Bạn chịu trách nhiệm bảo mật thông tin đăng nhập."
+        },
+        {
+          "title": "4. Hành vi",
+          "body": "Cấm quấy rối, spam, nội dung trái phép và lạm dụng dữ liệu người khác."
+        },
+        {
+          "title": "5. Mentoring",
+          "body": "Mentor và mentee tự thỏa thuận; nền tảng không đảm bảo kết quả cụ thể."
+        },
+        {
+          "title": "6. Thanh toán",
+          "body": "Gói trả phí qua Stripe; gia hạn đến khi hủy trong portal."
+        },
+        {
+          "title": "7. Trách nhiệm",
+          "body": "Dịch vụ cung cấp theo nguyên trạng trong phạm vi pháp luật cho phép."
+        },
+        {
+          "title": "8. Luật áp dụng (Việt Nam)",
+          "body": "Với người dùng tại Việt Nam, tranh chấp tuân theo pháp luật Việt Nam và tòa án có thẩm quyền tại Việt Nam, trừ khi quy định bảo vệ người tiêu dùng bắt buộc khác."
+        }
       ]
     }
   }

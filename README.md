@@ -1,443 +1,288 @@
-# Trà Đá Mentor Platform
+# Trà Đá Mentor Hub
 
-Nền tảng kết nối Mentor và Mentee, hỗ trợ phát triển sự nghiệp và kỹ năng mềm.
+<p align="center">
+  <strong>Nền tảng quản lý mentoring</strong> — kết nối Mentor & Mentee, lịch phỏng vấn, nhật ký buổi học, analytics và công cụ admin.
+</p>
 
-## 🚀 Tech Stack
+<p align="center">
+  <a href="#tính-năng-chính">Tính năng</a> ·
+  <a href="#giao-diện-screenshots">Screenshots</a> ·
+  <a href="#cài-đặt">Cài đặt</a> ·
+  <a href="#bảo-mật">Bảo mật</a> ·
+  <a href="#triển-khai-production">Deploy</a>
+</p>
 
-### Frontend
-- **React 19** + **TypeScript**
-- **Vite** - Build tool
-- **React Router** - Routing
-- **Axios** - HTTP client
-- **Zod** - Schema validation
-- **React Toastify** - Notifications
-- **Recharts** - Data visualization
+---
 
-### Backend
-- **Node.js** + **Express 5**
-- **MongoDB** + **Mongoose** - Database
-- **JWT** - Authentication
-- **Winston** - Logging
-- **Helmet** - Security headers
-- **Express Rate Limit** - Rate limiting
-- **Bcrypt** - Password hashing
+## Giới thiệu
 
-## �📋 Prerequisites
+**Trà Đá Mentor Hub** là ứng dụng web full-stack giúp chương trình mentoring vận hành end-to-end: quản lý hồ sơ mentor/mentee, nhóm, đơn đăng ký, slot phỏng vấn, session logs (CRM), broadcast thông báo, testimonials, xuất CSV và dashboard phân tích.
 
-- Node.js >= 20
-- MongoDB (local or cloud)
-- npm or yarn
+| Thành phần | Công nghệ |
+|------------|-----------|
+| Frontend | React 19, TypeScript, Vite, TanStack Query, i18n (EN / VI / JP / KR / CN) |
+| Backend | Node.js 20+, Express 5, Mongoose, JWT + refresh token |
+| Tích hợp (tùy chọn) | SendGrid, Zalo OA, Google Calendar, OpenAI, Stripe, Sentry |
 
-## 🚢 Production deploy (Railway + Atlas)
+---
+
+## Tính năng chính
+
+- **Xác thực & phân quyền** — Đăng nhập, đăng ký (kèm invite link), Google OAuth, JWT refresh, role Admin / Mentor / Mentee.
+- **Quản lý Mentor & Mentee** — CRUD, avatar, track/chuyên môn, tìm kiếm nhanh, chi tiết hồ sơ.
+- **Nhóm & đơn đăng ký** — Nhóm mentoring, duyệt application status.
+- **Lịch & slot** — Schedule tổng quan, slot trống, đặt lịch phỏng vấn, đồng bộ Google Calendar (khi cấu hình).
+- **Session logs** — Ghi nhận sau mỗi buổi mentoring, điểm, flag cần hỗ trợ, KPI & lọc.
+- **Admin** — Gửi thông báo in-app (+ email/Zalo nếu server đã bật), mời user, export CSV, testimonials.
+- **Analytics & AI** — KPI, biểu đồ xu hướng, Smart Match / AI Insights (OpenAI tùy chọn).
+- **Production-ready** — Mongo bắt buộc khi `NODE_ENV=production`, health check, Docker, script `create:admin`, E2E Playwright.
+
+---
+
+## Giao diện (Screenshots)
+
+> Ảnh demo nằm trong thư mục [`Images/`](./Images/). Giao diện hỗ trợ **light / dark mode**.
+
+### Đăng nhập & đăng ký
+
+| Đăng nhập (light) | Đăng nhập (dark) |
+|:---:|:---:|
+| ![Login light](./Images/Login%20light.jpg) | ![Login dark](./Images/Login%20dark.jpg) |
+
+| Tạo tài khoản (light) | Tạo tài khoản (dark) |
+|:---:|:---:|
+| ![Create account light](./Images/Create%20account%20light.jpg) | ![Create account dark](./Images/Create%20account%20dark.jpg) |
+
+### Dashboard
+
+| Tổng quan (light) | Chi tiết (light) |
+|:---:|:---:|
+| ![Dashboard light 1](./Images/Dashboard%20light%201.jpg) | ![Dashboard light 2](./Images/Dashboard%20light%202.jpg) |
+
+| Dashboard (dark) |
+|:---:|
+| ![Dashboard dark](./Images/Dashboard%20dark%201.jpg) |
+
+### Mentor & Mentee
+
+| Danh sách Mentor (light) | Danh sách Mentor (dark) |
+|:---:|:---:|
+| ![Mentor light](./Images/Mentor%20light.jpg) | ![Mentor dark](./Images/Mentor%20dark.jpg) |
+
+| Danh sách Mentee | Thêm Mentor | Thêm Mentee |
+|:---:|:---:|:---:|
+| ![Mentees](./Images/Mentees.jpg) | ![Add mentor](./Images/Add%20mentor.jpg) | ![Add mentee](./Images/Add%20mentee.jpg) |
+
+| Sửa Mentor | Sửa Mentee | Chi tiết Mentee |
+|:---:|:---:|:---:|
+| ![Edit mentor](./Images/Edit%20mentor.jpg) | ![Edit mentee](./Images/Edit%20mentee.jpg) | ![Mentee details](./Images/Mentee%20details.jpg) |
+
+| Tìm kiếm nhanh |
+|:---:|
+| ![Quick search](./Images/Quick%20search.jpg) |
+
+### Đơn đăng ký, lịch & slot
+
+| Applications | Schedule | Free slots |
+|:---:|:---:|:---:|
+| ![Application](./Images/Application.jpg) | ![Schedule](./Images/Schedule.jpg) | ![Free slots](./Images/Free%20slots.jpg) |
+
+### Session logs
+
+| Nhật ký buổi mentoring |
+|:---:|
+| ![Session logs](./Images/Session%20logs.jpg) |
+
+### Analytics & AI Insights
+
+| Analytics (light) | Analytics (dark) |
+|:---:|:---:|
+| ![Analytics light](./Images/Analytics%20light.jpg) | ![Analytics dark 1](./Images/Analytics%20dark%201.jpg) |
+
+| Analytics chi tiết (light) | Analytics chi tiết (dark) |
+|:---:|:---:|
+| ![Analytics light 2](./Images/Analytics%20light%202.jpg) | ![Analytics Dark 2](./Images/Analytics%20Dark%202.jpg) |
+
+| AI Insights |
+|:---:|
+| ![AI Insights](./Images/AI%20Insights.jpg) |
+
+### Testimonials
+
+| Testimonials | Quản lý testimonials |
+|:---:|:---:|
+| ![Testimonials 1](./Images/Testimonials%201.jpg) | ![Testimonials 2](./Images/Testimonials%202.jpg) |
+
+### Admin
+
+| Gửi thông báo | Mời user | Export dữ liệu |
+|:---:|:---:|:---:|
+| ![Notifications](./Images/Notifications.jpg) | ![Invite user](./Images/Invitie%20user.jpg) | ![Export data](./Images/Export%20data.jpg) |
+
+---
+
+## Cài đặt
+
+### Yêu cầu
+
+- **Node.js** ≥ 20  
+- **MongoDB** (local hoặc [MongoDB Atlas](https://www.mongodb.com/atlas))  
+- **npm** ≥ 9  
+
+### Bước 1 — Clone & cài dependency
 
 ```bash
-npm run setup:deploy   # tạo deploy/railway.env.generated (JWT secrets)
-```
-
-Làm theo **[DEPLOY.md](./DEPLOY.md)** — 3 bước: Atlas → Railway → mở `/api/health`.
-
-```bash
-npm run build && npm start   # chạy local production (:5000)
-```
-
-## 🛠️ Installation
-
-1. Clone repository:
-```bash
-git clone <repository-url>
-cd tra-da-mentor
-```
-
-2. Install dependencies:
-```bash
+git clone https://github.com/TheHien04/Tra-Da-Mentor-Hub.git
+cd Tra-Da-Mentor-Hub
 npm install
 ```
 
-3. Setup environment variables:
+### Bước 2 — Biến môi trường
+
 ```bash
-# Copy .env.example to .env and fill in values
 cp .env.example .env
 ```
 
-Required environment variables:
+Chỉnh `.env` — **không commit file này**. Tối thiểu cho dev:
+
 ```env
-# Server
 NODE_ENV=development
 PORT=5000
-HOST=localhost
-
-# Database
 DATABASE_URL=mongodb://localhost:27017/tra-da-mentor
-
-# Auth
-JWT_SECRET=your-secret-key-here
-JWT_REFRESH_SECRET=your-refresh-secret-here
-JWT_EXPIRE=7d
-JWT_REFRESH_EXPIRE=30d
-
-# CORS
+JWT_SECRET=<openssl rand -hex 64>
+JWT_REFRESH_SECRET=<openssl rand -hex 64 khác>
 CORS_ORIGIN=http://localhost:5173
-CORS_CREDENTIALS=true
+FRONTEND_URL=http://localhost:5173
+VITE_API_URL=http://localhost:5000/api
+ENABLE_DEMO_AUTH=true
 ```
 
-4. Seed database (optional):
+Tạo secret mạnh:
+
+```bash
+openssl rand -hex 64
+```
+
+### Bước 3 — Chạy dev
+
+```bash
+# Frontend :5173 + Backend :5000
+npm run dev:all
+```
+
+Tùy chọn seed dữ liệu demo:
+
 ```bash
 npm run seed
 ```
 
-## 🎯 Usage
+Demo admin (khi `ENABLE_DEMO_AUTH=true`): `admin@example.com` / `AdminPass123`
 
-### Development
+### Scripts hữu ích
 
-Run frontend and backend concurrently:
-```bash
-npm run dev:all
-```
-
-Or run separately:
-```bash
-# Frontend only
-npm run dev
-
-# Backend only
-npm run dev:server
-```
-
-### Production Build
-
-```bash
-# Build frontend
-npm run build
-
-# Start backend
-npm run server
-```
-
-For a full review of features, UI, and software process, see [docs/PROJECT_REVIEW.md](docs/PROJECT_REVIEW.md).
-
-## 📁 Project Structure
-
-```
-tra-da-mentor/
-├── backend/
-│   ├── config/          # Configuration files
-│   ├── controllers/     # Route controllers
-│   ├── middleware/      # Express middleware
-│   ├── models/          # Mongoose models
-│   ├── routes/          # API routes
-│   ├── schemas/         # Validation schemas
-│   ├── scripts/         # Utility scripts
-│   ├── utils/           # Helper functions
-│   └── server.js        # Entry point
-├── src/
-│   ├── components/      # React components
-│   ├── context/         # React context
-│   ├── hooks/           # Custom hooks
-│   ├── pages/           # Page components
-│   ├── services/        # API services
-│   ├── types/           # TypeScript types
-│   ├── utils/           # Utility functions
-│   └── config/          # Frontend config
-└── public/              # Static assets
-```
-
-## 🧪 Testing
-
-```bash
-# Run tests
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage
-npm run test:coverage
-```
-
-## 📝 Scripts
-
-- `npm run dev` - Start frontend dev server
-- `npm run dev:server` - Start backend dev server
-- `npm run dev:all` - Start both frontend and backend
-- `npm run build` - Build for production
-- `npm run server` - Start production server
-- `npm run seed` - Seed database with sample data
-- `npm run lint` - Run ESLint
-- `npm test` - Run tests
-
-## 🔐 Authentication
-
-The platform supports role-based access control:
-- **Admin** - Full access
-- **Mentor** - Can manage mentees and groups
-- **Mentee** - Can view assigned mentors and groups
-
-## 📚 API Documentation
-
-API base: `/api`. All protected routes require `Authorization: Bearer <accessToken>`.
-
-| Area | Endpoints |
-|------|------------|
-| **Health** | `GET /api/health` |
-| **Auth** | `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/refresh`, `GET /api/auth/profile`, `POST /api/auth/logout`, `GET /api/auth/google`, `GET /api/auth/google/callback` |
-| **Mentors** | `GET/POST /api/mentors`, `GET/PATCH/DELETE /api/mentors/:id`, `GET /api/mentors/:id/mentees`, `GET /api/mentors/:id/groups` |
-| **Mentees** | `GET/POST /api/mentees`, `GET/PATCH/DELETE /api/mentees/:id`, `PATCH /api/mentees/:id/application-status` |
-| **Groups** | `GET/POST /api/groups`, `GET/PATCH/DELETE /api/groups/:id`, `GET /api/groups/:id/full`, `GET /api/groups/:id/mentees`, `POST/DELETE /api/groups/:groupId/mentees/:menteeId` |
-| **Activities** | `GET/POST /api/activities` |
-| **Session logs** | `GET/POST /api/session-logs`, `GET /api/session-logs/needs-support` |
-| **Slots** | `GET/POST /api/slots`, `PATCH /api/slots/:id`, `PATCH /api/slots/:id/book` |
-| **Invites** | `POST /api/invites` (admin), `GET /api/invites/validate/:token` |
-
-## 🛡️ Security Features
-
-- JWT authentication with refresh tokens
-- Password hashing with bcrypt
-- Rate limiting
-- CORS protection
-- Helmet security headers
-- Input sanitization
-- XSS protection
-
-## � Screenshots & Features
-
-### 🔐 Authentication
-
-<table>
-  <tr>
-    <td width="50%">
-      <h4>Login Page</h4>
-      <img src="Images/Login.jpg" alt="Login" />
-      <p>Modern login interface with email/password and Google OAuth</p>
-    </td>
-    <td width="50%">
-      <h4>Registration</h4>
-      <img src="Images/Create account.jpg" alt="Register" />
-      <p>User registration with role selection and validation</p>
-    </td>
-  </tr>
-</table>
-
-### 🌐 Multi-language Support
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="Images/Language.jpg" alt="Language Switcher" width="600" />
-      <p><strong>Language Switcher</strong> - Support for 5 languages (EN, VI, JP, KR, CN)</p>
-    </td>
-  </tr>
-</table>
-
-### 📊 Dashboard
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/Dashboard1.jpg" alt="Dashboard Overview" />
-      <p><strong>Dashboard Overview</strong> - Statistics and quick actions</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Dashboard2.jpg" alt="Dashboard Analytics" />
-      <p><strong>Dashboard Details</strong> - Recent activities and progress tracking</p>
-    </td>
-  </tr>
-</table>
-
-### 👨‍🏫 Mentor Management
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/ManageMentor.jpg" alt="Mentor List" />
-      <p><strong>Mentor Directory</strong> - Browse all mentors with filtering</p>
-    </td>
-    <td width="50%">
-      <img src="Images/MentorDetails.jpg" alt="Mentor Details" />
-      <p><strong>Mentor Profile</strong> - Detailed information and expertise</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="Images/Addnewmentor.jpg" alt="Add Mentor" />
-      <p><strong>Add New Mentor</strong> - Create mentor profile with expertise</p>
-    </td>
-    <td width="50%">
-      <img src="Images/EditMentor.jpg" alt="Edit Mentor" />
-      <p><strong>Edit Mentor</strong> - Update mentor information and skills</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="Images/Mentor1.jpg" alt="Mentor Management" />
-      <p><strong>Mentor Overview</strong> - Track mentees and groups</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Mentor2.jpg" alt="Mentor Analytics" />
-      <p><strong>Mentor Statistics</strong> - Performance and engagement metrics</p>
-    </td>
-  </tr>
-</table>
-
-### 👨‍🎓 Mentee Management
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/ManageMentees.jpg" alt="Mentee List" />
-      <p><strong>Mentee Directory</strong> - View and manage all mentees</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Addnewmentee.jpg" alt="Add Mentee" />
-      <p><strong>Add New Mentee</strong> - Register new mentee with profile</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="Images/EditMentee.jpg" alt="Edit Mentee" />
-      <p><strong>Edit Mentee</strong> - Update mentee information and status</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Applications.jpg" alt="Applications" />
-      <p><strong>Mentee Applications</strong> - Review and approve applications</p>
-    </td>
-  </tr>
-</table>
-
-### 👥 Group Management
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/Groups.jpg" alt="Groups List" />
-      <p><strong>Groups Overview</strong> - Manage mentoring groups</p>
-    </td>
-    <td width="50%">
-      <img src="Images/CreateGroup.jpg" alt="Create Group" />
-      <p><strong>Create Group</strong> - Form new mentoring groups</p>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="Images/EditGroup.jpg" alt="Edit Group" width="600" />
-      <p><strong>Edit Group</strong> - Modify group members and settings</p>
-    </td>
-  </tr>
-</table>
-
-### 📅 Schedule & Sessions
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/Schedule.jpg" alt="Schedule" />
-      <p><strong>Mentoring Schedule</strong> - View and manage sessions</p>
-    </td>
-    <td width="50%">
-      <img src="Images/MentoringSchedule.jpg" alt="Calendar View" />
-      <p><strong>Calendar View</strong> - Weekly schedule overview</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="Images/Session Log.jpg" alt="Session Logs" />
-      <p><strong>Session Logs</strong> - Track completed sessions</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Session Log 2.jpg" alt="Session Details" />
-      <p><strong>Session Details</strong> - Notes and attendance tracking</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="Images/AddNewSession.jpg" alt="Add Session" />
-      <p><strong>Add Session</strong> - Create new mentoring session</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Form Logs.jpg" alt="Session Form" />
-      <p><strong>Session Form</strong> - Detailed session logging</p>
-    </td>
-  </tr>
-</table>
-
-### 🕐 Slots Management
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/Slots Manage.jpg" alt="Slots Overview" />
-      <p><strong>Available Slots</strong> - View and book free time slots</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Slot Manage2.jpg" alt="Slot Details" />
-      <p><strong>Slot Management</strong> - Configure mentor availability</p>
-    </td>
-  </tr>
-</table>
-
-### 📊 Analytics & Reports
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/Analytics.jpg" alt="Analytics Dashboard" />
-      <p><strong>Analytics Overview</strong> - Key performance indicators</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Analytics 2.jpg" alt="Detailed Analytics" />
-      <p><strong>Detailed Reports</strong> - Charts and trends analysis</p>
-    </td>
-  </tr>
-</table>
-
-### 💬 Testimonials & Reviews
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="Images/Testimonials.jpg" alt="Testimonials" />
-      <p><strong>Testimonials Page</strong> - Success stories and feedback</p>
-    </td>
-    <td width="50%">
-      <img src="Images/Testimonials list.jpg" alt="Reviews List" />
-      <p><strong>Reviews Management</strong> - Manage testimonials</p>
-    </td>
-  </tr>
-</table>
-
-### 🔧 Admin Features
-
-<table>
-  <tr>
-    <td width="33%">
-      <img src="Images/Export Data.jpg" alt="Export Data" />
-      <p><strong>Export Data</strong> - Download reports as CSV</p>
-    </td>
-    <td width="33%">
-      <img src="Images/Invite Users.jpg" alt="Invite Users" />
-      <p><strong>Invite Users</strong> - Send email invitations</p>
-    </td>
-    <td width="33%">
-      <img src="Images/Notifications.jpg" alt="Notifications" />
-      <p><strong>Send Notifications</strong> - Broadcast messages</p>
-    </td>
-  </tr>
-</table>
+| Lệnh | Mô tả |
+|------|--------|
+| `npm run build` | Build production frontend |
+| `npm run start:prod` | Build + chạy server production |
+| `npm run test:unit` | Unit tests backend |
+| `npm run test:frontend` | Vitest frontend |
+| `npm run test:e2e` | Playwright E2E |
+| `npm run verify:env` | Kiểm tra biến môi trường production |
+| `npm run check:secrets` | Đảm bảo không track file nhạy cảm |
+| `npm run create:admin` | Tạo admin production (Mongo) |
+| `npm run docker:up` | Docker Compose (app + Mongo) |
 
 ---
 
-## 🎨 Design Features
+## Triển khai production
 
-- ✨ **Modern UI** with Tailwind CSS
-- 🎭 **Glass Morphism** effects and smooth animations
-- 📱 **Responsive Design** for all screen sizes
-- 🌈 **Role-based Color Schemes** (Mentor: Orange, Mentee: Green, Admin: Indigo)
-- 🔔 **Toast Notifications** for user feedback
-- ⚡ **Fast Loading** with optimized components
+1. Đặt `NODE_ENV=production`, `ENABLE_DEMO_AUTH=false`.
+2. Dùng MongoDB Atlas (hoặc cluster riêng) — **bắt buộc**; server sẽ không chạy memory fallback.
+3. Chạy `npm run verify:env` trước khi deploy.
+4. Tạo admin đầu tiên:  
+   `npm run create:admin -- admin@your.org "Admin Name" 'YourSecurePass123!'`
+5. Volume cho avatar: mount `backend/uploads` (đã có trong `docker-compose.yml`).
 
-## �📄 License
+Chi tiết Railway / Render: xem [DEPLOY.md](./DEPLOY.md) (nếu có trong repo).
 
-MIT
+---
 
-## 👥 Contributors
+## Bảo mật
 
-Trà Đá Community
+Dự án được cấu hình **không đưa secrets lên Git**:
+
+| Không commit | Được commit |
+|--------------|-------------|
+| `.env`, `.env.*` | `.env.example` |
+| `deploy/*.generated`, JWT thật | `deploy/*.template` |
+| `*.pem`, `credentials.json` | Mã nguồn, screenshots |
+| `backend/uploads/*` (avatar user) | `backend/uploads/avatars/.gitkeep` |
+
+Trước khi push, chạy:
+
+```bash
+npm run check:secrets
+```
+
+**Khuyến nghị production**
+
+- JWT ≥ 64 ký tự hex, `JWT_SECRET` ≠ `JWT_REFRESH_SECRET`
+- `CORS_ORIGIN` chỉ domain frontend
+- Tắt `ENABLE_DEMO_AUTH`
+- Bật HTTPS; cấu hình `SENTRY_DSN` / `VITE_SENTRY_DSN` nếu dùng Sentry
+- SendGrid / Stripe / Google keys chỉ trên server env
+
+---
+
+## Cấu trúc thư mục
+
+```
+Tra-Da-Mentor-Hub/
+├── Images/                 # Screenshots README (không chứa dữ liệu user)
+├── backend/
+│   ├── controllers/        # Auth, analytics, uploads, calendar…
+│   ├── models/             # User, Mentor, Mentee, Slot, Invite…
+│   ├── routes/             # REST API /api/*
+│   ├── services/           # Stores, matching AI, invites
+│   └── server.js
+├── src/                    # React SPA
+├── e2e/                    # Playwright tests
+├── scripts/                # deploy, locales, create-admin, verify-env
+├── .env.example            # Mẫu biến môi trường (an toàn commit)
+└── docker-compose.yml
+```
+
+---
+
+## API (tóm tắt)
+
+Base URL: `/api` · Auth: `Authorization: Bearer <accessToken>`
+
+| Nhóm | Ví dụ |
+|------|--------|
+| Health | `GET /api/health` |
+| Auth | `POST /api/auth/login`, `register`, `refresh` |
+| CRM | `/api/mentors`, `/api/mentees`, `/api/groups` |
+| Vận hành | `/api/slots`, `/api/session-logs`, `/api/activities` |
+| Admin | `/api/admin/broadcast`, `/api/invites`, `/api/analytics/summary` |
+
+---
+
+## Testing
+
+```bash
+npm run test:unit
+npm run test:frontend
+npm run check:locales
+npm run test:e2e          # cần Mongo + dev:all hoặc CI
+```
+
+---
+
+## License
+
+MIT — see repository license file.
+
+## Contributors
+
+Trà Đá Community · [TheHien04](https://github.com/TheHien04)

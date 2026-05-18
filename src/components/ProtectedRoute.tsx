@@ -6,6 +6,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { AuthBootScreen } from './AuthBootScreen';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,7 +22,10 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const { state } = useAuth();
   const location = useLocation();
 
-  // Not authenticated - redirect to login
+  if (state.isBootstrapping) {
+    return <AuthBootScreen />;
+  }
+
   if (!state.isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

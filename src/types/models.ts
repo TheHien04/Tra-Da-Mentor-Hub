@@ -33,6 +33,7 @@ export interface User extends BaseEntity {
   name: string;
   phone?: string;
   avatar?: string;
+  avatarUrl?: string;
   track: Track;
   bio?: string;
 }

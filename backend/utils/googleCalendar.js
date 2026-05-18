@@ -6,7 +6,7 @@ import env from '../config/env.js';
 const oauth2Client = new google.auth.OAuth2(
   env.googleClientId,
   env.googleClientSecret,
-  `${env.apiUrl}/calendar/callback`
+  `${env.apiUrl.replace(/\/$/, '')}/calendar/callback`
 );
 
 /**

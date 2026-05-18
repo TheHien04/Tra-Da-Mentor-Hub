@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { toast } from 'react-toastify';
-import { menteeApi, mentorApi, groupApi } from '../services/api';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { menteeApi } from '../services/api';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { parseForm } from '../lib/zodForm';
+import { getTrackOptions } from '../lib/trackOptions';
+import { createMenteeFormSchema } from '../schemas/forms';
+import { useMentors } from '../hooks/queries/useMentors';
+import { useGroups } from '../hooks/queries/useGroups';
 import { FormShell, FormField, FormActions } from './ui/FormShell';
 import { Alert } from './ui/Alert';
 
@@ -12,8 +17,9 @@ const AddMentee = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [mentors, setMentors] = useState<{ _id: string; name: string }[]>([]);
-  const [groups, setGroups] = useState<{ _id: string; name: string }[]>([]);
+  const { data: mentors = [] } = useMentors();
+  const { data: groups = [] } = useGroups();
+  const trackOptions = getTrackOptions(t);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -26,15 +32,6 @@ const AddMentee = () => {
     groupId: '',
   });
 
-  useEffect(() => {
-    Promise.all([mentorApi.getAll(), groupApi.getAll()])
-      .then(([mRes, gRes]) => {
-        setMentors(unwrapList(mRes));
-        setGroups(unwrapList(gRes));
-      })
-      .catch(() => toast.warn('Could not load mentors/groups for dropdowns'));
-  }, []);
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -46,24 +43,17 @@ const AddMentee = () => {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
-  const validate = () => {
-    const next: Record<string, string> = {};
-    if (!formData.name.trim()) next.name = 'Name is required';
-    if (!formData.email.trim()) next.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) next.email = 'Invalid email';
-    if (!formData.school.trim()) next.school = 'School is required';
-    if (formData.progress < 0 || formData.progress > 100) next.progress = '0–100 only';
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    const parsed = parseForm(createMenteeFormSchema, formData, t);
+    if (!parsed.success) {
+      setErrors(parsed.errors);
+      return;
+    }
 
     try {
       setLoading(true);
-      await menteeApi.create({
+      const res = await menteeApi.create({
         name: formData.name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim() || undefined,
@@ -78,8 +68,13 @@ const AddMentee = () => {
         groupId: formData.groupId || undefined,
         applicationStatus: 'pending',
       });
-      toast.success(t('mentee.addSuccess', 'Mentee created'));
-      navigate('/mentees');
+      const created = res.data as { _id?: string };
+      toast.success(t('mentee.addSuccess'));
+      if (created?._id) {
+        navigate(`/mentees/${created._id}/edit`);
+      } else {
+        navigate('/mentees');
+      }
     } catch (err) {
       setErrors({ submit: getApiErrorMessage(err) });
     } finally {
@@ -96,47 +91,48 @@ const AddMentee = () => {
     >
       {errors.submit && <Alert variant="error">{errors.submit}</Alert>}
 
-      <FormField label="Full name" required>
+      <FormField label={t('form.fullName')} required>
         <input className={`input ${errors.name ? 'input-error' : ''}`} name="name" value={formData.name} onChange={handleChange} />
         {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
       </FormField>
 
-      <FormField label="Email" required>
+      <FormField label={t('common.email')} required>
         <input type="email" className={`input ${errors.email ? 'input-error' : ''}`} name="email" value={formData.email} onChange={handleChange} />
         {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
       </FormField>
 
-      <FormField label="Phone">
+      <FormField label={t('form.phone')}>
         <input type="tel" className="input" name="phone" value={formData.phone} onChange={handleChange} />
       </FormField>
 
-      <FormField label="School / university" required>
+      <FormField label={t('detail.school')} required>
         <input className={`input ${errors.school ? 'input-error' : ''}`} name="school" value={formData.school} onChange={handleChange} />
         {errors.school && <p className="text-xs text-red-600 mt-1">{errors.school}</p>}
       </FormField>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField label="Track">
+        <FormField label={t('common.track')}>
           <select className="input" name="track" value={formData.track} onChange={handleChange}>
-            <option value="tech">Technology</option>
-            <option value="business">Business</option>
-            <option value="design">Design</option>
-            <option value="economics">Economics</option>
+            {trackOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
         </FormField>
-        <FormField label="Progress %">
+        <FormField label={t('detail.progress')}>
           <input type="number" min={0} max={100} className="input" name="progress" value={formData.progress} onChange={handleChange} />
         </FormField>
       </div>
 
-      <FormField label="Interests" hint="Comma-separated skills or topics">
+      <FormField label={t('form.skills')} hint={t('form.expertiseHint')}>
         <input className="input" name="interests" value={formData.interests} onChange={handleChange} placeholder={t('lists.interestsPlaceholder')} />
       </FormField>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField label="Mentor (optional)">
+        <FormField label={`${t('mentor.title')} (${t('common.optional')})`}>
           <select className="input" name="mentorId" value={formData.mentorId} onChange={handleChange}>
-            <option value="">— None —</option>
+            <option value="">—</option>
             {mentors.map((m) => (
               <option key={m._id} value={m._id}>
                 {m.name}
@@ -144,9 +140,9 @@ const AddMentee = () => {
             ))}
           </select>
         </FormField>
-        <FormField label="Group (optional)">
+        <FormField label={`${t('group.title')} (${t('common.optional')})`}>
           <select className="input" name="groupId" value={formData.groupId} onChange={handleChange}>
-            <option value="">— None —</option>
+            <option value="">—</option>
             {groups.map((g) => (
               <option key={g._id} value={g._id}>
                 {g.name}
@@ -158,10 +154,10 @@ const AddMentee = () => {
 
       <FormActions>
         <button type="button" className="btn btn-secondary flex-1" onClick={() => navigate('/mentees')}>
-          Cancel
+          {t('common.cancel')}
         </button>
         <button type="submit" className="btn btn-primary flex-1" disabled={loading}>
-          {loading ? 'Creating…' : 'Create mentee'}
+          {loading ? t('common.creating') : t('mentee.addMentee')}
         </button>
       </FormActions>
     </FormShell>

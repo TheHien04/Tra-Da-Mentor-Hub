@@ -29,6 +29,7 @@ export interface RegisterRequest {
   confirmPassword: string;
   name: string;
   role: UserRole;
+  inviteToken?: string;
 }
 
 export interface AuthUser {

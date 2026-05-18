@@ -95,13 +95,21 @@ export const adminLimiter = rateLimit({
   },
 });
 
-/** MongoDB operator sanitization ($ and . in user-controlled keys) */
-export const sanitizeInputs = mongoSanitize({
-  replaceWith: '_',
-  onSanitize: ({ req, key }) => {
-    logger.warn(`Sanitized Mongo operator in key "${key}" from IP: ${req.ip}`);
-  },
-});
+/** MongoDB operator sanitization — body/params only (Express 5 query is read-only) */
+export const sanitizeInputs = (req, res, next) => {
+  try {
+    if (req.body) {
+      mongoSanitize.sanitize(req.body, { replaceWith: '_' });
+    }
+    if (req.params) {
+      mongoSanitize.sanitize(req.params, { replaceWith: '_' });
+    }
+    next();
+  } catch (error) {
+    logger.error('Sanitization error:', error);
+    next();
+  }
+};
 
 export const bodySizeLimiter = (req, res, next) => {
   const contentLength = req.headers['content-length'];

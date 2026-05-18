@@ -29,8 +29,8 @@ const MobileNav = () => {
 
   const primary = [
     { to: '/', label: t('nav.dashboard'), icon: HiOutlineHome },
+    { to: '/schedule', label: t('nav.schedule'), icon: HiOutlineClock },
     { to: '/mentors', label: t('nav.mentors'), icon: HiOutlineAcademicCap },
-    { to: '/slots', label: t('nav.slots'), icon: HiOutlineClock },
   ];
 
   const moreLinks = [

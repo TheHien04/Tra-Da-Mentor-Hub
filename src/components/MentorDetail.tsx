@@ -1,53 +1,39 @@
-import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { HiOutlineTrash } from 'react-icons/hi2';
 import { mentorApi } from '../services/api';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { toast } from 'react-toastify';
-import Avatar from './Avatar';
 import TrackBadge from './TrackBadge';
-import { SkillTags } from './ui';
+import { SkillTags, ProfileHero } from './ui';
 import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShell';
 import Badge from './Badge';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-
-interface Mentor {
-  _id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  track?: string;
-  expertise?: string[];
-  mentees?: string[];
-  maxMentees?: number;
-  bio?: string;
-  mentorshipType?: string;
-  duration?: string;
-}
+import { useConfirm } from '../context/ConfirmContext';
+import { useMentor } from '../hooks/queries/useMentor';
+import { queryKeys } from '../hooks/queries/keys';
 
 const MentorDetail = () => {
   const { t } = useAppTranslation();
+  const { confirm } = useConfirm();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [mentor, setMentor] = useState<Mentor | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!id) return;
-    mentorApi
-      .getById(id)
-      .then((res) => {
-        setMentor(res.data);
-        setError(null);
-      })
-      .catch((err) => setError(getApiErrorMessage(err)))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const queryClient = useQueryClient();
+  const { data: mentor, isLoading: loading, isError, error: queryError } = useMentor(id);
+  const error = isError ? getApiErrorMessage(queryError) : null;
 
   const handleDelete = async () => {
-    if (!mentor || !window.confirm(t('detail.deleteConfirm', { name: mentor.name }))) return;
+    if (!mentor) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('detail.deleteConfirm', { name: mentor.name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await mentorApi.delete(id!);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mentors });
       toast.success(t('messages.deleteSuccess'));
       navigate('/mentors');
     } catch {
@@ -58,13 +44,44 @@ const MentorDetail = () => {
   const menteeCount = mentor?.mentees?.length || 0;
   const maxMentees = mentor?.maxMentees || 10;
   const isFull = menteeCount >= maxMentees;
+  const pct = Math.min(100, (menteeCount / maxMentees) * 100);
+
+  const hero = mentor ? (
+    <ProfileHero
+      name={mentor.name}
+      track={mentor.track}
+      subtitle={mentor.email}
+      avatarUrl={mentor.avatarUrl}
+      badges={
+        <>
+          {mentor.track && <TrackBadge track={mentor.track as never} size="small" />}
+          <Badge
+            status={isFull ? 'full' : 'active'}
+            label={
+              isFull
+                ? `${t('detail.full')} (${menteeCount}/${maxMentees})`
+                : `${t('detail.active')} (${menteeCount}/${maxMentees})`
+            }
+          />
+        </>
+      }
+    >
+      {mentor.expertise && mentor.expertise.length > 0 && <SkillTags skills={mentor.expertise} max={12} />}
+      <div className="analytics-load-bar mt-4 max-w-md">
+        <div
+          className={`analytics-load-bar__fill ${pct >= 100 ? 'analytics-load-bar__fill--full' : ''}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </ProfileHero>
+  ) : null;
 
   return (
     <DetailShell
       backHref="/mentors"
       backLabel={t('mentor.title')}
       title={mentor?.name || t('roles.mentor')}
-      subtitle={mentor?.email}
+      hero={hero}
       loading={loading}
       error={error}
       notFound={!loading && !mentor}
@@ -74,8 +91,8 @@ const MentorDetail = () => {
             <Link to={`/mentors/${id}/edit`} className="btn btn-primary">
               {t('common.edit')}
             </Link>
-            <button type="button" className="btn btn-secondary text-red-600" onClick={handleDelete}>
-              {t('common.delete')}
+            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+              <HiOutlineTrash className="h-4 w-4" />
             </button>
           </>
         )
@@ -83,28 +100,6 @@ const MentorDetail = () => {
     >
       {mentor && (
         <>
-          <DetailCard>
-            <div className="flex flex-col sm:flex-row gap-6">
-              <Avatar name={mentor.name} size="lg" />
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  {mentor.track && <TrackBadge track={mentor.track as never} size="small" />}
-                  <Badge
-                    status={isFull ? 'full' : 'active'}
-                    label={
-                      isFull
-                        ? `${t('detail.full')} (${menteeCount}/${maxMentees})`
-                        : `${t('detail.active')} (${menteeCount}/${maxMentees})`
-                    }
-                  />
-                </div>
-                {mentor.expertise && mentor.expertise.length > 0 && (
-                  <SkillTags skills={mentor.expertise} max={12} />
-                )}
-              </div>
-            </div>
-          </DetailCard>
-
           <DetailCard title={t('detail.profile')}>
             <DetailGrid>
               <DetailItem label={t('auth.email')}>{mentor.email}</DetailItem>

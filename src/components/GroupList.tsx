@@ -1,14 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { HiOutlineUsers, HiOutlineTrash, HiOutlineCalendarDays, HiOutlineAcademicCap } from 'react-icons/hi2';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useConfirm } from '../context/ConfirmContext';
 import { groupApi } from '../services/api';
-import { HiOutlineUsers } from 'react-icons/hi2';
+import { useGroups } from '../hooks/queries/useGroups';
+import { queryKeys } from '../hooks/queries/keys';
+import { toast } from 'react-toastify';
 import SearchFilter from './SearchFilter';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass } from './ui';
 import { Alert } from './ui/Alert';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { getApiErrorMessage } from '../lib/apiHelpers';
 
 interface Group {
   _id: string;
@@ -25,29 +30,15 @@ interface Group {
 
 const GroupList = () => {
   const { t } = useAppTranslation();
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { confirm } = useConfirm();
+  const queryClient = useQueryClient();
+  const { data: groups = [], isLoading: loading, isError, error: queryError } = useGroups();
+  const error = isError ? getApiErrorMessage(queryError) : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [advancedFilters, setAdvancedFilters] = useState({ frequency: '', mentorName: '' });
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const res = await groupApi.getAll();
-        setGroups(unwrapList<Group>(res));
-        setError(null);
-      } catch (err) {
-        setError(getApiErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
   const filteredGroups = useMemo(() => {
-    return groups.filter((group) => {
+    return (groups as Group[]).filter((group) => {
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         group.name.toLowerCase().includes(q) ||
@@ -67,12 +58,18 @@ const GroupList = () => {
   }, [groups, searchQuery, advancedFilters]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete group ${name}?`)) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('lists.confirmDeleteGroup', { name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await groupApi.delete(id);
-      setGroups((prev) => prev.filter((g) => g._id !== id));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.groups });
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      toast.error(getApiErrorMessage(err));
     }
   };
 
@@ -80,7 +77,10 @@ const GroupList = () => {
     <PageShell>
       <PageHeader
         title={t('group.title')}
-        description={`${filteredGroups.length} groups`}
+        description={t('lists.groupsShown', {
+          shown: filteredGroups.length,
+          total: groups.length,
+        })}
         icon={<HiOutlineUsers className="h-7 w-7" />}
         action={{ label: `+ ${t('group.addGroup')}`, href: '/groups/add' }}
       />
@@ -117,7 +117,7 @@ const GroupList = () => {
       </FilterPanel>
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {[1, 2, 3].map((i) => (
             <div key={i} className="card p-5">
               <Skeleton count={3} />
@@ -132,7 +132,7 @@ const GroupList = () => {
           actionHref="/groups/add"
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filteredGroups.map((group) => {
             const count = group.mentees?.length || 0;
             const max = group.maxSize || 10;
@@ -144,35 +144,49 @@ const GroupList = () => {
               : [freq, group.dayOfWeek, group.time].filter(Boolean).join(' · ');
 
             return (
-              <article
-                key={group._id}
-                className="card card-hover p-5 flex flex-col border-l-4 border-l-brand-500"
-              >
-                <div className="flex justify-between items-start gap-2 mb-2">
-                  <h3 className="text-base font-semibold text-primary">{group.name}</h3>
+              <article key={group._id} className="card card-hover people-card p-5 flex flex-col">
+                <div className="flex justify-between items-start gap-2 mb-3">
+                  <h3 className="people-card__name text-lg">{group.name}</h3>
                   <span className="badge-pill badge-accent shrink-0">
-                    {count}/{max} mentees
+                    {t('lists.groupCapacity', { count, max })}
                   </span>
                 </div>
+
                 {group.description && (
                   <p className="text-sm text-secondary mb-3 line-clamp-2">{group.description}</p>
                 )}
+
                 {group.mentor?.name && (
-                  <p className="text-xs text-muted mb-1">Mentor: {group.mentor.name}</p>
+                  <p className="schedule-meta-item mb-2">
+                    <HiOutlineAcademicCap className="h-4 w-4 text-muted shrink-0" />
+                    {group.mentor.name}
+                  </p>
                 )}
-                {when && <p className="text-xs text-muted mb-3">{when}</p>}
-                <div className="h-1.5 rounded-full surface-muted mb-4 overflow-hidden">
+                {when && (
+                  <p className="schedule-meta-item mb-4">
+                    <HiOutlineCalendarDays className="h-4 w-4 text-muted shrink-0" />
+                    {when}
+                  </p>
+                )}
+
+                <div className="analytics-load-bar mb-4">
                   <div
-                    className="h-full rounded-full"
-                    style={{ width: `${pct}%`, backgroundColor: 'var(--accent)' }}
+                    className={`analytics-load-bar__fill ${pct >= 100 ? 'analytics-load-bar__fill--full' : ''}`}
+                    style={{ width: `${pct}%` }}
                   />
                 </div>
-                <div className="flex gap-2 mt-auto">
-                  <Link to={`/groups/${group._id}`} className="btn btn-secondary flex-1">
+
+                <div className="people-card__footer">
+                  <Link to={`/groups/${group._id}`} className="btn btn-primary flex-1">
                     {t('group.viewDetails')}
                   </Link>
-                  <button type="button" className="btn btn-danger flex-1" onClick={() => handleDelete(group._id, group.name)}>
-                    Delete
+                  <button
+                    type="button"
+                    className="btn btn-ghost-danger px-3"
+                    onClick={() => handleDelete(group._id, group.name)}
+                    aria-label={t('common.delete')}
+                  >
+                    <HiOutlineTrash className="h-4 w-4" />
                   </button>
                 </div>
               </article>

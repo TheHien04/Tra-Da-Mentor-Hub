@@ -1,65 +1,93 @@
 /**
- * Admin invite – tạo link mời mentor/mentee qua email (flow)
- * Gửi email thật cần cấu hình SMTP (env); không có thì trả link để admin copy/gửi tay
+ * Admin invite – create link, list, revoke; validate for registration
  */
 
 import express from 'express';
-import crypto from 'crypto';
 import { authenticate, authorize } from '../middleware/auth.js';
+import {
+  createInvite,
+  listInvites,
+  revokeInvite,
+  validateInviteToken,
+} from '../services/inviteStore.js';
+import { sendInviteEmail } from '../utils/emailService.js';
+import logger from '../config/logger.js';
 
 const router = express.Router();
 
 const INVITE_EXPIRY_DAYS = 7;
-const invites = new Map(); // token -> { email, role, createdAt }
 
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
+router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const { email, role } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+    const r = (role || 'mentee').toLowerCase();
+    if (!['mentor', 'mentee', 'admin'].includes(r)) {
+      return res.status(400).json({ success: false, message: 'Role must be mentor, mentee, or admin' });
+    }
 
-// POST /api/invites – admin tạo invite (body: email, role) -> trả link
-router.post('/', authenticate, authorize('admin'), (req, res) => {
-  const { email, role } = req.body;
-  if (!email || !email.trim()) {
-    return res.status(400).json({ message: 'Email is required' });
+    const invite = await createInvite({
+      email: email.trim(),
+      role: r,
+      createdBy: req.user?.userId,
+    });
+
+    sendInviteEmail({
+      to: invite.email,
+      link: invite.link,
+      role: invite.role,
+      expiresAt: invite.expiresAt,
+    }).catch((err) => {
+      logger.warn('Invite email failed (invite still created):', err.message);
+    });
+
+    res.status(201).json({
+      success: true,
+      ...invite,
+      expiresIn: `${INVITE_EXPIRY_DAYS} days`,
+      message: 'Invite created. Email sent if SendGrid is configured.',
+    });
+  } catch (e) {
+    next(e);
   }
-  const r = (role || 'mentee').toLowerCase();
-  if (!['mentor', 'mentee', 'admin'].includes(r)) {
-    return res.status(400).json({ message: 'Role must be mentor, mentee, or admin' });
-  }
-  const token = generateToken();
-  const data = {
-    email: email.trim().toLowerCase(),
-    role: r,
-    createdAt: new Date().toISOString(),
-  };
-  invites.set(token, data);
-  // Frontend URL – có thể lấy từ env
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-  const link = `${baseUrl}/register?invite=${token}`;
-  res.status(201).json({
-    success: true,
-    link,
-    token,
-    email: data.email,
-    role: data.role,
-    expiresIn: INVITE_EXPIRY_DAYS + ' days',
-    message: 'Send this link to the user via email or Zalo. Real email sending requires SMTP in .env',
-  });
 });
 
-// GET /api/invites/validate/:token – kiểm tra invite token (frontend gọi khi vào /register?invite=TOKEN)
-router.get('/validate/:token', (req, res) => {
-  const data = invites.get(req.params.token);
-  if (!data) {
-    return res.status(404).json({ valid: false, message: 'Invite link is invalid or expired' });
+router.get('/', authenticate, authorize('admin'), async (_req, res, next) => {
+  try {
+    const data = await listInvites();
+    res.json({ success: true, data });
+  } catch (e) {
+    next(e);
   }
-  const created = new Date(data.createdAt);
-  const expiry = new Date(created.getTime() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
-  if (new Date() > expiry) {
-    invites.delete(req.params.token);
-    return res.status(410).json({ valid: false, message: 'Invite link has expired' });
+});
+
+router.delete('/:token', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const ok = await revokeInvite(req.params.token);
+    if (!ok) {
+      return res.status(404).json({ success: false, message: 'Invite not found' });
+    }
+    res.json({ success: true, message: 'Invite revoked' });
+  } catch (e) {
+    next(e);
   }
-  res.json({ valid: true, email: data.email, role: data.role });
+});
+
+router.get('/validate/:token', async (req, res, next) => {
+  try {
+    const result = await validateInviteToken(req.params.token);
+    if (!result.valid) {
+      return res.status(result.status || 400).json({
+        valid: false,
+        message: result.message,
+      });
+    }
+    res.json({ valid: true, email: result.email, role: result.role });
+  } catch (e) {
+    next(e);
+  }
 });
 
 export default router;

@@ -25,7 +25,7 @@ function deepMerge(target, source) {
 
 const en = JSON.parse(fs.readFileSync(path.join(localesDir, 'en.json'), 'utf8'));
 
-for (const lang of ['jp', 'kr', 'cn']) {
+for (const lang of ['vi', 'jp', 'kr', 'cn']) {
   const file = path.join(localesDir, `${lang}.json`);
   const existing = JSON.parse(fs.readFileSync(file, 'utf8'));
   const merged = deepMerge(existing, en);

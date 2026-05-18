@@ -1,36 +1,39 @@
 import { useState, useEffect } from 'react';
-import { slotsApi, mentorApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { slotsApi, menteeApi } from '../services/api';
+import { useSlots } from '../hooks/queries/useSlots';
+import { useMentors } from '../hooks/queries/useMentors';
 import { useAuth } from '../context/AuthContext';
-import { HiOutlineCalendar, HiOutlinePlus, HiOutlineLink } from 'react-icons/hi2';
+import { HiOutlineCalendar, HiOutlinePlus, HiOutlineLink, HiOutlineClock } from 'react-icons/hi2';
+import Avatar from '../components/Avatar';
 import { toast } from 'react-toastify';
 import { PageShell, PageHeader, Alert } from '../components/ui';
+import EmptyState from '../components/EmptyState';
 import { FormField } from '../components/ui/FormShell';
 import Skeleton from '../components/Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { getMenteeProfileId } from '../lib/authUser';
 import { unwrapList } from '../lib/apiHelpers';
-import { menteeApi } from '../services/api';
-
-interface Slot {
-  _id: string;
-  mentorId: string;
-  date: string;
-  time: string;
-  duration: number;
-  meetingLink?: string;
-  bookedBy: string | null;
-}
+import { useCalendarStatus, useSyncSlotToCalendar } from '../hooks/queries/useCalendar';
 
 const SlotsPage = () => {
   const { t } = useAppTranslation();
   const { state } = useAuth();
   const role = state.user?.role || 'user';
-  const [slots, setSlots] = useState<Slot[]>([]);
-  const [mentors, setMentors] = useState<{ _id: string; name?: string; email?: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [filterMentorId, setFilterMentorId] = useState('');
+  const slotParams = filterMentorId ? { mentorId: filterMentorId } : undefined;
+  const {
+    data: slots = [],
+    isLoading: loading,
+    isError: loadError,
+    refetch: refetchSlots,
+  } = useSlots(slotParams);
+  const { data: mentors = [] } = useMentors();
   const [menteeProfileId, setMenteeProfileId] = useState<string | null>(null);
+  const { data: calendarStatus } = useCalendarStatus();
+  const syncSlot = useSyncSlotToCalendar();
 
   const [form, setForm] = useState({
     mentorId: '',
@@ -40,33 +43,9 @@ const SlotsPage = () => {
     meetingLink: '',
   });
 
-  const fetchSlots = async () => {
-    try {
-      const params: { mentorId?: string } = {};
-      if (filterMentorId) params.mentorId = filterMentorId;
-      const res = await slotsApi.getAll(params);
-      setSlots(Array.isArray(res.data) ? res.data : []);
-    } catch {
-      setSlots([]);
-    } finally {
-      setLoading(false);
-    }
+  const invalidateSlots = () => {
+    void queryClient.invalidateQueries({ queryKey: ['slots'] });
   };
-
-  useEffect(() => {
-    setLoading(true);
-    fetchSlots();
-  }, [filterMentorId]);
-
-  useEffect(() => {
-    mentorApi
-      .getAll()
-      .then((r) => {
-        const d = r.data?.data ?? r.data ?? [];
-        setMentors(Array.isArray(d) ? d : []);
-      })
-      .catch(() => setMentors([]));
-  }, []);
 
   useEffect(() => {
     const fromProfile = getMenteeProfileId(state.user);
@@ -101,7 +80,7 @@ const SlotsPage = () => {
       });
       toast.success(t('pages.slots.added'));
       setShowForm(false);
-      fetchSlots();
+      invalidateSlots();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(e.response?.data?.message || t('pages.slots.addFailed'));
@@ -117,7 +96,17 @@ const SlotsPage = () => {
     try {
       await slotsApi.book(slotId, menteeId);
       toast.success(t('pages.slots.bookSuccess'));
-      fetchSlots();
+      if (calendarStatus?.connected) {
+        try {
+          const syncRes = await syncSlot.mutateAsync(slotId);
+          if (syncRes.data?.meetLink) {
+            toast.info(t('pages.slots.calendarMeetCreated'));
+          }
+        } catch {
+          /* booking succeeded; calendar sync is optional */
+        }
+      }
+      invalidateSlots();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(e.response?.data?.message || t('pages.slots.bookFailed'));
@@ -132,6 +121,7 @@ const SlotsPage = () => {
         title={t('pages.slots.title')}
         description={t('pages.slots.description')}
         icon={<HiOutlineCalendar className="h-7 w-7" />}
+        action={{ label: t('nav.schedule'), href: '/schedule' }}
       >
         {(role === 'mentor' || role === 'admin') && (
           <button type="button" className="btn btn-primary mt-3" onClick={() => setShowForm(!showForm)}>
@@ -218,45 +208,74 @@ const SlotsPage = () => {
         </select>
       </FormField>
 
+      {loadError && !loading && (
+        <Alert variant="error" className="mb-6">
+          <p>{t('common.loadError')}</p>
+          <button type="button" className="btn btn-secondary text-sm mt-3" onClick={() => void refetchSlots()}>
+            {t('common.retry')}
+          </button>
+        </Alert>
+      )}
+
       {loading ? (
         <Skeleton count={4} />
-      ) : slots.length === 0 ? (
-        <Alert variant="info">{t('pages.slots.emptyDesc')}</Alert>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {slots.map((s) => (
-            <article key={s._id} className="card p-5">
-              <div className="flex justify-between items-start gap-2 mb-3">
-                <div>
-                  <p className="font-semibold text-primary">{getMentorName(s.mentorId)}</p>
-                  <p className="text-sm text-muted">
-                    {s.date} · {s.time} · {s.duration} {t('common.min')}
-                  </p>
+      ) : !loadError && slots.length === 0 ? (
+        <EmptyState
+          title={t('pages.slots.emptyTitle')}
+          description={t('pages.slots.emptyDesc')}
+          actionLabel={
+            role === 'mentor' || role === 'admin' ? t('pages.slots.addFreeSlot') : undefined
+          }
+          onAction={
+            role === 'mentor' || role === 'admin' ? () => setShowForm(true) : undefined
+          }
+        />
+      ) : !loadError ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {slots.map((s) => {
+            const mentorName = getMentorName(s.mentorId);
+            const isOpen = !s.bookedBy;
+            return (
+              <article
+                key={s._id}
+                className={`card card-hover slot-card p-5 flex flex-col ${isOpen ? 'slot-card--open' : ''}`}
+              >
+                <div className="people-card__header mb-4 mt-1">
+                  <Avatar name={mentorName} size="lg" />
+                  <div className="people-card__identity">
+                    <div className="people-card__title-row">
+                      <h3 className="people-card__name">{mentorName}</h3>
+                      <span className={`badge-pill shrink-0 ${s.bookedBy ? 'badge-warning' : 'badge-success'}`}>
+                        {s.bookedBy ? t('pages.slots.booked') : t('pages.slots.available')}
+                      </span>
+                    </div>
+                    <p className="schedule-meta-item mt-1">
+                      <HiOutlineClock className="h-4 w-4 text-muted shrink-0" />
+                      {s.date} · {s.time} · {s.duration} {t('common.min')}
+                    </p>
+                  </div>
                 </div>
-                <span className={`badge-pill ${s.bookedBy ? 'badge-warning' : 'badge-success'}`}>
-                  {s.bookedBy ? t('pages.slots.booked') : t('pages.slots.available')}
-                </span>
-              </div>
-              {s.meetingLink && (
-                <a
-                  href={s.meetingLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm mb-3"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  <HiOutlineLink className="h-4 w-4" /> {t('pages.slots.joinMeeting')}
-                </a>
-              )}
-              {!s.bookedBy && (role === 'mentee' || role === 'admin') && (
-                <button type="button" className="btn btn-primary w-full" onClick={() => handleBook(s._id)}>
-                  {t('pages.slots.book')}
-                </button>
-              )}
-            </article>
-          ))}
+                {s.meetingLink && (
+                  <a
+                    href={s.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm mb-4 font-medium"
+                    style={{ color: 'var(--accent)' }}
+                  >
+                    <HiOutlineLink className="h-4 w-4" /> {t('pages.slots.joinMeeting')}
+                  </a>
+                )}
+                {isOpen && (role === 'mentee' || role === 'admin') && (
+                  <button type="button" className="btn btn-primary w-full mt-auto" onClick={() => handleBook(s._id)}>
+                    {t('pages.slots.book')}
+                  </button>
+                )}
+              </article>
+            );
+          })}
         </div>
-      )}
+      ) : null}
     </PageShell>
   );
 };

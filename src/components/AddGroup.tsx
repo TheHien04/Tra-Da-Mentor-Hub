@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { toast } from 'react-toastify';
-import { groupApi, mentorApi } from '../services/api';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { groupApi } from '../services/api';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { parseForm } from '../lib/zodForm';
+import { addGroupFormSchema } from '../schemas/forms';
+import { useMentors } from '../hooks/queries/useMentors';
 import { FormShell, FormField, FormActions } from './ui/FormShell';
 import { Alert } from './ui/Alert';
+
+const DAY_KEYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 
 const AddGroup = () => {
   const { t } = useAppTranslation();
   const navigate = useNavigate();
+  const { data: mentors = [] } = useMentors();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [mentors, setMentors] = useState<{ _id: string; name: string }[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -22,28 +27,18 @@ const AddGroup = () => {
     time: '19:00',
   });
 
-  useEffect(() => {
-    mentorApi
-      .getAll()
-      .then((res) => setMentors(unwrapList(res)))
-      .catch(() => toast.warn('Could not load mentors'));
-  }, []);
-
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (error) setError('');
+    if (errors[e.target.name]) setErrors((prev) => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      setError('Group name is required');
-      return;
-    }
-    if (!formData.mentorId) {
-      setError('Select a mentor');
+    const parsed = parseForm(addGroupFormSchema, formData, t);
+    if (!parsed.success) {
+      setErrors(parsed.errors);
       return;
     }
 
@@ -60,10 +55,10 @@ const AddGroup = () => {
           time: formData.time,
         },
       });
-      toast.success(t('group.addSuccess', 'Group created'));
+      toast.success(t('group.addSuccess'));
       navigate('/groups');
     } catch (err) {
-      setError(getApiErrorMessage(err));
+      setErrors({ submit: getApiErrorMessage(err) });
     } finally {
       setLoading(false);
     }
@@ -71,60 +66,80 @@ const AddGroup = () => {
 
   return (
     <FormShell
-      title={t('group.addGroup', 'Add Group')}
+      title={t('group.addGroup')}
       description={t('form.addGroupDesc')}
       backHref="/groups"
       onSubmit={handleSubmit}
     >
-      {error && <Alert variant="error">{error}</Alert>}
+      {errors.submit && <Alert variant="error">{errors.submit}</Alert>}
 
-      <FormField label="Group name" required>
-        <input className="input" name="name" value={formData.name} onChange={handleChange} required />
+      <FormField label={t('form.groupName')} required>
+        <input
+          className={`input ${errors.name ? 'input-error' : ''}`}
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+        {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name}</p>}
       </FormField>
 
-      <FormField label="Description">
-        <textarea className="input min-h-[80px]" name="description" value={formData.description} onChange={handleChange} rows={3} />
+      <FormField label={t('form.description')}>
+        <textarea
+          className="input min-h-[80px]"
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          rows={3}
+        />
       </FormField>
 
-      <FormField label="Mentor" required>
-        <select className="input" name="mentorId" value={formData.mentorId} onChange={handleChange} required>
-          <option value="">Select mentor</option>
+      <FormField label={t('mentor.title')} required>
+        <select
+          className={`input ${errors.mentorId ? 'input-error' : ''}`}
+          name="mentorId"
+          value={formData.mentorId}
+          onChange={handleChange}
+          required
+        >
+          <option value="">{t('form.selectMentor')}</option>
           {mentors.map((m) => (
             <option key={m._id} value={m._id}>
-              {m.name}
+              {m.name || m.email}
             </option>
           ))}
         </select>
+        {errors.mentorId && <p className="text-xs text-red-600 mt-1">{errors.mentorId}</p>}
       </FormField>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <FormField label="Frequency">
+        <FormField label={t('form.frequency')}>
           <select className="input" name="frequency" value={formData.frequency} onChange={handleChange}>
-            <option value="Weekly">Weekly</option>
-            <option value="Bi-weekly">Bi-weekly</option>
-            <option value="Monthly">Monthly</option>
+            <option value="Weekly">{t('form.frequencyWeekly')}</option>
+            <option value="Bi-weekly">{t('form.frequencyBiweekly')}</option>
+            <option value="Monthly">{t('form.frequencyMonthly')}</option>
           </select>
         </FormField>
-        <FormField label="Day">
+        <FormField label={t('form.day')}>
           <select className="input" name="dayOfWeek" value={formData.dayOfWeek} onChange={handleChange}>
-            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => (
+            {DAY_KEYS.map((d) => (
               <option key={d} value={d}>
-                {d}
+                {t(`form.days.${d}`)}
               </option>
             ))}
           </select>
         </FormField>
-        <FormField label="Time">
+        <FormField label={t('common.time')}>
           <input type="time" className="input" name="time" value={formData.time} onChange={handleChange} />
         </FormField>
       </div>
 
       <FormActions>
         <button type="button" className="btn btn-secondary flex-1" onClick={() => navigate('/groups')}>
-          Cancel
+          {t('common.cancel')}
         </button>
         <button type="submit" className="btn btn-primary flex-1" disabled={loading}>
-          {loading ? 'Creating…' : 'Create group'}
+          {loading ? t('common.creating') : t('group.addGroup')}
         </button>
       </FormActions>
     </FormShell>

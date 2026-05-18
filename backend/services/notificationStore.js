@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
+import { BROADCAST_NOTIFICATION_DEMO } from '../data/demoContentSeed.js';
 
 const memory = [];
 let seq = 1;
@@ -56,6 +57,22 @@ export async function createNotification(payload, io) {
   return notification;
 }
 
+const BROADCAST_USER_IDS = ['all', 'mentors', 'mentees'];
+
+export async function listBroadcastNotifications(limit = 50) {
+  if (useDb()) {
+    const docs = await Notification.find({ userId: { $in: BROADCAST_USER_IDS } })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+    return docs.map((d) => toClient(d));
+  }
+  return memory
+    .filter((n) => BROADCAST_USER_IDS.includes(n.userId))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, limit);
+}
+
 export async function listNotifications(userId) {
   if (useDb()) {
     const docs = await Notification.find({
@@ -96,18 +113,45 @@ export async function markAllRead(userId) {
   });
 }
 
+function broadcastSeedRows() {
+  const now = Date.now();
+  return BROADCAST_NOTIFICATION_DEMO.map((d, i) => ({
+    ...d,
+    href: '/',
+    read: i > 1,
+    createdAt: new Date(now - i * 36 * 60 * 60 * 1000).toISOString(),
+  }));
+}
+
 export function seedDemoNotifications() {
-  if (memory.length > 0) return;
-  const demos = [
-    { userId: 'all', title: 'Welcome', message: 'Tea Mentor platform is ready.', type: 'info' },
-  ];
-  demos.forEach((d) => {
+  if (memory.some((n) => BROADCAST_USER_IDS.includes(n.userId))) return;
+  broadcastSeedRows().forEach((d) => {
     memory.push({
       _id: `n${seq++}`,
       ...d,
-      href: null,
-      read: false,
-      createdAt: new Date().toISOString(),
     });
   });
+}
+
+export async function seedBroadcastNotificationsIfEmpty() {
+  const rows = broadcastSeedRows();
+  if (useDb()) {
+    const count = await Notification.countDocuments({
+      userId: { $in: BROADCAST_USER_IDS },
+    });
+    if (count === 0) {
+      await Notification.insertMany(rows);
+    } else if (count < rows.length) {
+      const existing = await Notification.find({ userId: { $in: BROADCAST_USER_IDS } })
+        .select('title')
+        .lean();
+      const titles = new Set(existing.map((e) => e.title));
+      const missing = rows.filter((r) => !titles.has(r.title));
+      if (missing.length) {
+        await Notification.insertMany(missing.slice(0, rows.length - count));
+      }
+    }
+    return;
+  }
+  seedDemoNotifications();
 }

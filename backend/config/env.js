@@ -69,6 +69,11 @@ const env = {
 
   googleClientId: process.env.GOOGLE_CLIENT_ID || "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+  apiUrl:
+    process.env.API_PUBLIC_URL?.trim() ||
+    `${process.env.BASE_URL?.trim() || platformPublicUrl || `http://localhost:${process.env.PORT || "5000"}`}/api`,
+  openaiApiKey: process.env.OPENAI_API_KEY || "",
+  openaiModel: process.env.OPENAI_MODEL || "gpt-4o-mini",
   frontendUrl: process.env.FRONTEND_URL?.trim() || platformPublicUrl || defaultDevOrigin,
   baseUrl:
     process.env.BASE_URL?.trim() ||

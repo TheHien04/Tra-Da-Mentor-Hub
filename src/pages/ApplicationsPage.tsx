@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { menteeApi } from '../services/api';
-import { HiOutlineDocumentText } from 'react-icons/hi2';
+import { HiOutlineDocumentText, HiOutlineArrowRight } from 'react-icons/hi2';
 import { toast } from 'react-toastify';
-import { PageShell, PageHeader, Alert } from '../components/ui';
+import { PageShell, PageHeader, FilterChips } from '../components/ui';
+import EmptyState from '../components/EmptyState';
 import { SkillTags } from '../components/ui';
+import Avatar from '../components/Avatar';
+import TrackBadge from '../components/TrackBadge';
 import Skeleton from '../components/Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 
@@ -42,7 +45,7 @@ const ApplicationsPage = () => {
   };
   const [mentees, setMentees] = useState<MenteeWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | ''>('');
+  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | 'ALL'>('ALL');
 
   useEffect(() => {
     menteeApi
@@ -63,7 +66,7 @@ const ApplicationsPage = () => {
   }, []);
 
   const filtered =
-    filterStatus === '' ? mentees : mentees.filter((m) => m.applicationStatus === filterStatus);
+    filterStatus === 'ALL' ? mentees : mentees.filter((m) => m.applicationStatus === filterStatus);
 
   const handleStatusChange = async (menteeId: string, newStatus: ApplicationStatus) => {
     try {
@@ -78,6 +81,13 @@ const ApplicationsPage = () => {
     }
   };
 
+  const filterOptions = [
+    { value: 'ALL' as const, label: t('pages.applications.allCount', { count: mentees.length }) },
+    ...(['pending', 'invited_for_interview', 'interviewed', 'accepted', 'rejected'] as ApplicationStatus[]).map(
+      (s) => ({ value: s, label: statusLabel(s) })
+    ),
+  ];
+
   return (
     <PageShell>
       <PageHeader
@@ -87,86 +97,84 @@ const ApplicationsPage = () => {
         action={{ label: t('pages.applications.openSlots'), href: '/slots' }}
       />
 
-      <div className="card p-3 mb-6 overflow-x-auto">
-        <div className="flex flex-nowrap gap-2 min-w-max">
-          <button
-            type="button"
-            className={`btn text-sm shrink-0 ${filterStatus === '' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setFilterStatus('')}
-          >
-            {t('pages.applications.allCount', { count: mentees.length })}
-          </button>
-          {(
-            ['pending', 'invited_for_interview', 'interviewed', 'accepted', 'rejected'] as ApplicationStatus[]
-          ).map((s) => (
-            <button
-              key={s}
-              type="button"
-              className={`btn text-sm shrink-0 ${filterStatus === s ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setFilterStatus(s)}
-            >
-              {statusLabel(s)}
-            </button>
-          ))}
-        </div>
+      <div className="mb-6 overflow-x-auto">
+        <FilterChips
+          options={filterOptions}
+          value={filterStatus}
+          onChange={setFilterStatus}
+          ariaLabel={t('pages.applications.filterLabel')}
+        />
       </div>
 
       {loading ? (
         <Skeleton count={4} />
       ) : filtered.length === 0 ? (
-        <Alert variant="info">{t('pages.applications.emptyDesc')}</Alert>
+        <EmptyState
+          title={t('pages.applications.emptyTitle')}
+          description={t('pages.applications.emptyDesc')}
+          actionLabel={t('pages.applications.openSlots')}
+          actionHref="/slots"
+        />
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filtered.map((m) => (
-            <article key={m._id} className="card card-hover p-5">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-base font-semibold text-primary">{m.name}</h3>
-                    <span className={`badge-pill ${STATUS_CLASS[m.applicationStatus!]}`}>
+            <article key={m._id} className="card card-hover people-card p-5 flex flex-col">
+              <div className="people-card__header mb-4">
+                <Avatar name={m.name || ''} size="lg" track={m.track} />
+                <div className="people-card__identity">
+                  <div className="people-card__title-row">
+                    <h3 className="people-card__name">{m.name}</h3>
+                    <span className={`badge-pill shrink-0 ${STATUS_CLASS[m.applicationStatus!]}`}>
                       {statusLabel(m.applicationStatus!)}
                     </span>
+                    {m.track && <TrackBadge track={m.track} size="small" />}
                   </div>
-                  <p className="text-sm text-muted">{m.email}</p>
-                  {m.school && <p className="text-xs text-muted mt-1">{m.school}</p>}
-                  {m.interests && m.interests.length > 0 && (
-                    <div className="mt-3">
-                      <SkillTags skills={m.interests} max={4} />
-                    </div>
-                  )}
+                  <p className="people-card__meta">{m.email}</p>
+                  {m.school && <p className="people-card__submeta">{m.school}</p>}
                 </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <Link to={`/mentees/${m._id}`} className="btn btn-secondary text-sm">
-                    {t('pages.applications.view')}
-                  </Link>
-                  {m.applicationStatus === 'pending' && (
+              </div>
+
+              {m.interests && m.interests.length > 0 && (
+                <div className="mb-4">
+                  <SkillTags skills={m.interests} max={4} />
+                </div>
+              )}
+
+              <div className="people-card__footer flex-wrap">
+                <Link
+                  to={`/mentees/${m._id}`}
+                  className="btn btn-secondary text-sm inline-flex items-center gap-1"
+                >
+                  {t('pages.applications.view')}
+                  <HiOutlineArrowRight className="h-3.5 w-3.5" />
+                </Link>
+                {m.applicationStatus === 'pending' && (
+                  <button
+                    type="button"
+                    className="btn btn-primary text-sm"
+                    onClick={() => handleStatusChange(m._id, 'invited_for_interview')}
+                  >
+                    {t('pages.applications.invite')}
+                  </button>
+                )}
+                {['invited_for_interview', 'interviewed', 'pending'].includes(m.applicationStatus!) && (
+                  <>
                     <button
                       type="button"
                       className="btn btn-primary text-sm"
-                      onClick={() => handleStatusChange(m._id, 'invited_for_interview')}
+                      onClick={() => handleStatusChange(m._id, 'accepted')}
                     >
-                      {t('pages.applications.invite')}
+                      {t('pages.applications.accept')}
                     </button>
-                  )}
-                  {['invited_for_interview', 'interviewed', 'pending'].includes(m.applicationStatus!) && (
-                    <>
-                      <button
-                        type="button"
-                        className="btn btn-primary text-sm"
-                        onClick={() => handleStatusChange(m._id, 'accepted')}
-                      >
-                        {t('pages.applications.accept')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-danger text-sm"
-                        onClick={() => handleStatusChange(m._id, 'rejected')}
-                      >
-                        {t('pages.applications.reject')}
-                      </button>
-                    </>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      className="btn btn-ghost-danger text-sm"
+                      onClick={() => handleStatusChange(m._id, 'rejected')}
+                    >
+                      {t('pages.applications.reject')}
+                    </button>
+                  </>
+                )}
               </div>
             </article>
           ))}

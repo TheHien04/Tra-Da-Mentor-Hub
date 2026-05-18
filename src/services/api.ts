@@ -2,6 +2,7 @@ import axios from 'axios';
 import env from '../config/env';
 import { getAccessToken } from '../lib/secureStorage';
 import { handleError } from '../utils/errorHandler';
+import type { AnalyticsSnapshot } from '../lib/analyticsCompute';
 
 const API_URL = env.apiUrl;
 
@@ -110,8 +111,22 @@ export const sessionLogsApi = {
 };
 
 // Invites API (admin mời user – trả link; gửi email thật cần SMTP)
+export interface InviteRecord {
+  token: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  expiresAt: string;
+  usedAt: string | null;
+  status: 'active' | 'expired' | 'used';
+  link: string;
+}
+
 export const invitesApi = {
-  create: (data: { email: string; role?: string }) => api.post('/invites', data),
+  create: (data: { email: string; role?: string }) =>
+    api.post<{ success: boolean; link: string; token: string } & InviteRecord>('/invites', data),
+  list: () => api.get<{ success: boolean; data: InviteRecord[] }>('/invites'),
+  revoke: (token: string) => api.delete(`/invites/${token}`),
   validate: (token: string) => api.get(`/invites/validate/${token}`),
 };
 
@@ -147,6 +162,22 @@ export const notificationsApi = {
 export const matchingApi = {
   suggestions: (params?: { menteeId?: string; mentorId?: string; limit?: number }) =>
     api.get('/matching/suggestions', { params }),
+  explain: (params: { mentorId: string; menteeId: string }) =>
+    api.get('/matching/explain', { params }),
+};
+
+export const calendarApi = {
+  connect: () => api.get<{ authUrl: string }>('/calendar/connect'),
+  getStatus: () => api.get<{ connected: boolean }>('/calendar/status'),
+  createEvent: (data: Record<string, unknown>) => api.post('/calendar/create-event', data),
+  syncSlot: (slotId: string) =>
+    api.post<{
+      success?: boolean;
+      meetLink?: string;
+      htmlLink?: string;
+      alreadySynced?: boolean;
+      slot?: Record<string, unknown>;
+    }>(`/calendar/sync-slot/${slotId}`),
 };
 
 // Auth API
@@ -188,13 +219,63 @@ export const testimonialsApi = {
   delete: (id: string) => api.delete(`/testimonials/${id}`),
 };
 
+export type IntegrationChannelStatus = {
+  ready: boolean;
+  envVars: string[];
+  needsRecipients?: boolean;
+};
+
+export interface AdminIntegrations {
+  inApp: boolean;
+  email: boolean;
+  zalo: boolean;
+  zaloToken?: boolean;
+  zaloRecipients: number;
+  googleCalendar: boolean;
+  openai: boolean;
+  stripe: boolean;
+  channels?: {
+    inApp: IntegrationChannelStatus;
+    email: IntegrationChannelStatus;
+    zalo: IntegrationChannelStatus;
+  };
+}
+
+export type BroadcastChannel = 'in_app' | 'email' | 'zalo' | 'email_zalo' | 'both';
+
+export interface BroadcastDelivery {
+  inApp: boolean;
+  email?: { success: boolean; sent?: number; message?: string } | null;
+  zalo?: { success: boolean; sent?: number; message?: string } | null;
+}
+
+export type AnalyticsPeriod = '7d' | '30d' | '90d' | 'all';
+
+export const uploadsApi = {
+  avatar: (payload: { entityType: 'mentor' | 'mentee'; entityId: string; dataUrl: string }) =>
+    api.post<{ success: boolean; data: { avatarUrl: string } }>('/uploads/avatar', payload),
+};
+
+export const analyticsApi = {
+  getSummary: (period: AnalyticsPeriod = '90d', locale?: string) =>
+    api.get<{ success: boolean; data: AnalyticsSnapshot }>('/analytics/summary', {
+      params: { period, locale },
+    }),
+};
+
 export const adminApi = {
+  integrations: () => api.get<{ success: boolean; data: AdminIntegrations }>('/admin/integrations'),
+  broadcasts: () => api.get<{ success: boolean; data: AppNotification[] }>('/admin/broadcasts'),
   broadcast: (data: {
     audience: 'all' | 'mentors' | 'mentees';
     subject?: string;
     message: string;
-    channel?: 'email' | 'zalo' | 'both';
-  }) => api.post('/admin/broadcast', data),
+    channel?: BroadcastChannel;
+  }) =>
+    api.post<{
+      success: boolean;
+      data: { delivery: BroadcastDelivery; channel: string };
+    }>('/admin/broadcast', data),
 };
 
 /** Axios instance — use named APIs when possible */

@@ -1,38 +1,16 @@
 import mongoose from 'mongoose';
 import SessionLog from '../models/SessionLog.js';
+import { SESSION_LOG_DEMO } from '../data/demoContentSeed.js';
 
 const memory = [];
 let memSeq = 1;
 
-const SEED = [
-  {
-    mentorId: 'm1',
-    menteeId: '101',
-    sessionDate: new Date('2025-12-19T00:00:00.000Z'),
-    topic: 'React hooks và state management',
-    mentorScore: 5,
-    menteeScore: 5,
-    mentorNeedsSupport: false,
-    mentorSupportReason: null,
-    menteeNeedsSupport: false,
-    menteeSupportReason: null,
-    completedByMentor: true,
-    completedByMentee: true,
-  },
-  {
-    mentorId: 'm2',
-    menteeId: '102',
-    sessionDate: new Date('2025-12-20T00:00:00.000Z'),
-    topic: 'Node.js backend architecture',
-    mentorScore: 4,
-    menteeScore: 5,
-    mentorNeedsSupport: false,
-    menteeNeedsSupport: true,
-    menteeSupportReason: 'Cần tài liệu thêm về Docker',
-    completedByMentor: true,
-    completedByMentee: true,
-  },
-];
+const SEED = SESSION_LOG_DEMO;
+const DEMO_TARGET_MIN = 12;
+
+function sessionLogKey(s) {
+  return `${s.mentorId}:${s.menteeId}:${s.topic}`;
+}
 
 function useDb() {
   return mongoose.connection.readyState === 1;
@@ -181,22 +159,46 @@ export async function listNeedsSupport() {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 }
 
+function pushSeedToMemory(rows, startIndex = 0) {
+  const now = new Date().toISOString();
+  rows.forEach((s, i) => {
+    memory.push({
+      _id: `sl_seed_${startIndex + i}`,
+      ...s,
+      sessionDate:
+        s.sessionDate instanceof Date ? s.sessionDate.toISOString() : String(s.sessionDate),
+      mentorSupportReason: s.mentorSupportReason ?? null,
+      menteeSupportReason: s.menteeSupportReason ?? null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+}
+
 export async function seedSessionLogsIfEmpty() {
   if (useDb()) {
     const count = await SessionLog.countDocuments();
-    if (count === 0) await SessionLog.insertMany(SEED);
+    if (count === 0) {
+      await SessionLog.insertMany(SEED);
+      return;
+    }
+    if (count < DEMO_TARGET_MIN) {
+      const existing = await SessionLog.find().select('mentorId menteeId topic').lean();
+      const keys = new Set(existing.map((e) => sessionLogKey(e)));
+      const missing = SEED.filter((s) => !keys.has(sessionLogKey(s)));
+      if (missing.length) {
+        await SessionLog.insertMany(missing.slice(0, DEMO_TARGET_MIN - count));
+      }
+    }
     return;
   }
   if (memory.length === 0) {
-    SEED.forEach((s, i) => {
-      const now = new Date().toISOString();
-      memory.push({
-        _id: `sl_seed_${i}`,
-        ...s,
-        sessionDate: s.sessionDate.toISOString(),
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
+    pushSeedToMemory(SEED);
+    return;
+  }
+  if (memory.length < DEMO_TARGET_MIN) {
+    const keys = new Set(memory.map((e) => sessionLogKey(e)));
+    const missing = SEED.filter((s) => !keys.has(sessionLogKey(s)));
+    pushSeedToMemory(missing.slice(0, DEMO_TARGET_MIN - memory.length), memory.length);
   }
 }

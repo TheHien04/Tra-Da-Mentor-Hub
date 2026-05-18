@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   HiOutlineChatBubbleLeftRight,
   HiOutlinePlus,
@@ -13,8 +14,11 @@ import { FormField, FormActions } from './ui/FormShell';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useConfirm } from '../context/ConfirmContext';
 import { testimonialsApi, type Testimonial } from '../services/api';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { useTestimonials } from '../hooks/queries/useTestimonials';
+import { queryKeys } from '../hooks/queries/keys';
 
 type TestimonialStatus = Testimonial['status'];
 type Track = Testimonial['track'];
@@ -27,6 +31,7 @@ const STATUS_BADGE: Record<TestimonialStatus, string> = {
 
 const TestimonialsPage = () => {
   const { t } = useAppTranslation();
+  const { confirm } = useConfirm();
   const trackLabel = (track: Track) => {
     const map: Record<Track, string> = {
       career: t('pages.testimonials.trackCareer'),
@@ -43,9 +48,14 @@ const TestimonialsPage = () => {
     };
     return map[status];
   };
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const {
+    data: testimonials = [],
+    isLoading: loading,
+    isError,
+    error: queryError,
+  } = useTestimonials();
+  const loadError = isError ? getApiErrorMessage(queryError) : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | TestimonialStatus>('ALL');
   const [filterTrack, setFilterTrack] = useState<'ALL' | Track>('ALL');
@@ -59,22 +69,17 @@ const TestimonialsPage = () => {
     track: 'career' as Track,
   });
 
-  const fetchTestimonials = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await testimonialsApi.getAll();
-      setTestimonials(unwrapList<Testimonial>(res));
-      setLoadError(null);
-    } catch (err) {
-      setLoadError(getApiErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const featured = useMemo(
+    () => testimonials.filter((item) => item.status === 'PUBLISHED').slice(0, 3),
+    [testimonials]
+  );
 
-  useEffect(() => {
-    fetchTestimonials();
-  }, [fetchTestimonials]);
+  const showFeatured =
+    viewMode === 'gallery' &&
+    !searchQuery &&
+    filterStatus === 'ALL' &&
+    filterTrack === 'ALL' &&
+    featured.length > 0;
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -110,7 +115,7 @@ const TestimonialsPage = () => {
     }
     try {
       await testimonialsApi.create(draft);
-      await fetchTestimonials();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.testimonials });
       setShowForm(false);
       setDraft({ menteeName: '', mentorName: '', content: '', rating: 5, track: 'career' });
       toast.success(t('pages.testimonials.submitted'));
@@ -122,17 +127,23 @@ const TestimonialsPage = () => {
   const setStatus = async (id: string, status: TestimonialStatus) => {
     try {
       await testimonialsApi.update(id, { status });
-      setTestimonials((p) => p.map((x) => (x._id === id ? { ...x, status } : x)));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.testimonials });
     } catch (err) {
       toast.error(getApiErrorMessage(err));
     }
   };
 
   const removeItem = async (id: string, name: string) => {
-    if (!window.confirm(t('pages.testimonials.deleteConfirm', { name }))) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('pages.testimonials.deleteConfirm', { name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await testimonialsApi.delete(id);
-      setTestimonials((p) => p.filter((x) => x._id !== id));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.testimonials });
       toast.success(t('pages.testimonials.deleted'));
     } catch (err) {
       toast.error(getApiErrorMessage(err));
@@ -183,16 +194,17 @@ const TestimonialsPage = () => {
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="insights-stat-grid mb-6">
         {[
-          { label: t('pages.testimonials.statPublished'), value: stats.published, cls: 'badge-success' },
-          { label: t('pages.testimonials.statPending'), value: stats.pending, cls: 'badge-warning' },
-          { label: t('pages.testimonials.statRejected'), value: stats.rejected, cls: 'badge-full' },
-          { label: t('pages.testimonials.statAvgRating'), value: `${stats.avg}★`, cls: 'badge-accent' },
+          { label: t('pages.testimonials.statTotal'), value: stats.total },
+          { label: t('pages.testimonials.statPublished'), value: stats.published },
+          { label: t('pages.testimonials.statPending'), value: stats.pending },
+          { label: t('pages.testimonials.statRejected'), value: stats.rejected },
+          { label: t('pages.testimonials.statAvgRating'), value: `${stats.avg}★` },
         ].map((s) => (
-          <div key={s.label} className="stat-card text-center py-4">
-            <p className="stat-label">{s.label}</p>
-            <p className="text-2xl font-semibold text-primary mt-1">{s.value}</p>
+          <div key={s.label} className="insights-stat-card">
+            <p className="insights-stat-card__value">{s.value}</p>
+            <p className="insights-stat-card__label">{s.label}</p>
           </div>
         ))}
       </div>
@@ -286,9 +298,42 @@ const TestimonialsPage = () => {
       ) : filtered.length === 0 ? (
         <EmptyState title={t('pages.testimonials.emptyTitle')} description={t('pages.testimonials.emptyFiltered')} />
       ) : viewMode === 'gallery' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <>
+          {showFeatured && (
+            <section className="mb-8" aria-label={t('pages.testimonials.featuredTitle')}>
+              <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
+                <h2 className="text-sm font-semibold text-primary">{t('pages.testimonials.featuredTitle')}</h2>
+                <p className="text-xs text-muted">{t('pages.testimonials.featuredHint')}</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {featured.map((item) => (
+                  <article key={`feat-${item._id}`} className="testimonial-card testimonial-card--featured">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <p className="font-semibold text-primary">{item.menteeName}</p>
+                        <p className="text-xs text-muted">
+                          {t('pages.testimonials.withMentor', { name: item.mentorName })}
+                        </p>
+                      </div>
+                      <span className="badge-pill badge-success shrink-0">{statusLabel(item.status)}</span>
+                    </div>
+                    <Stars n={item.rating} />
+                    <p className="testimonial-card__quote mt-3 line-clamp-4">&ldquo;{item.content}&rdquo;</p>
+                    <div
+                      className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t"
+                      style={{ borderColor: 'var(--border-subtle)' }}
+                    >
+                      <span className="badge-pill badge-neutral">{trackLabel(item.track)}</span>
+                      <span className="text-xs text-muted">{item.date}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((item) => (
-            <article key={item._id} className="card p-5 flex flex-col">
+            <article key={item._id} className="testimonial-card">
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <p className="font-semibold text-primary">{item.menteeName}</p>
@@ -301,8 +346,8 @@ const TestimonialsPage = () => {
                 </span>
               </div>
               <Stars n={item.rating} />
-              <p className="text-sm text-secondary mt-3 flex-1 line-clamp-4">&ldquo;{item.content}&rdquo;</p>
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+              <p className="testimonial-card__quote mt-3">&ldquo;{item.content}&rdquo;</p>
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t relative z-[1]" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span className="badge-pill badge-neutral">{trackLabel(item.track)}</span>
                 <span className="text-xs text-muted">{item.date}</span>
               </div>
@@ -327,7 +372,8 @@ const TestimonialsPage = () => {
               </div>
             </article>
           ))}
-        </div>
+          </div>
+        </>
       ) : (
         <ul className="space-y-3">
           {filtered.map((item) => (

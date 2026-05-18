@@ -1,11 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { HiOutlineAcademicCap, HiOutlineTrash } from 'react-icons/hi2';
+import { toast } from 'react-toastify';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useConfirm } from '../context/ConfirmContext';
 import { mentorApi } from '../services/api';
-import { unwrapList, getApiErrorMessage } from '../lib/apiHelpers';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { useMentors } from '../hooks/queries/useMentors';
+import { queryKeys } from '../hooks/queries/keys';
+import { getTrackOptions } from '../lib/trackOptions';
+import { resolveAssetUrl } from '../lib/assetUrl';
 import { Alert } from './ui/Alert';
-import { HiOutlineAcademicCap } from 'react-icons/hi2';
 import Avatar from './Avatar';
 import Badge from './Badge';
 import TrackBadge from './TrackBadge';
@@ -26,26 +33,16 @@ interface Mentor {
   bio?: string;
   mentorshipType?: string;
   duration?: string;
+  avatarUrl?: string;
 }
-
-const TRACK_OPTIONS = [
-  { value: '', label: 'All fields' },
-  { value: 'tech', label: 'Technology' },
-  { value: 'economics', label: 'Economics' },
-  { value: 'marketing', label: 'Marketing' },
-  { value: 'hr', label: 'Human Resources' },
-  { value: 'sales', label: 'Sales' },
-  { value: 'business', label: 'Business' },
-  { value: 'education', label: 'Education' },
-  { value: 'startup', label: 'Startup' },
-  { value: 'design', label: 'Design' },
-];
 
 const MentorList = () => {
   const { t } = useAppTranslation();
-  const [mentors, setMentors] = useState<Mentor[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { confirm } = useConfirm();
+  const queryClient = useQueryClient();
+  const trackOptions = getTrackOptions(t, true);
+  const { data: mentors = [], isLoading: loading, isError, error: queryError } = useMentors();
+  const error = isError ? getApiErrorMessage(queryError) : null;
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ active: true, full: false });
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -55,24 +52,8 @@ const MentorList = () => {
     expertise: '',
   });
 
-  useEffect(() => {
-    const fetchMentors = async () => {
-      try {
-        setLoading(true);
-        const response = await mentorApi.getAll();
-        setMentors(unwrapList<Mentor>(response));
-        setError(null);
-      } catch (err) {
-        setError(getApiErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMentors();
-  }, []);
-
   const filteredMentors = useMemo(() => {
-    return mentors.filter((mentor) => {
+    return (mentors as Mentor[]).filter((mentor) => {
       const matchesSearch =
         mentor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         mentor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -104,17 +85,35 @@ const MentorList = () => {
     const menteeCount = mentor.mentees?.length || 0;
     const maxMentees = mentor.maxMentees || 10;
     const isFull = menteeCount >= maxMentees;
-    if (isFull) return <Badge status="full" label={`Full (${menteeCount}/${maxMentees})`} />;
-    return <Badge status="active" label={`Active (${menteeCount}/${maxMentees})`} />;
+    if (isFull) {
+      return (
+        <Badge
+          status="full"
+          label={t('lists.statusFull', { count: menteeCount, max: maxMentees })}
+        />
+      );
+    }
+    return (
+      <Badge
+        status="active"
+        label={t('lists.statusActive', { count: menteeCount, max: maxMentees })}
+      />
+    );
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete ${name}?`)) return;
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('lists.confirmDelete', { name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await mentorApi.delete(id);
-      setMentors((prev) => prev.filter((m) => m._id !== id));
+      void queryClient.invalidateQueries({ queryKey: queryKeys.mentors });
     } catch {
-      setError('Failed to delete mentor');
+      toast.error(t('lists.deleteMentorFailed'));
     }
   };
 
@@ -150,7 +149,7 @@ const MentorList = () => {
             value={advancedFilters.track}
             onChange={(e) => setAdvancedFilters({ ...advancedFilters, track: e.target.value })}
           >
-            {TRACK_OPTIONS.map((o) => (
+            {trackOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
               </option>
@@ -199,7 +198,7 @@ const MentorList = () => {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="card p-5">
               <Skeleton count={3} />
@@ -216,57 +215,62 @@ const MentorList = () => {
           actionHref="/mentors/add"
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filteredMentors.map((mentor) => (
-            <article key={mentor._id} className="card card-hover p-5 flex flex-col">
-              <div className="flex gap-4 mb-4">
-                <Avatar name={mentor.name} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h3 className="text-base font-semibold text-primary truncate">
-                      {mentor.name}
-                    </h3>
+            <article key={mentor._id} className="card card-hover people-card p-5 flex flex-col">
+              <div className="people-card__header mb-4">
+                <Avatar
+                  name={mentor.name}
+                  size="lg"
+                  track={mentor.track}
+                  url={resolveAssetUrl(mentor.avatarUrl)}
+                />
+                <div className="people-card__identity">
+                  <div className="people-card__title-row">
+                    <h3 className="people-card__name">{mentor.name}</h3>
                     {mentor.track && <TrackBadge track={mentor.track as any} size="small" />}
                   </div>
-                  <p className="text-sm text-muted truncate">{mentor.email}</p>
+                  <p className="people-card__meta">{mentor.email}</p>
+                  {mentor.phone && <p className="people-card__submeta">{mentor.phone}</p>}
                 </div>
               </div>
-              <div className="mb-3">{getStatusBadge(mentor)}</div>
-              <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-lg surface-muted">
-                <div className="text-center">
-                  <p className="text-xl font-semibold tabular-nums text-primary">
-                    {mentor.mentees?.length || 0}
-                  </p>
-                  <p className="text-xs text-muted">Mentees</p>
+
+              <div className="mb-4">{getStatusBadge(mentor)}</div>
+
+              <div className="people-metrics">
+                <div className="people-metrics__item">
+                  <span className="people-metrics__value">{mentor.mentees?.length || 0}</span>
+                  <span className="people-metrics__label">{t('nav.mentees')}</span>
                 </div>
-                <div className="text-center">
-                  <p className="text-xl font-semibold tabular-nums text-primary">
-                    {mentor.maxMentees || 10}
-                  </p>
-                  <p className="text-xs text-muted">Capacity</p>
+                <div className="people-metrics__divider" aria-hidden />
+                <div className="people-metrics__item">
+                  <span className="people-metrics__value">{mentor.maxMentees || 10}</span>
+                  <span className="people-metrics__label">{t('group.capacity')}</span>
                 </div>
               </div>
+
               {mentor.bio && (
-                <p className="text-sm text-secondary line-clamp-2 mb-3">{mentor.bio}</p>
+                <p className="text-sm text-secondary line-clamp-2 mb-4 mt-4">{mentor.bio}</p>
               )}
+
               {mentor.expertise && mentor.expertise.length > 0 && (
                 <div className="mb-4">
                   <SkillTags skills={mentor.expertise} />
                 </div>
               )}
-              {mentor.phone && (
-                <p className="text-xs text-muted mb-4">{mentor.phone}</p>
-              )}
-              <div className="flex gap-2 mt-auto pt-2">
-                <Link to={`/mentors/${mentor._id}`} className="btn btn-secondary flex-1">
+
+              <div className="people-card__footer">
+                <Link to={`/mentors/${mentor._id}`} className="btn btn-primary flex-1">
                   {t('mentor.viewDetails')}
                 </Link>
                 <button
                   type="button"
-                  className="btn btn-danger flex-1"
+                  className="btn btn-ghost-danger px-3"
                   onClick={() => handleDelete(mentor._id, mentor.name)}
+                  aria-label={t('common.delete')}
+                  title={t('common.delete')}
                 >
-                  Delete
+                  <HiOutlineTrash className="h-4 w-4" />
                 </button>
               </div>
             </article>
