@@ -325,6 +325,7 @@ curl http://localhost:5000/api/health
 | **Unit + integration (API)** | `npm run test:unit` | All `backend/__tests__` (MongoDB required for auth suite) |
 | **Coverage gate (CI)** | `npm run test:unit:ci` | Scoped backend modules + minimum thresholds |
 | **Unit (UI)** | `npm run test:frontend` | Pure functions, form helpers |
+| **Full local gate** | `npm run quality` | Build, lint, tests, locales, OpenAPI, secrets |
 | **E2E** | `npm run test:e2e` | Smoke, critical paths, production flows (Playwright) |
 | **i18n** | `npm run check:locales` | Key parity across locale files |
 | **API contract** | `npm run check:openapi` | Validates `docs/openapi.json` |
@@ -342,7 +343,9 @@ Every push/PR to `main`, `master`, or `develop` runs GitHub Actions:
 - Production env script validation
 - Playwright E2E (with MongoDB service)
 
-See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Staging CD (`develop`) and manual releases: [`staging.yml`](./.github/workflows/staging.yml), [`release.yml`](./.github/workflows/release.yml).
+
+SDLC maturity scorecard: [`docs/QUALITY.md`](./docs/QUALITY.md). Testing details: [`docs/TESTING.md`](./docs/TESTING.md).
 
 ---
 

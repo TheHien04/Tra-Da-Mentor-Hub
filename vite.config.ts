@@ -8,6 +8,21 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      include: [
+        'src/lib/analyticsCompute.ts',
+        'src/lib/assetUrl.ts',
+        'src/lib/zodForm.ts',
+      ],
+      thresholds: {
+        lines: 85,
+        functions: 80,
+        branches: 55,
+        statements: 85,
+      },
+    },
   },
   build: {
     rollupOptions: {

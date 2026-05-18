@@ -16,15 +16,19 @@
     "backend/services/mentorStore.js",
     "backend/services/menteeStore.js",
     "backend/services/groupStore.js",
-    "backend/services/activityStore.js"
+    "backend/services/activityStore.js",
+    "backend/services/inviteStore.js",
+    "backend/services/notificationStore.js",
+    "backend/services/sessionLogStore.js",
+    "backend/services/slotStore.js"
   ],
   "coverageDirectory": "coverage",
   "coverageThreshold": {
     "global": {
-      "branches": 25,
-      "functions": 30,
-      "lines": 38,
-      "statements": 38
+      "branches": 28,
+      "functions": 32,
+      "lines": 40,
+      "statements": 40
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "tra-da-mentor",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "engines": {
     "node": ">=20"
@@ -19,6 +19,8 @@
     "test:unit": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:unit:ci": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --coverage",
     "test:frontend": "vitest run",
+    "test:frontend:ci": "vitest run --coverage",
+    "quality": "node scripts/quality-gate.mjs",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium",
     "merge:locales": "node scripts/merge-locales.mjs",
@@ -85,6 +87,7 @@
     "@types/react-modal": "^3.16.3",
     "@types/supertest": "^6.0.3",
     "@vitejs/plugin-react": "^4.4.1",
+    "@vitest/coverage-v8": "^3.2.4",
     "autoprefixer": "^10.4.24",
     "concurrently": "^9.1.2",
     "eslint": "^9.25.0",
