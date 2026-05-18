@@ -1,135 +1,232 @@
-# Trà Đá Mentor Hub
+<p align="center">
+  <img src="./Images/Dashboard%20light%201.jpg" alt="Trà Đá Mentor Hub — Dashboard" width="720" />
+</p>
+
+<h1 align="center">Trà Đá Mentor Hub</h1>
 
 <p align="center">
-  <strong>Nền tảng quản lý mentoring</strong> — kết nối Mentor & Mentee, lịch phỏng vấn, nhật ký buổi học, analytics và công cụ admin.
+  <strong>Production-grade mentoring operations platform</strong><br />
+  Mentor & mentee lifecycle · scheduling · session CRM · analytics · admin tooling
 </p>
 
 <p align="center">
-  <a href="#tính-năng-chính">Tính năng</a> ·
-  <a href="#giao-diện-screenshots">Screenshots</a> ·
-  <a href="#cài-đặt">Cài đặt</a> ·
-  <a href="#bảo-mật">Bảo mật</a> ·
-  <a href="#triển-khai-production">Deploy</a>
+  <a href="#overview">Overview</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#product-screenshots">Screenshots</a> ·
+  <a href="#getting-started">Getting Started</a> ·
+  <a href="#development-workflow">Development</a> ·
+  <a href="#quality-engineering">Quality</a> ·
+  <a href="#deployment-runbook">Deployment</a> ·
+  <a href="#security">Security</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white" alt="Node 20+" />
+  <img src="https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/typescript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/mongoDB-7-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" />
 </p>
 
 ---
 
-## Giới thiệu
+## Overview
 
-**Trà Đá Mentor Hub** là ứng dụng web full-stack giúp chương trình mentoring vận hành end-to-end: quản lý hồ sơ mentor/mentee, nhóm, đơn đăng ký, slot phỏng vấn, session logs (CRM), broadcast thông báo, testimonials, xuất CSV và dashboard phân tích.
+**Trà Đá Mentor Hub** is a full-stack web application that operationalizes structured mentoring programs. It gives program administrators, mentors, and mentees a single system of record for profiles, cohorts, interview scheduling, post-session CRM, operational notifications, and program analytics.
 
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Frontend | React 19, TypeScript, Vite, TanStack Query, i18n (EN / VI / JP / KR / CN) |
-| Backend | Node.js 20+, Express 5, Mongoose, JWT + refresh token |
-| Tích hợp (tùy chọn) | SendGrid, Zalo OA, Google Calendar, OpenAI, Stripe, Sentry |
+### Problem statement
+
+Mentoring programs typically fragment data across spreadsheets, chat threads, and ad-hoc calendars. That creates poor visibility, inconsistent follow-up, and high operational overhead.
+
+### Solution
+
+A unified platform with role-based access, persistent storage (MongoDB), real-time in-app notifications, and optional integrations (email, messaging, calendar, payments, AI) activated only when credentials are configured on the server.
+
+### Personas & capabilities
+
+| Persona | Primary capabilities |
+|---------|----------------------|
+| **Admin** | User invites, broadcast notifications, CSV export, testimonials, analytics, program configuration |
+| **Mentor** | Profile management, availability slots, mentee visibility, session logging, schedule |
+| **Mentee** | Application flow, slot booking, session participation, progress tracking |
+
+### Technology stack
+
+| Layer | Technologies |
+|-------|----------------|
+| **Client** | React 19, TypeScript, Vite, TanStack Query, React Router, Zod, i18next (EN · VI · JP · KR · CN) |
+| **API** | Node.js 20+, Express 5, Mongoose, JWT access + refresh tokens, Socket.IO |
+| **Data** | MongoDB (required in production) |
+| **Integrations** *(optional)* | SendGrid, Zalo OA, Google Calendar, OpenAI, Stripe, Sentry |
+| **Quality** | Jest, Vitest, Playwright, GitHub Actions |
 
 ---
 
-## Tính năng chính
+## Architecture
 
-- **Xác thực & phân quyền** — Đăng nhập, đăng ký (kèm invite link), Google OAuth, JWT refresh, role Admin / Mentor / Mentee.
-- **Quản lý Mentor & Mentee** — CRUD, avatar, track/chuyên môn, tìm kiếm nhanh, chi tiết hồ sơ.
-- **Nhóm & đơn đăng ký** — Nhóm mentoring, duyệt application status.
-- **Lịch & slot** — Schedule tổng quan, slot trống, đặt lịch phỏng vấn, đồng bộ Google Calendar (khi cấu hình).
-- **Session logs** — Ghi nhận sau mỗi buổi mentoring, điểm, flag cần hỗ trợ, KPI & lọc.
-- **Admin** — Gửi thông báo in-app (+ email/Zalo nếu server đã bật), mời user, export CSV, testimonials.
-- **Analytics & AI** — KPI, biểu đồ xu hướng, Smart Match / AI Insights (OpenAI tùy chọn).
-- **Production-ready** — Mongo bắt buộc khi `NODE_ENV=production`, health check, Docker, script `create:admin`, E2E Playwright.
+```mermaid
+flowchart TB
+  subgraph Client["Browser (SPA)"]
+    UI[React + Vite]
+    RQ[TanStack Query]
+    UI --> RQ
+  end
+
+  subgraph API["Node / Express"]
+    AUTH[JWT Auth + RBAC]
+    REST[REST /api/*]
+    WS[Socket.IO]
+    AUTH --> REST
+    REST --> WS
+  end
+
+  subgraph Data["Persistence"]
+    MONGO[(MongoDB)]
+  end
+
+  subgraph Optional["Optional integrations"]
+    SG[SendGrid]
+    ZL[Zalo OA]
+    GC[Google Calendar]
+    OAI[OpenAI]
+    ST[Stripe]
+  end
+
+  RQ -->|HTTPS| REST
+  REST --> MONGO
+  REST -.-> SG
+  REST -.-> ZL
+  REST -.-> GC
+  REST -.-> OAI
+  REST -.-> ST
+```
+
+### Design principles
+
+1. **Single deployable unit** — The production server serves the built SPA and API from one process (suitable for Railway, Render, Docker).
+2. **Fail-closed production** — Without MongoDB, the API refuses to start in `NODE_ENV=production` (no silent in-memory data loss).
+3. **Secrets off the client** — Integration keys exist only in server environment variables; the admin UI shows service status, never credentials.
+4. **Progressive enhancement** — In-app notifications work out of the box; email and Zalo activate when the operator configures them.
+
+### Repository layout
+
+```
+Tra-Da-Mentor-Hub/
+├── Images/                  # Product screenshots (documentation only)
+├── backend/
+│   ├── controllers/         # HTTP handlers
+│   ├── models/              # Mongoose schemas
+│   ├── routes/              # API routers
+│   ├── services/            # Domain logic & stores
+│   ├── middleware/          # Auth, rate limits, security
+│   └── server.js            # Application entrypoint
+├── src/                     # React application
+│   ├── components/          # UI & feature modules
+│   ├── pages/               # Route-level views
+│   ├── hooks/queries/       # Server-state (React Query)
+│   └── services/            # API client
+├── e2e/                     # Playwright end-to-end specs
+├── scripts/                 # Tooling (locales, admin bootstrap, env verify)
+├── .github/workflows/       # CI pipeline
+├── .env.example             # Documented environment template (safe to commit)
+└── docker-compose.yml       # Local production simulation
+```
 
 ---
 
-## Giao diện (Screenshots)
+## Product screenshots
 
-> Ảnh demo nằm trong thư mục [`Images/`](./Images/). Giao diện hỗ trợ **light / dark mode**.
+All assets live under [`Images/`](./Images/). The product supports **light and dark** themes and **five UI locales**.
 
-### Đăng nhập & đăng ký
+### Authentication
 
-| Đăng nhập (light) | Đăng nhập (dark) |
-|:---:|:---:|
-| ![Login light](./Images/Login%20light.jpg) | ![Login dark](./Images/Login%20dark.jpg) |
+| Sign in (light) | Sign in (dark) |
+|:--:|:--:|
+| ![Sign in — light theme](./Images/Login%20light.jpg) | ![Sign in — dark theme](./Images/Login%20dark.jpg) |
 
-| Tạo tài khoản (light) | Tạo tài khoản (dark) |
-|:---:|:---:|
-| ![Create account light](./Images/Create%20account%20light.jpg) | ![Create account dark](./Images/Create%20account%20dark.jpg) |
+| Registration (light) | Registration (dark) |
+|:--:|:--:|
+| ![Create account — light](./Images/Create%20account%20light.jpg) | ![Create account — dark](./Images/Create%20account%20dark.jpg) |
 
 ### Dashboard
 
-| Tổng quan (light) | Chi tiết (light) |
-|:---:|:---:|
-| ![Dashboard light 1](./Images/Dashboard%20light%201.jpg) | ![Dashboard light 2](./Images/Dashboard%20light%202.jpg) |
+| Program overview (light) | Activity & KPIs (light) |
+|:--:|:--:|
+| ![Dashboard overview](./Images/Dashboard%20light%201.jpg) | ![Dashboard detail](./Images/Dashboard%20light%202.jpg) |
 
-| Dashboard (dark) |
-|:---:|
-| ![Dashboard dark](./Images/Dashboard%20dark%201.jpg) |
+| Program overview (dark) |
+|:--:|
+| ![Dashboard — dark theme](./Images/Dashboard%20dark%201.jpg) |
 
-### Mentor & Mentee
+### Mentor & mentee management
 
-| Danh sách Mentor (light) | Danh sách Mentor (dark) |
-|:---:|:---:|
-| ![Mentor light](./Images/Mentor%20light.jpg) | ![Mentor dark](./Images/Mentor%20dark.jpg) |
+| Mentor directory (light) | Mentor directory (dark) |
+|:--:|:--:|
+| ![Mentor list — light](./Images/Mentor%20light.jpg) | ![Mentor list — dark](./Images/Mentor%20dark.jpg) |
 
-| Danh sách Mentee | Thêm Mentor | Thêm Mentee |
-|:---:|:---:|:---:|
-| ![Mentees](./Images/Mentees.jpg) | ![Add mentor](./Images/Add%20mentor.jpg) | ![Add mentee](./Images/Add%20mentee.jpg) |
+| Mentee directory | Create mentor | Create mentee |
+|:--:|:--:|:--:|
+| ![Mentee list](./Images/Mentees.jpg) | ![Add mentor form](./Images/Add%20mentor.jpg) | ![Add mentee form](./Images/Add%20mentee.jpg) |
 
-| Sửa Mentor | Sửa Mentee | Chi tiết Mentee |
-|:---:|:---:|:---:|
+| Edit mentor | Edit mentee | Mentee profile |
+|:--:|:--:|:--:|
 | ![Edit mentor](./Images/Edit%20mentor.jpg) | ![Edit mentee](./Images/Edit%20mentee.jpg) | ![Mentee details](./Images/Mentee%20details.jpg) |
 
-| Tìm kiếm nhanh |
-|:---:|
-| ![Quick search](./Images/Quick%20search.jpg) |
+| Global quick search |
+|:--:|
+| ![Quick search across entities](./Images/Quick%20search.jpg) |
 
-### Đơn đăng ký, lịch & slot
+### Applications, schedule & slots
 
-| Applications | Schedule | Free slots |
-|:---:|:---:|:---:|
-| ![Application](./Images/Application.jpg) | ![Schedule](./Images/Schedule.jpg) | ![Free slots](./Images/Free%20slots.jpg) |
+| Application pipeline | Master schedule | Available slots |
+|:--:|:--:|:--:|
+| ![Applications](./Images/Application.jpg) | ![Schedule](./Images/Schedule.jpg) | ![Free slots](./Images/Free%20slots.jpg) |
 
-### Session logs
+### Session CRM
 
-| Nhật ký buổi mentoring |
-|:---:|
-| ![Session logs](./Images/Session%20logs.jpg) |
+| Post-session logs & support flags |
+|:--:|
+| ![Session logs — CRM view](./Images/Session%20logs.jpg) |
 
-### Analytics & AI Insights
+### Analytics & AI
 
-| Analytics (light) | Analytics (dark) |
-|:---:|:---:|
-| ![Analytics light](./Images/Analytics%20light.jpg) | ![Analytics dark 1](./Images/Analytics%20dark%201.jpg) |
+| Analytics dashboard (light) | Analytics dashboard (dark) |
+|:--:|:--:|
+| ![Analytics — light](./Images/Analytics%20light.jpg) | ![Analytics — dark](./Images/Analytics%20dark%201.jpg) |
 
-| Analytics chi tiết (light) | Analytics chi tiết (dark) |
-|:---:|:---:|
-| ![Analytics light 2](./Images/Analytics%20light%202.jpg) | ![Analytics Dark 2](./Images/Analytics%20Dark%202.jpg) |
+| Trend & engagement (light) | Trend & engagement (dark) |
+|:--:|:--:|
+| ![Analytics detail — light](./Images/Analytics%20light%202.jpg) | ![Analytics detail — dark](./Images/Analytics%20Dark%202.jpg) |
 
-| AI Insights |
-|:---:|
-| ![AI Insights](./Images/AI%20Insights.jpg) |
+| AI insights & smart matching |
+|:--:|
+| ![AI insights](./Images/AI%20Insights.jpg) |
 
 ### Testimonials
 
-| Testimonials | Quản lý testimonials |
-|:---:|:---:|
-| ![Testimonials 1](./Images/Testimonials%201.jpg) | ![Testimonials 2](./Images/Testimonials%202.jpg) |
+| Public testimonials | Admin curation |
+|:--:|:--:|
+| ![Testimonials showcase](./Images/Testimonials%201.jpg) | ![Testimonials management](./Images/Testimonials%202.jpg) |
 
-### Admin
+### Admin operations
 
-| Gửi thông báo | Mời user | Export dữ liệu |
-|:---:|:---:|:---:|
-| ![Notifications](./Images/Notifications.jpg) | ![Invite user](./Images/Invitie%20user.jpg) | ![Export data](./Images/Export%20data.jpg) |
+| Broadcast notifications | User invites | Data export |
+|:--:|:--:|:--:|
+| ![Send notification](./Images/Notifications.jpg) | ![Invite users](./Images/Invitie%20user.jpg) | ![Export CSV](./Images/Export%20data.jpg) |
 
 ---
 
-## Cài đặt
+## Getting started
 
-### Yêu cầu
+### Prerequisites
 
-- **Node.js** ≥ 20  
-- **MongoDB** (local hoặc [MongoDB Atlas](https://www.mongodb.com/atlas))  
-- **npm** ≥ 9  
+| Requirement | Version |
+|-------------|---------|
+| Node.js | ≥ 20 |
+| npm | ≥ 9 |
+| MongoDB | 6+ (local or [Atlas](https://www.mongodb.com/atlas)) |
 
-### Bước 1 — Clone & cài dependency
+### 1. Clone and install
 
 ```bash
 git clone https://github.com/TheHien04/Tra-Da-Mentor-Hub.git
@@ -137,152 +234,238 @@ cd Tra-Da-Mentor-Hub
 npm install
 ```
 
-### Bước 2 — Biến môi trường
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Chỉnh `.env` — **không commit file này**. Tối thiểu cho dev:
+Edit `.env` locally. **Never commit this file.**
+
+Minimum development configuration:
 
 ```env
 NODE_ENV=development
 PORT=5000
 DATABASE_URL=mongodb://localhost:27017/tra-da-mentor
-JWT_SECRET=<openssl rand -hex 64>
-JWT_REFRESH_SECRET=<openssl rand -hex 64 khác>
+
+# Generate with: openssl rand -hex 64
+JWT_SECRET=<64-char-hex>
+JWT_REFRESH_SECRET=<different-64-char-hex>
+
 CORS_ORIGIN=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 VITE_API_URL=http://localhost:5000/api
 ENABLE_DEMO_AUTH=true
 ```
 
-Tạo secret mạnh:
+### 3. Run locally
 
 ```bash
-openssl rand -hex 64
-```
-
-### Bước 3 — Chạy dev
-
-```bash
-# Frontend :5173 + Backend :5000
+# Terminal A — API :5000 + SPA :5173
 npm run dev:all
 ```
 
-Tùy chọn seed dữ liệu demo:
+Optional demo data:
 
 ```bash
 npm run seed
 ```
 
-Demo admin (khi `ENABLE_DEMO_AUTH=true`): `admin@example.com` / `AdminPass123`
+**Demo credentials** (only when `ENABLE_DEMO_AUTH=true`):
 
-### Scripts hữu ích
+| Field | Value |
+|-------|-------|
+| Email | `admin@example.com` |
+| Password | `AdminPass123` |
 
-| Lệnh | Mô tả |
-|------|--------|
-| `npm run build` | Build production frontend |
-| `npm run start:prod` | Build + chạy server production |
-| `npm run test:unit` | Unit tests backend |
-| `npm run test:frontend` | Vitest frontend |
-| `npm run test:e2e` | Playwright E2E |
-| `npm run verify:env` | Kiểm tra biến môi trường production |
-| `npm run check:secrets` | Đảm bảo không track file nhạy cảm |
-| `npm run create:admin` | Tạo admin production (Mongo) |
-| `npm run docker:up` | Docker Compose (app + Mongo) |
-
----
-
-## Triển khai production
-
-1. Đặt `NODE_ENV=production`, `ENABLE_DEMO_AUTH=false`.
-2. Dùng MongoDB Atlas (hoặc cluster riêng) — **bắt buộc**; server sẽ không chạy memory fallback.
-3. Chạy `npm run verify:env` trước khi deploy.
-4. Tạo admin đầu tiên:  
-   `npm run create:admin -- admin@your.org "Admin Name" 'YourSecurePass123!'`
-5. Volume cho avatar: mount `backend/uploads` (đã có trong `docker-compose.yml`).
-
-Chi tiết Railway / Render: xem [DEPLOY.md](./DEPLOY.md) (nếu có trong repo).
-
----
-
-## Bảo mật
-
-Dự án được cấu hình **không đưa secrets lên Git**:
-
-| Không commit | Được commit |
-|--------------|-------------|
-| `.env`, `.env.*` | `.env.example` |
-| `deploy/*.generated`, JWT thật | `deploy/*.template` |
-| `*.pem`, `credentials.json` | Mã nguồn, screenshots |
-| `backend/uploads/*` (avatar user) | `backend/uploads/avatars/.gitkeep` |
-
-Trước khi push, chạy:
+### 4. Verify health
 
 ```bash
-npm run check:secrets
-```
-
-**Khuyến nghị production**
-
-- JWT ≥ 64 ký tự hex, `JWT_SECRET` ≠ `JWT_REFRESH_SECRET`
-- `CORS_ORIGIN` chỉ domain frontend
-- Tắt `ENABLE_DEMO_AUTH`
-- Bật HTTPS; cấu hình `SENTRY_DSN` / `VITE_SENTRY_DSN` nếu dùng Sentry
-- SendGrid / Stripe / Google keys chỉ trên server env
-
----
-
-## Cấu trúc thư mục
-
-```
-Tra-Da-Mentor-Hub/
-├── Images/                 # Screenshots README (không chứa dữ liệu user)
-├── backend/
-│   ├── controllers/        # Auth, analytics, uploads, calendar…
-│   ├── models/             # User, Mentor, Mentee, Slot, Invite…
-│   ├── routes/             # REST API /api/*
-│   ├── services/           # Stores, matching AI, invites
-│   └── server.js
-├── src/                    # React SPA
-├── e2e/                    # Playwright tests
-├── scripts/                # deploy, locales, create-admin, verify-env
-├── .env.example            # Mẫu biến môi trường (an toàn commit)
-└── docker-compose.yml
+curl http://localhost:5000/api/health
 ```
 
 ---
 
-## API (tóm tắt)
+## Development workflow
 
-Base URL: `/api` · Auth: `Authorization: Bearer <accessToken>`
+### NPM scripts
 
-| Nhóm | Ví dụ |
-|------|--------|
-| Health | `GET /api/health` |
-| Auth | `POST /api/auth/login`, `register`, `refresh` |
-| CRM | `/api/mentors`, `/api/mentees`, `/api/groups` |
-| Vận hành | `/api/slots`, `/api/session-logs`, `/api/activities` |
-| Admin | `/api/admin/broadcast`, `/api/invites`, `/api/analytics/summary` |
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Vite dev server (frontend only) |
+| `npm run dev:server` | API with nodemon |
+| `npm run dev:all` | Frontend + API concurrently |
+| `npm run build` | Typecheck + production frontend build |
+| `npm run start` | Production API (serves `dist/`) |
+| `npm run start:prod` | `build` then `start` |
+| `npm run lint` | ESLint |
+| `npm run merge:locales` | Sync i18n keys from `en.json` |
+| `npm run check:locales` | Enforce locale key parity |
+| `npm run check:secrets` | Pre-push secret guard |
+| `npm run verify:env` | Production env validation |
+| `npm run create:admin` | Bootstrap first production admin |
+| `npm run docker:up` | Docker Compose stack |
+
+### Recommended local loop
+
+1. Create a feature branch from `main`.
+2. Implement with `npm run dev:all` running.
+3. Run `npm run lint && npm run build` before opening a PR.
+4. Run `npm run check:secrets` before pushing.
 
 ---
 
-## Testing
+## Quality engineering
+
+### Test pyramid
+
+| Layer | Command | Scope |
+|-------|---------|-------|
+| **Unit (API)** | `npm run test:unit` | Auth utilities, stores, security helpers |
+| **Unit (UI)** | `npm run test:frontend` | Pure functions, form helpers |
+| **E2E** | `npm run test:e2e` | Critical admin flows (Playwright + MongoDB) |
+| **i18n** | `npm run check:locales` | Key parity across locale files |
+
+### Continuous integration
+
+Every push/PR to `main`, `master`, or `develop` runs GitHub Actions:
+
+- Dependency install (`npm ci`)
+- Secret tracking guard (`check:secrets`)
+- Typecheck + production build
+- ESLint
+- Unit tests (backend + frontend)
+- Locale parity
+- Production env script validation
+- Playwright E2E (with MongoDB service)
+
+See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml).
+
+---
+
+## Deployment runbook
+
+### Pre-release checklist
+
+- [ ] `NODE_ENV=production`
+- [ ] `ENABLE_DEMO_AUTH=false`
+- [ ] MongoDB connection string set (`DATABASE_URL`)
+- [ ] Strong, distinct `JWT_SECRET` and `JWT_REFRESH_SECRET` (≥ 64 hex chars each)
+- [ ] `CORS_ORIGIN` restricted to production frontend origin
+- [ ] `npm run verify:env` passes in CI or locally with production vars
+- [ ] `npm run build` succeeds
+- [ ] First admin created:  
+  `npm run create:admin -- admin@company.com "Admin Name" 'StrongPass123!'`
+- [ ] Persistent volume mounted at `backend/uploads` (avatars)
+- [ ] HTTPS terminated at load balancer / platform edge
+- [ ] Optional: `SENTRY_DSN` + `VITE_SENTRY_DSN` for error monitoring
+
+### Docker (local production simulation)
 
 ```bash
-npm run test:unit
-npm run test:frontend
-npm run check:locales
-npm run test:e2e          # cần Mongo + dev:all hoặc CI
+npm run docker:up
+# App → http://localhost:5000
 ```
+
+`docker-compose.yml` provisions MongoDB and an `uploads` volume for avatar persistence.
+
+### Platform deploy
+
+For Railway, Render, or similar PaaS workflows, see **[DEPLOY.md](./DEPLOY.md)**.
+
+---
+
+## Security
+
+### Secret management policy
+
+| **Never commit** | **Safe to commit** |
+|------------------|-------------------|
+| `.env`, `.env.local`, any file with live credentials | `.env.example` |
+| `deploy/*.generated`, platform env exports | `deploy/*.template` |
+| `*.pem`, `credentials.json`, service account JSON | Application source code |
+| User-uploaded avatars (`backend/uploads/*`) | `backend/uploads/avatars/.gitkeep` |
+
+Enforced via `.gitignore` and `npm run check:secrets`.
+
+### Application controls
+
+- Bcrypt password hashing
+- JWT access tokens + rotating refresh tokens
+- Role-based route protection (admin / mentor / mentee)
+- Helmet security headers, CORS allowlist, rate limiting
+- Zod request validation
+- Invite-token gated admin registration
+- Production boot guard: MongoDB required; demo auth disabled by default
+
+### Operator responsibilities
+
+- Rotate JWT secrets if compromise is suspected
+- Scope `CORS_ORIGIN` to known domains only
+- Store SendGrid, Stripe, Google, and OpenAI keys in the hosting provider’s secret manager—not in the repository
+- Review dependency updates regularly (`npm audit`)
+
+---
+
+## API reference (summary)
+
+**Base URL:** `/api`  
+**Authentication:** `Authorization: Bearer <accessToken>`
+
+| Domain | Endpoints |
+|--------|-----------|
+| **Health** | `GET /api/health` |
+| **Auth** | `POST /api/auth/login`, `register`, `refresh`, `logout` · `GET /api/auth/profile` · Google OAuth |
+| **Mentors** | `GET/POST /api/mentors` · `GET/PATCH/DELETE /api/mentors/:id` |
+| **Mentees** | `GET/POST /api/mentees` · `PATCH /api/mentees/:id/application-status` |
+| **Groups** | `GET/POST /api/groups` · member assignment routes |
+| **Operations** | `/api/slots`, `/api/session-logs`, `/api/activities` |
+| **Admin** | `POST /api/admin/broadcast` · `/api/invites` · `GET /api/analytics/summary` |
+| **Uploads** | `POST /api/uploads/avatar` |
+
+---
+
+## Feature catalog
+
+| Module | Description |
+|--------|-------------|
+| **Auth & RBAC** | Email/password, Google SSO, invite-based registration, JWT refresh |
+| **Mentor / Mentee CRM** | Profiles, tracks, avatars, search, detail views |
+| **Groups** | Cohort management and mentee assignment |
+| **Applications** | Pipeline status for mentee onboarding |
+| **Scheduling** | Calendar-style schedule and interview slot booking |
+| **Session logs** | Post-session notes, scores, support escalation flags |
+| **Notifications** | In-app broadcast; optional email (SendGrid) and Zalo OA |
+| **Invites** | Admin-issued registration links with MongoDB persistence |
+| **Analytics** | KPI cards, engagement trends, exportable insights |
+| **AI** | Smart match suggestions and insights (OpenAI, optional) |
+| **Testimonials** | Curated success stories |
+| **Export** | CSV export for mentors, mentees, session logs |
+| **i18n & a11y** | Five languages, skip links, keyboard-friendly UI |
+
+---
+
+## Contributing
+
+1. Fork the repository and create a branch from `main`.
+2. Follow existing code style (TypeScript strict mode, ESLint).
+3. Add or update tests for behavioral changes.
+4. Run the full local quality gate before submitting a PR.
+5. Do not include secrets, personal data, or production screenshots with PII.
 
 ---
 
 ## License
 
-MIT — see repository license file.
+Released under the [MIT License](./LICENSE).
 
-## Contributors
+---
 
-Trà Đá Community · [TheHien04](https://github.com/TheHien04)
+## Maintainers
+
+**Trà Đá Community** · [TheHien04](https://github.com/TheHien04)
+
+<p align="center">
+  <sub>Built for mentoring programs that need operational rigor without operational chaos.</sub>
+</p>
