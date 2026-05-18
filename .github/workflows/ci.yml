@@ -10,6 +10,21 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: mongodb://127.0.0.1:27017/tra-da-mentor-ci
+      TEST_DATABASE_URL: mongodb://127.0.0.1:27017/tra-da-mentor-test
+      JWT_SECRET: ci-jwt-secret-minimum-sixty-four-characters-long-for-github-actions
+      JWT_REFRESH_SECRET: ci-jwt-refresh-secret-minimum-sixty-four-characters-long-for-ci
+      CORS_ORIGIN: http://localhost:5173
+      ENABLE_DEMO_AUTH: 'true'
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,20 +39,27 @@ jobs:
       - name: Ensure secrets are not tracked in git
         run: npm run check:secrets
 
+      - name: Validate OpenAPI spec
+        run: node -e "JSON.parse(require('fs').readFileSync('docs/openapi.json','utf8')); console.log('openapi.json OK')"
+
       - name: Typecheck and build frontend
         run: npm run build
 
       - name: Lint
         run: npm run lint
 
-      - name: Unit tests
-        run: npm run test:unit
+      - name: Unit and integration tests (with coverage)
+        run: npm run test:unit:ci
 
       - name: Frontend unit tests
         run: npm run test:frontend
 
       - name: Locale parity
         run: npm run check:locales
+
+      - name: Dependency audit (high severity)
+        run: npm audit --audit-level=high
+        continue-on-error: true
 
       - name: Verify production env script
         run: |
@@ -46,7 +68,6 @@ jobs:
           export JWT_REFRESH_SECRET=ci-jwt-refresh-secret-minimum-sixty-four-characters-long-for-ci
           export DATABASE_URL=mongodb://127.0.0.1:27017/tra-da-mentor-ci
           export CORS_ORIGIN=http://localhost:5000
-          npm run build
           npm run verify:env
 
   e2e:

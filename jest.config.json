@@ -4,5 +4,27 @@
   "moduleFileExtensions": ["js", "json"],
   "testMatch": ["**/__tests__/**/*.test.js"],
   "testTimeout": 30000,
-  "verbose": true
+  "verbose": true,
+  "collectCoverageFrom": [
+    "backend/lib/healthStatus.js",
+    "backend/lib/secretValidation.js",
+    "backend/middleware/security.js",
+    "backend/config/demoAuth.js",
+    "backend/createApp.js",
+    "backend/routes/docs.js",
+    "backend/utils/jwt.js",
+    "backend/services/mentorStore.js",
+    "backend/services/menteeStore.js",
+    "backend/services/groupStore.js",
+    "backend/services/activityStore.js"
+  ],
+  "coverageDirectory": "coverage",
+  "coverageThreshold": {
+    "global": {
+      "branches": 25,
+      "functions": 30,
+      "lines": 38,
+      "statements": 38
+    }
+  }
 }

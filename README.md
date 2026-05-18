@@ -322,10 +322,12 @@ curl http://localhost:5000/api/health
 
 | Layer | Command | Scope |
 |-------|---------|-------|
-| **Unit (API)** | `npm run test:unit` | Auth utilities, stores, security helpers |
+| **Unit + integration (API)** | `npm run test:unit` | All `backend/__tests__` (MongoDB required for auth suite) |
+| **Coverage gate (CI)** | `npm run test:unit:ci` | Scoped backend modules + minimum thresholds |
 | **Unit (UI)** | `npm run test:frontend` | Pure functions, form helpers |
-| **E2E** | `npm run test:e2e` | Critical admin flows (Playwright + MongoDB) |
+| **E2E** | `npm run test:e2e` | Smoke, critical paths, production flows (Playwright) |
 | **i18n** | `npm run check:locales` | Key parity across locale files |
+| **API contract** | `npm run check:openapi` | Validates `docs/openapi.json` |
 
 ### Continuous integration
 
@@ -408,10 +410,26 @@ Enforced via `.gitignore` and `npm run check:secrets`.
 
 ---
 
+## Documentation index
+
+| Document | Purpose |
+|----------|---------|
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, layers, flows |
+| [docs/openapi.json](./docs/openapi.json) | OpenAPI 3 contract |
+| Interactive docs | `GET /api/docs` (Swagger UI when server is running) |
+| [docs/adr/](./docs/adr/) | Architecture Decision Records |
+| [docs/STAGING.md](./docs/STAGING.md) | Staging environment guide |
+| [docs/RUNBOOK.md](./docs/RUNBOOK.md) | Operations & incident response |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Contributor workflow |
+| [CHANGELOG.md](./CHANGELOG.md) | Version history |
+| [DEPLOY.md](./DEPLOY.md) | Platform deployment |
+| [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) | Launch checklist |
+
 ## API reference (summary)
 
 **Base URL:** `/api`  
-**Authentication:** `Authorization: Bearer <accessToken>`
+**Authentication:** `Authorization: Bearer <accessToken>`  
+**Full contract:** [docs/openapi.json](./docs/openapi.json) · live explorer at `/api/docs`
 
 | Domain | Endpoints |
 |--------|-----------|
@@ -458,7 +476,7 @@ Enforced via `.gitignore` and `npm run check:secrets`.
 
 ## License
 
-Released under the MIT License.
+Released under the [MIT License](./LICENSE).
 
 ---
 
