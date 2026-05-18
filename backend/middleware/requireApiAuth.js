@@ -6,6 +6,7 @@ import { authenticate } from './auth.js';
 
 const PUBLIC_ROUTES = [
   { method: 'GET', pattern: /^\/api\/health$/ },
+  { method: 'GET', pattern: /^\/api\/docs(\/.*)?$/ },
   { method: 'POST', pattern: /^\/api\/payments\/webhook$/ },
   { method: 'POST', pattern: /^\/api\/auth\/login$/ },
   { method: 'POST', pattern: /^\/api\/auth\/register$/ },

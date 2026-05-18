@@ -1,0 +1,384 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Trà Đá Mentor Hub API",
+    "description": "REST API for mentoring program operations. Authenticated routes require `Authorization: Bearer <accessToken>`.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Trà Đá Mentor",
+      "url": "https://github.com/TheHien04/Tra-Da-Mentor-Hub"
+    }
+  },
+  "servers": [
+    { "url": "http://localhost:5000", "description": "Local development" },
+    { "url": "/", "description": "Current host (production single-origin deploy)" }
+  ],
+  "tags": [
+    { "name": "Health", "description": "Liveness and dependency status" },
+    { "name": "Auth", "description": "Authentication and sessions" },
+    { "name": "Mentors", "description": "Mentor profiles" },
+    { "name": "Mentees", "description": "Mentee profiles and applications" },
+    { "name": "Groups", "description": "Mentoring cohorts" },
+    { "name": "Slots", "description": "Interview / session availability" },
+    { "name": "SessionLogs", "description": "Post-session CRM records" },
+    { "name": "Admin", "description": "Broadcasts, integrations, exports" },
+    { "name": "Invites", "description": "Registration invites" },
+    { "name": "Analytics", "description": "Program KPIs and trends" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["ok", "degraded"] },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "storage": { "type": "string", "enum": ["mongodb", "memory"] }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": ["email", "password", "confirmPassword", "name", "role"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "minLength": 8 },
+          "confirmPassword": { "type": "string" },
+          "name": { "type": "string" },
+          "role": { "type": "string", "enum": ["user", "mentor", "mentee", "admin"] },
+          "inviteToken": { "type": "string" }
+        }
+      },
+      "AuthTokens": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "accessToken": { "type": "string" },
+              "refreshToken": { "type": "string" },
+              "expiresIn": { "type": "integer" },
+              "user": { "type": "object" }
+            }
+          }
+        }
+      },
+      "BroadcastRequest": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "audience": { "type": "string", "enum": ["all", "mentors", "mentees"], "default": "all" },
+          "subject": { "type": "string" },
+          "message": { "type": "string" },
+          "channel": {
+            "type": "string",
+            "enum": ["in_app", "email", "zalo", "email_zalo"],
+            "default": "in_app"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" }
+              }
+            }
+          },
+          "503": { "description": "Degraded (e.g. MongoDB down in production)" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Sign in",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokens" } }
+            }
+          },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Create account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } }
+          }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "409": { "description": "Email already exists" }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh access token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": { "refreshToken": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "New tokens" }, "401": { "description": "Invalid refresh token" } }
+      }
+    },
+    "/api/auth/profile": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Current user profile",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Profile" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/api/invites/validate/{token}": {
+      "get": {
+        "tags": ["Invites"],
+        "summary": "Validate invite token (public)",
+        "parameters": [
+          { "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Valid invite" },
+          "400": { "description": "Invalid or expired" }
+        }
+      }
+    },
+    "/api/invites": {
+      "post": {
+        "tags": ["Invites"],
+        "summary": "Create invite (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "role"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "role": { "type": "string", "enum": ["mentor", "mentee", "admin"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Invite created" } }
+      },
+      "get": {
+        "tags": ["Invites"],
+        "summary": "List invites (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Invite list" } }
+      }
+    },
+    "/api/mentors": {
+      "get": {
+        "tags": ["Mentors"],
+        "summary": "List mentors",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Array of mentors" } }
+      },
+      "post": {
+        "tags": ["Mentors"],
+        "summary": "Create mentor",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/mentors/{id}": {
+      "get": {
+        "tags": ["Mentors"],
+        "summary": "Get mentor by ID",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Mentor" }, "404": { "description": "Not found" } }
+      },
+      "patch": {
+        "tags": ["Mentors"],
+        "summary": "Update mentor",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "tags": ["Mentors"],
+        "summary": "Delete mentor",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/api/mentees": {
+      "get": {
+        "tags": ["Mentees"],
+        "summary": "List mentees",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Array of mentees" } }
+      },
+      "post": {
+        "tags": ["Mentees"],
+        "summary": "Create mentee",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/mentees/{id}/application-status": {
+      "patch": {
+        "tags": ["Mentees"],
+        "summary": "Update application status",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Updated" } }
+      }
+    },
+    "/api/groups": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "List groups",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Groups" } }
+      },
+      "post": {
+        "tags": ["Groups"],
+        "summary": "Create group",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/slots": {
+      "get": {
+        "tags": ["Slots"],
+        "summary": "List slots",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Slots" } }
+      },
+      "post": {
+        "tags": ["Slots"],
+        "summary": "Create slot",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/slots/{id}/book": {
+      "patch": {
+        "tags": ["Slots"],
+        "summary": "Book slot for mentee",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "menteeId": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Booked" } }
+      }
+    },
+    "/api/session-logs": {
+      "get": {
+        "tags": ["SessionLogs"],
+        "summary": "List session logs",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Logs" } }
+      },
+      "post": {
+        "tags": ["SessionLogs"],
+        "summary": "Create or update session log",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Saved" } }
+      }
+    },
+    "/api/admin/broadcast": {
+      "post": {
+        "tags": ["Admin"],
+        "summary": "Send broadcast notification",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/BroadcastRequest" } }
+          }
+        },
+        "responses": { "200": { "description": "Queued / delivered summary" } }
+      }
+    },
+    "/api/admin/integrations": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Integration status flags (no secrets)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Channel readiness" } }
+      }
+    },
+    "/api/analytics/summary": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Analytics KPI snapshot",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["7d", "30d", "90d", "all"] }
+          }
+        ],
+        "responses": { "200": { "description": "Analytics data" } }
+      }
+    }
+  }
+}

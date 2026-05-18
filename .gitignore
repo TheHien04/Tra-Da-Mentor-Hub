@@ -91,7 +91,6 @@ backend/uploads/avatars/*
 
 # --- Large / local-only assets ---
 src/assets/logo-source.png
-docs/
 
 # --- OS ---
 .DS_Store

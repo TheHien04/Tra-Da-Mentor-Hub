@@ -47,6 +47,7 @@ describe('Authentication API', () => {
         .send({
           email: 'test@example.com',
           password: 'Test123456',
+          confirmPassword: 'Test123456',
           name: 'Test User',
           role: 'mentee',
         });
@@ -73,6 +74,7 @@ describe('Authentication API', () => {
         .send({
           email: 'test@example.com',
           password: 'Test123456',
+          confirmPassword: 'Test123456',
           name: 'Another User',
           role: 'mentee',
         });
@@ -256,7 +258,7 @@ describe('Authentication API', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(response.body.data.user.email).toBe('test@example.com');
+      expect(response.body.data.email).toBe('test@example.com');
     });
 
     it('should fail without token', async () => {
