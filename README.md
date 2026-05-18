@@ -458,7 +458,7 @@ Enforced via `.gitignore` and `npm run check:secrets`.
 
 ## License
 
-Released under the [MIT License](./LICENSE).
+Released under the MIT License.
 
 ---
 
