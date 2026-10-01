@@ -1,9 +1,10 @@
 import crypto from 'crypto';
 import User from '../models/User.js';
 import env from '../config/env.js';
-import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, accessTtlSeconds } from '../utils/jwt.js';
 import { ensureCrmProfileForUser } from '../services/crmProfileSync.js';
 import { verifyOAuthState } from '../lib/oauthState.js';
+import { setSessionCookies } from '../lib/sessionCookie.js';
 import logger from '../config/logger.js';
 
 const FRONTEND_URL = env.frontendUrl;
@@ -87,10 +88,19 @@ export async function handleGoogleCallback(req, res) {
       userId: user._id.toString(),
     });
 
+    if (!user.isActive) {
+      return res.redirect(`${FRONTEND_URL}/login?error=inactive`);
+    }
+
     const accessToken = generateAccessToken(user._id, user.email, user.role);
     const refreshToken = generateRefreshToken(user._id);
     await user.addRefreshToken(refreshToken);
     await user.updateLastLogin();
+    setSessionCookies(res, {
+      accessToken,
+      refreshToken,
+      accessMaxAgeMs: accessTtlSeconds() * 1000,
+    });
 
     const userPayload = {
       ...user.toJSON(),
@@ -99,7 +109,6 @@ export async function handleGoogleCallback(req, res) {
 
     const params = new URLSearchParams({
       accessToken,
-      refreshToken,
       user: JSON.stringify(userPayload),
     });
 

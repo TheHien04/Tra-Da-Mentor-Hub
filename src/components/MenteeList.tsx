@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -13,7 +12,7 @@ import { resolveAssetUrl } from '../lib/assetUrl';
 import { toast } from 'react-toastify';
 import Avatar from './Avatar';
 import TrackBadge from './TrackBadge';
-import SearchFilter from './SearchFilter';
+import SearchFilter, { type FilterState } from './SearchFilter';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, SkillTags } from './ui';
@@ -44,7 +43,7 @@ const MenteeList = () => {
   const error = isError ? getApiErrorMessage(queryError) : null;
   const [successMessage, setSuccessMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ 'just-started': true, 'in-progress': true, completed: true });
+  const [filters, setFilters] = useState<FilterState>({ 'just-started': true, 'in-progress': true, completed: true });
   const [advancedFilters, setAdvancedFilters] = useState({
     track: '',
     school: '',
@@ -143,8 +142,8 @@ const MenteeList = () => {
       <SearchFilter
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        filters={filters as any}
-        setFilters={(f) => setFilters(f as any)}
+        filters={filters}
+        setFilters={setFilters}
         filterOptions={[
           { label: t('lists.progressJustStarted'), value: 'just-started', checked: true },
           { label: t('lists.progressInProgress'), value: 'in-progress', checked: true },
@@ -228,7 +227,7 @@ const MenteeList = () => {
                 <div className="people-card__identity">
                   <div className="people-card__title-row">
                     <h3 className="people-card__name">{mentee.name}</h3>
-                    {mentee.track && <TrackBadge track={mentee.track as any} size="small" />}
+                    {mentee.track && <TrackBadge track={mentee.track} size="small" />}
                   </div>
                   <p className="people-card__meta">{mentee.email}</p>
                   {mentee.school && <p className="people-card__submeta">{mentee.school}</p>}

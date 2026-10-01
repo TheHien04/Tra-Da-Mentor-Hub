@@ -15,9 +15,9 @@ import Avatar from './Avatar';
 import Skeleton from './Skeleton';
 import { CalendarConnectBar } from './features/CalendarConnectBar';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-import { useMentors } from '../hooks/queries/useMentors';
 import { useSlots } from '../hooks/queries/useSlots';
 import { useCalendarStatus, useSyncSlotToCalendar } from '../hooks/queries/useCalendar';
+import { slotInstant } from '../lib/slotClock';
 import { queryClient } from '../lib/queryClient';
 import { queryKeys } from '../hooks/queries/keys';
 
@@ -66,13 +66,7 @@ const ScheduleList = () => {
     isError: slotsError,
     refetch: refetchSlots,
   } = useSlots();
-  const {
-    data: mentors = [],
-    isLoading: mentorsLoading,
-    isError: mentorsError,
-    refetch: refetchMentors,
-  } = useMentors();
-  const loadError = slotsError || mentorsError;
+  const loadError = slotsError;
   const { data: calendarStatus } = useCalendarStatus();
   const syncSlot = useSyncSlotToCalendar();
 
@@ -91,21 +85,18 @@ const ScheduleList = () => {
   }, [searchParams, setSearchParams, t]);
 
   const sessions = useMemo<Session[]>(() => {
-    const mentorName = (id: string) =>
-      mentors.find((m) => m._id === id)?.name ||
-      mentors.find((m) => m._id === id)?.email ||
-      id;
+    const mentorName = (slot: (typeof slots)[number]) => slot.mentorName || t('dashboard.unnamedMentor');
 
     return slots.map((s) => {
       const booked = Boolean(s.bookedBy || s.menteeId);
       const slotDate = String(s.date || '');
-      const isPast = slotDate && new Date(`${slotDate}T${s.time || '00:00'}`) < new Date();
+      const isPast = slotDate && slotInstant(slotDate, s.time) < new Date();
       return {
         _id: String(s._id),
-        title: t('pages.schedule.slotTitle', { mentor: mentorName(String(s.mentorId)) }),
-        mentor: { id: String(s.mentorId), name: mentorName(String(s.mentorId)) },
+        title: t('pages.schedule.slotTitle', { mentor: mentorName(s) }),
+        mentor: { id: String(s.mentorId), name: mentorName(s) },
         mentees: booked
-          ? [{ id: String(s.menteeId || s.bookedBy), name: t('pages.schedule.bookedMentee') }]
+          ? [{ id: String(s.menteeId || s.bookedBy), name: s.menteeName || t('pages.schedule.bookedMentee') }]
           : [],
         date: slotDate,
         time: String(s.time || ''),
@@ -118,9 +109,9 @@ const ScheduleList = () => {
         googleCalendarEventId: s.googleCalendarEventId,
       };
     });
-  }, [slots, mentors, t]);
+  }, [slots, t]);
 
-  const loading = slotsLoading || mentorsLoading;
+  const loading = slotsLoading;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -227,7 +218,6 @@ const ScheduleList = () => {
             className="btn btn-secondary text-sm mt-3"
             onClick={() => {
               void refetchSlots();
-              void refetchMentors();
             }}
           >
             {t('common.retry')}

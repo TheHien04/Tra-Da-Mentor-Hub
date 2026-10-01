@@ -45,10 +45,24 @@ export function scoreMentorForMentee(mentor, mentee) {
     skillScore * 0.5 + trackMatch * 0.2 + cap * 0.25 + progressBoost;
 
   const reasons = [];
-  if (matches.length) reasons.push(`Kỹ năng trùng: ${matches.slice(0, 3).join(', ')}`);
-  if (trackMatch) reasons.push('Cùng lĩnh vực (track)');
-  if (cap > 0.5) reasons.push('Mentor còn slot trống');
-  if (!reasons.length) reasons.push('Gợi ý dựa trên hồ sơ tổng quan');
+  const reasonCodes = [];
+  if (matches.length) {
+    const skills = matches.slice(0, 3);
+    reasonCodes.push({ code: 'skills', skills });
+    reasons.push(`Shared skills: ${skills.join(', ')}`);
+  }
+  if (trackMatch) {
+    reasonCodes.push({ code: 'track' });
+    reasons.push('Same track');
+  }
+  if (cap > 0.5) {
+    reasonCodes.push({ code: 'capacity' });
+    reasons.push('Mentor still has room');
+  }
+  if (!reasonCodes.length) {
+    reasonCodes.push({ code: 'profile' });
+    reasons.push('Suggested from the overall profile');
+  }
 
   return {
     mentorId: mentor._id,
@@ -58,6 +72,7 @@ export function scoreMentorForMentee(mentor, mentee) {
     score: Math.round(Math.min(99, total * 100)),
     matchedSkills: matches,
     reasons,
+    reasonCodes,
     capacity: {
       active: mentor.mentees?.length || 0,
       max: mentor.maxMentees || 10,

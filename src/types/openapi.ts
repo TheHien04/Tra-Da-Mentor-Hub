@@ -2601,6 +2601,8 @@ export interface components {
             duration?: number;
             meetingLink?: string;
             bookedBy?: string | null;
+            mentorName?: string | null;
+            menteeName?: string | null;
             googleCalendarEventId?: string | null;
         };
         SlotWrite: {
@@ -2696,6 +2698,10 @@ export interface components {
             score?: number;
             matchedSkills?: string[];
             reasons?: string[];
+            reasonCodes?: {
+                code?: string;
+                skills?: string[];
+            }[];
             capacity?: components["schemas"]["MatchCapacity"];
         };
         MatchSuggestionList: {

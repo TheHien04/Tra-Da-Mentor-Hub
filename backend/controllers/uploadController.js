@@ -46,15 +46,11 @@ export async function uploadAvatar(req, res, next) {
     if (!owns) return fail(res, 403, 'FORBIDDEN');
 
     const parsed = parseDataUrl(dataUrl);
-    if (!parsed) {
-      return res.status(400).json({ message: 'Invalid image data' });
-    }
-    if (parsed.error === 'FILE_TOO_LARGE') {
-      return res.status(400).json({ message: 'Image must be under 2MB' });
-    }
+    if (!parsed) return fail(res, 400, 'VALIDATION', 'Invalid image data');
+    if (parsed.error === 'FILE_TOO_LARGE') return fail(res, 400, 'FILE_TOO_LARGE');
 
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
-    const filename = `${entityType}-${entityId}-${randomBytes(8).toString('hex')}${parsed.ext}`;
+    const filename = `avatar-${randomBytes(16).toString('hex')}${parsed.ext}`;
     const filePath = path.join(UPLOAD_DIR, filename);
     await fs.writeFile(filePath, parsed.buffer);
 
@@ -64,9 +60,7 @@ export async function uploadAvatar(req, res, next) {
         ? await updateMentor(entityId, { avatarUrl })
         : await updateMentee(entityId, { avatarUrl });
 
-    if (!updated) {
-      return res.status(404).json({ message: 'Profile not found' });
-    }
+    if (!updated) return fail(res, 404, 'NOT_FOUND', 'Profile not found');
 
     res.json({ success: true, data: { avatarUrl } });
   } catch (e) {

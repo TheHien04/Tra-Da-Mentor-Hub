@@ -49,7 +49,7 @@ export const registerSchema = z
 
 // ============ REFRESH TOKEN ============
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, "Refresh token is required"),
+  refreshToken: z.string().min(1, "Refresh token is required").optional(),
 });
 
 export const emailOnlySchema = z.object({

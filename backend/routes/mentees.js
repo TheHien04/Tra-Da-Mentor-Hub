@@ -1,17 +1,17 @@
 import express from 'express';
 import { validateMentee } from '../middleware/validation.js';
 import {
-  listMentees,
   getMenteeById,
   createMentee,
   updateMentee,
   updateMenteeApplicationStatus,
   deleteMentee,
   APPLICATION_STATUSES,
+  queryMenteeDirectory,
 } from '../services/menteeStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
-import { sendList } from '../lib/listQuery.js';
+import { sendDirectory } from '../lib/directoryQuery.js';
 
 const router = express.Router();
 
@@ -26,11 +26,10 @@ router.get('/', async (req, res, next) => {
     const actor = await loadActor(req);
     if (actor?.role === 'mentee' && !actor.isAdmin) {
       const own = actor.menteeId ? await getMenteeById(actor.menteeId) : null;
-      return sendList(res, own ? [own] : [], req.query, ['name', 'email', 'school', 'track', 'interests']);
+      return sendDirectory(res, await queryMenteeDirectory(req.query, own ? { _id: own._id } : { _id: '__none__' }));
     }
     if (!actor?.isAdmin && actor?.role !== 'mentor') return fail(res, 403, 'FORBIDDEN');
-    const mentees = await listMentees();
-    sendList(res, mentees, req.query, ['name', 'email', 'school', 'track', 'interests']);
+    return sendDirectory(res, await queryMenteeDirectory(req.query));
   } catch (e) {
     next(e);
   }

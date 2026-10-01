@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -221,7 +220,7 @@ const MentorList = () => {
                 <div className="people-card__identity">
                   <div className="people-card__title-row">
                     <h3 className="people-card__name">{mentor.name}</h3>
-                    {mentor.track && <TrackBadge track={mentor.track as any} size="small" />}
+                    {mentor.track && <TrackBadge track={mentor.track} size="small" />}
                   </div>
                   <p className="people-card__meta">{mentor.email}</p>
                   {mentor.phone && <p className="people-card__submeta">{mentor.phone}</p>}

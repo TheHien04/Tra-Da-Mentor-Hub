@@ -15,6 +15,9 @@
     "SLOT_TAKEN": "This slot is already booked.",
     "SLOT_CONFLICT": "This time overlaps another slot.",
     "UNAUTHORIZED": "Please sign in again.",
+    "INVALID_CREDENTIALS": "Those credentials were not accepted.",
+    "ACCOUNT_INACTIVE": "This account is inactive.",
+    "FILE_TOO_LARGE": "That image must be under 2MB.",
     "INTERNAL": "The server could not complete that request."
   },
   "command": {
@@ -171,6 +174,11 @@
     "nextUpHintMentor": "Open a slot, or see who is waiting on you.",
     "nextUpHintAdmin": "The room is quiet. Capacity and matching are the next checks.",
     "unnamedMentor": "Mentor",
+    "progressShare": "{{value}} of {{total}}",
+    "matchReasonSkills": "Shared skills: {{skills}}",
+    "matchReasonTrack": "Same track",
+    "matchReasonCapacity": "Mentor still has room",
+    "matchReasonProfile": "Suggested from the overall profile",
     "sessionTypeGroup": "Group",
     "sessionTypeOneOnOne": "1:1",
     "skillsInDemand": "Skills in demand",

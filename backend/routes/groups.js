@@ -1,18 +1,18 @@
 import express from 'express';
 import { validateGroup } from '../middleware/validation.js';
 import {
-  listGroups,
   getGroupById,
   createGroup,
   updateGroup,
   deleteGroup,
   addMenteeToGroup,
   removeMenteeFromGroup,
+  queryGroupDirectory,
 } from '../services/groupStore.js';
 import { updateMentee } from '../services/menteeStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
-import { sendList } from '../lib/listQuery.js';
+import { sendDirectory } from '../lib/directoryQuery.js';
 
 const router = express.Router();
 
@@ -27,11 +27,8 @@ async function assertGroupManager(req, res, group) {
 router.get('/', async (req, res, next) => {
   try {
     const actor = await loadActor(req);
-    let groups = await listGroups();
-    if (actor?.role === 'mentor' && !actor.isAdmin) {
-      groups = groups.filter((group) => group.mentorId === actor.mentorId);
-    }
-    sendList(res, groups, req.query, ['name', 'topic', 'description']);
+    const baseFilter = actor?.role === 'mentor' && !actor.isAdmin ? { mentorId: actor.mentorId || '__none__' } : undefined;
+    return sendDirectory(res, await queryGroupDirectory(req.query, baseFilter));
   } catch (e) {
     next(e);
   }

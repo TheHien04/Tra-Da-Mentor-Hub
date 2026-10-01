@@ -1,18 +1,30 @@
 import mongoose from 'mongoose';
 import MentorProfile from '../models/MentorProfile.js';
 import MenteeProfile from '../models/MenteeProfile.js';
+import { listMentors } from '../services/mentorStore.js';
+import { listMentees } from '../services/menteeStore.js';
 
 function useDb() {
   return mongoose.connection.readyState === 1;
 }
 
-async function findProfile(Model, { userId, email }) {
-  const ors = [];
-  if (userId) ors.push({ userId });
-  if (email) ors.push({ email });
-  if (!ors.length || !useDb()) return null;
-  const doc = await Model.findOne({ $or: ors }).lean();
-  return doc ? String(doc._id) : null;
+async function findLinkedId(Model, listFn, { userId, email }) {
+  if (useDb()) {
+    const ors = [];
+    if (userId) ors.push({ userId });
+    if (email) ors.push({ email });
+    if (!ors.length) return null;
+    const doc = await Model.findOne({ $or: ors }).lean();
+    return doc ? String(doc._id) : null;
+  }
+
+  const list = await listFn();
+  const hit = list.find((row) => {
+    if (userId && String(row.userId || '') === userId) return true;
+    if (email && String(row.email || '').toLowerCase() === email) return true;
+    return false;
+  });
+  return hit ? String(hit._id) : null;
 }
 
 /** CRM identity for the authenticated user. Cached on the request. */
@@ -28,9 +40,9 @@ export async function loadActor(req) {
   let mentorId = null;
   let menteeId = null;
   if (role === 'mentor') {
-    mentorId = await findProfile(MentorProfile, { userId, email });
+    mentorId = await findLinkedId(MentorProfile, listMentors, { userId, email });
   } else if (role === 'mentee') {
-    menteeId = await findProfile(MenteeProfile, { userId, email });
+    menteeId = await findLinkedId(MenteeProfile, listMentees, { userId, email });
   }
 
   req.actor = {

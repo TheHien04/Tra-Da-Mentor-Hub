@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import MenteeProfile, { APPLICATION_STATUSES } from '../models/MenteeProfile.js';
 import { MENTEE_SEED } from '../data/crmSeed.js';
 import { logMenteeCreated } from './activityLogger.js';
+import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
 
 const memory = [];
 
@@ -146,4 +147,19 @@ export async function seedMenteesIfEmpty() {
   if (memory.length === 0) {
     MENTEE_SEED.forEach((s) => memory.push({ ...s }));
   }
+}
+
+const MENTEE_TEXT = ['name', 'email', 'school', 'track', 'interests'];
+
+export async function queryMenteeDirectory(query, baseFilter) {
+  if (!useDb()) {
+    const rows = memory.map((row) => ({ ...row, applicationStatus: row.applicationStatus || 'pending' }));
+    return queryMemoryDirectory(rows, query, MENTEE_TEXT, baseFilter);
+  }
+  return queryMongoDirectory(MenteeProfile, query, {
+    textFields: MENTEE_TEXT,
+    skillFields: ['interests'],
+    baseFilter,
+    map: toClient,
+  });
 }

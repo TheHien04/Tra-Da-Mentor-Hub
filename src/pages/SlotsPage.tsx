@@ -257,7 +257,7 @@ const SlotsPage = () => {
       ) : !loadError ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {slots.map((s) => {
-            const mentorName = getMentorName(s.mentorId);
+            const mentorName = s.mentorName || getMentorName(s.mentorId);
             const isOpen = !s.bookedBy;
             return (
               <article

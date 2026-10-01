@@ -347,6 +347,8 @@
           "duration": { "type": "number" },
           "meetingLink": { "type": "string" },
           "bookedBy": { "type": "string", "nullable": true },
+          "mentorName": { "type": "string", "nullable": true },
+          "menteeName": { "type": "string", "nullable": true },
           "googleCalendarEventId": { "type": "string", "nullable": true }
         }
       },
@@ -476,6 +478,16 @@
           "score": { "type": "number" },
           "matchedSkills": { "type": "array", "items": { "type": "string" } },
           "reasons": { "type": "array", "items": { "type": "string" } },
+          "reasonCodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": { "type": "string" },
+                "skills": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
           "capacity": { "$ref": "#/components/schemas/MatchCapacity" }
         }
       },

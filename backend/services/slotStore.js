@@ -1,15 +1,14 @@
 import mongoose from 'mongoose';
 import Slot from '../models/Slot.js';
+import { getMentorById } from './mentorStore.js';
+import { getMenteeById } from './menteeStore.js';
+import { slotInstant, todayKey } from '../lib/slotClock.js';
 
 const memory = [];
 let memSeq = 1;
 
 function useDb() {
   return mongoose.connection.readyState === 1;
-}
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 /** Demo slots with dates relative to today (booked + open) */
@@ -59,11 +58,47 @@ function toClient(doc) {
 }
 
 function sortSlots(list) {
-  return [...list].sort((a, b) => {
-    const d =
-      new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime();
-    return d;
-  });
+  return [...list].sort((a, b) => slotInstant(a.date, a.time) - slotInstant(b.date, b.time));
+}
+
+async function withNames(slot) {
+  if (!slot) return slot;
+  const menteeKey = slot.menteeId || slot.bookedBy;
+  const [mentor, mentee] = await Promise.all([
+    slot.mentorId ? getMentorById(slot.mentorId) : null,
+    menteeKey ? getMenteeById(menteeKey) : null,
+  ]);
+  return {
+    ...slot,
+    mentorName: mentor?.name || null,
+    menteeName: mentee?.name || null,
+  };
+}
+
+async function withNamesList(list) {
+  const mentorIds = [...new Set(list.map((slot) => slot.mentorId).filter(Boolean))];
+  const menteeIds = [...new Set(list.map((slot) => slot.menteeId || slot.bookedBy).filter(Boolean))];
+  const [mentors, mentees] = await Promise.all([
+    Promise.all(mentorIds.map((id) => getMentorById(id))),
+    Promise.all(menteeIds.map((id) => getMenteeById(id))),
+  ]);
+  const mentorName = new Map(mentors.filter(Boolean).map((row) => [String(row._id), row.name]));
+  const menteeName = new Map(mentees.filter(Boolean).map((row) => [String(row._id), row.name]));
+  return list.map((slot) => ({
+    ...slot,
+    mentorName: mentorName.get(String(slot.mentorId)) || null,
+    menteeName: menteeName.get(String(slot.menteeId || slot.bookedBy)) || null,
+  }));
+}
+
+const slotLocks = new Map();
+
+export function withSlotLock(key, fn) {
+  const lockKey = String(key || 'global');
+  const previous = slotLocks.get(lockKey) || Promise.resolve();
+  const run = previous.catch(() => {}).then(fn);
+  slotLocks.set(lockKey, run.then(() => {}, () => {}));
+  return run;
 }
 
 export async function listSlots({ mentorId, menteeId, availableOnly } = {}) {
@@ -85,7 +120,7 @@ export async function listSlots({ mentorId, menteeId, availableOnly } = {}) {
       return true;
     });
   }
-  return sortSlots(list);
+  return withNamesList(sortSlots(list));
 }
 
 export async function createSlot(payload) {
@@ -101,7 +136,7 @@ export async function createSlot(payload) {
 
   if (useDb()) {
     const doc = await Slot.create(data);
-    return toClient(doc);
+    return withNames(toClient(doc));
   }
 
   const item = {
@@ -111,15 +146,15 @@ export async function createSlot(payload) {
     updatedAt: new Date().toISOString(),
   };
   memory.push(item);
-  return item;
+  return withNames(item);
 }
 
 export async function getSlotById(id) {
   if (useDb()) {
     const doc = await Slot.findById(id);
-    return toClient(doc);
+    return withNames(toClient(doc));
   }
-  return memory.find((s) => s._id === id) || null;
+  return withNames(memory.find((s) => s._id === id) || null);
 }
 
 function minutesOf(time) {
@@ -147,14 +182,14 @@ export async function bookSlot(id, menteeId) {
       { bookedBy: menteeId, menteeId },
       { new: true }
     );
-    return toClient(doc);
+    return withNames(toClient(doc));
   }
   const slot = memory.find((s) => s._id === id);
   if (!slot || slot.bookedBy) return null;
   slot.bookedBy = menteeId;
   slot.menteeId = menteeId;
   slot.updatedAt = new Date().toISOString();
-  return slot;
+  return withNames(slot);
 }
 
 export async function cancelBooking(id) {
@@ -164,14 +199,14 @@ export async function cancelBooking(id) {
       { bookedBy: null, menteeId: null },
       { new: true }
     );
-    return toClient(doc);
+    return withNames(toClient(doc));
   }
   const slot = memory.find((s) => s._id === id);
   if (!slot) return null;
   slot.bookedBy = null;
   slot.menteeId = null;
   slot.updatedAt = new Date().toISOString();
-  return slot;
+  return withNames(slot);
 }
 
 export async function deleteSlot(id) {
@@ -197,13 +232,13 @@ export async function updateSlot(id, updates) {
 
   if (useDb()) {
     const doc = await Slot.findByIdAndUpdate(id, { $set: patch }, { new: true });
-    return toClient(doc);
+    return withNames(toClient(doc));
   }
   const slot = memory.find((s) => s._id === id);
   if (!slot) return null;
   Object.assign(slot, patch);
   slot.updatedAt = new Date().toISOString();
-  return slot;
+  return withNames(slot);
 }
 
 async function countUpcomingSlots() {

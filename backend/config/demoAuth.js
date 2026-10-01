@@ -1,7 +1,11 @@
+import bcrypt from 'bcryptjs';
+
+/** Dev-only demo admin. The password is stored as a bcrypt hash, not plaintext. */
+const DEMO_PASSWORD_HASH = '$2b$10$zbhqyJ2QfCcAA/1DjUo3w.W7Rb8HQnTXg2dINilohRkQUme1f/SX2';
+
 export const DEMO_USER = {
   _id: 'mock-user-id-12345',
   email: 'admin@example.com',
-  password: 'AdminPass123',
   name: 'Admin User',
   role: 'admin',
   isActive: true,
@@ -15,7 +19,7 @@ export const DEMO_USER = {
     };
   },
   async comparePassword(password) {
-    return password === this.password;
+    return bcrypt.compare(String(password || ''), DEMO_PASSWORD_HASH);
   },
 };
 

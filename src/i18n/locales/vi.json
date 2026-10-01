@@ -155,6 +155,11 @@
     "nextUpHintMentee": "Đặt một slot đang mở. Đó là giờ hữu ích tiếp theo.",
     "nextUpHintMentor": "Mở một slot, hoặc xem ai đang chờ bạn.",
     "unnamedMentor": "Người hướng dẫn",
+    "progressShare": "{{value}} / {{total}}",
+    "matchReasonSkills": "Kỹ năng trùng: {{skills}}",
+    "matchReasonTrack": "Cùng lĩnh vực",
+    "matchReasonCapacity": "Người hướng dẫn còn chỗ",
+    "matchReasonProfile": "Gợi ý từ hồ sơ tổng quát",
     "nextUpHintAdmin": "Phòng đang yên. Việc tiếp theo là sức chứa và ghép cặp.",
     "sessionTypeGroup": "Nhóm",
     "sessionTypeOneOnOne": "1:1",
@@ -1191,6 +1196,9 @@
     "SLOT_TAKEN": "This slot is already booked.",
     "SLOT_CONFLICT": "This time overlaps another slot.",
     "UNAUTHORIZED": "Please sign in again.",
+    "INVALID_CREDENTIALS": "Those credentials were not accepted.",
+    "ACCOUNT_INACTIVE": "This account is inactive.",
+    "FILE_TOO_LARGE": "That image must be under 2MB.",
     "INTERNAL": "The server could not complete that request."
   }
 }

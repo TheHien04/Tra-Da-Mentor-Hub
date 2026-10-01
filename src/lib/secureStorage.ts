@@ -1,11 +1,14 @@
 /**
- * Client-side token storage — access in sessionStorage (tab-scoped),
- * refresh in localStorage (survives refresh). Reduces XSS persistence window for access tokens.
+ * Access token stays in sessionStorage for the tab.
+ * The refresh token is an httpOnly cookie. A memory copy exists only for the current tab
+ * so a reload can still refresh if the cookie was not stored yet.
  */
 
 const ACCESS_KEY = 'accessToken';
 const REFRESH_KEY = 'refreshToken';
 const USER_KEY = 'user';
+
+let sessionRefresh: string | null = null;
 
 export function getAccessToken(): string | null {
   try {
@@ -16,26 +19,23 @@ export function getAccessToken(): string | null {
 }
 
 export function getRefreshToken(): string | null {
-  try {
-    return localStorage.getItem(REFRESH_KEY);
-  } catch {
-    return null;
-  }
+  return sessionRefresh;
 }
 
 export function setAuthTokens(accessToken: string, refreshToken: string): void {
   try {
     if (!accessToken) return;
     sessionStorage.setItem(ACCESS_KEY, accessToken);
-    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
-    // Migrate legacy copies
+    if (refreshToken) sessionRefresh = refreshToken;
     localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
   } catch {
     /* private browsing */
   }
 }
 
 export function clearAuthTokens(): void {
+  sessionRefresh = null;
   try {
     sessionStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -62,14 +62,17 @@ export function setStoredUser(user: unknown): void {
   }
 }
 
-/** One-time migration from older builds that stored access token in localStorage */
+/** One-time migration: drop refresh tokens that older builds left in localStorage. */
 export function migrateLegacyTokenStorage(): void {
   try {
+    const legacyRefresh = localStorage.getItem(REFRESH_KEY);
+    if (legacyRefresh && !sessionRefresh) sessionRefresh = legacyRefresh;
+    localStorage.removeItem(REFRESH_KEY);
     const legacyAccess = localStorage.getItem(ACCESS_KEY);
     if (legacyAccess && !sessionStorage.getItem(ACCESS_KEY)) {
       sessionStorage.setItem(ACCESS_KEY, legacyAccess);
-      localStorage.removeItem(ACCESS_KEY);
     }
+    localStorage.removeItem(ACCESS_KEY);
   } catch {
     /* ignore */
   }

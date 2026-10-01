@@ -25,13 +25,17 @@ export function attachSocketAuth(io) {
   });
 
   io.on('connection', (socket) => {
-    socket.on('join', (userId) => {
-      const authenticatedId = socket.data.userId;
-      if (!userId || String(userId) !== authenticatedId) {
-        logger.warn(`Socket join denied for user ${userId} (auth: ${authenticatedId})`);
-        return;
+    const userId = socket.data.userId;
+    const role = socket.data.role;
+    socket.join(`user:${userId}`);
+    socket.join('role:all');
+    if (role === 'mentor' || role === 'admin') socket.join('role:mentors');
+    if (role === 'mentee' || role === 'admin') socket.join('role:mentees');
+
+    socket.on('join', (requestedId) => {
+      if (!requestedId || String(requestedId) !== userId) {
+        logger.warn(`Socket join denied for user ${requestedId} (auth: ${userId})`);
       }
-      socket.join(`user:${authenticatedId}`);
     });
   });
 }
