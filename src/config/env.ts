@@ -29,9 +29,7 @@ function getEnvVar(key: string, required = true): string {
 
 // Build config object
 const env: EnvConfig = {
-  apiUrl:
-    getEnvVar("API_URL", false) ||
-    (import.meta.env.PROD ? "/api" : "http://localhost:5000/api"),
+  apiUrl: getEnvVar("API_URL", false) || "/api",
   appName: getEnvVar("APP_NAME", false) || "Trà Đá Mentor",
   appVersion: getEnvVar("APP_VERSION", false) || "1.0.0",
   environment: (() => {
