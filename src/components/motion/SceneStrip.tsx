@@ -1,21 +1,21 @@
 import { useAppTranslation } from '../../hooks/useAppTranslation';
-import { SceneFrame } from './SceneFrame';
+import { StudioObject } from './StudioObject';
 
-const SCENES = [
-  { src: '/media/hero-session.jpg', kicker: 'dashboard.sceneTalkKicker', title: 'dashboard.sceneTalk' },
-  { src: '/media/circle-session.jpg', kicker: 'dashboard.sceneCircleKicker', title: 'dashboard.sceneCircle' },
-  { src: '/media/quiet-table.jpg', kicker: 'dashboard.sceneQuietKicker', title: 'dashboard.sceneQuiet' },
+const STILLS = [
+  { src: '/media/glass-3d.jpg', kicker: 'dashboard.sceneTalkKicker', title: 'dashboard.sceneTalk' },
+  { src: '/media/circle-3d.jpg', kicker: 'dashboard.sceneCircleKicker', title: 'dashboard.sceneCircle' },
+  { src: '/media/table-3d.jpg', kicker: 'dashboard.sceneQuietKicker', title: 'dashboard.sceneQuiet' },
 ] as const;
 
 export function SceneStrip() {
   const { t } = useAppTranslation();
 
   return (
-    <section className="scene-row" data-reveal aria-label={t('dashboard.sceneEyebrow')}>
-      {SCENES.map((scene) => (
+    <section className="scene-row" aria-label={t('dashboard.sceneEyebrow')}>
+      {STILLS.map((scene) => (
         <figure key={scene.src} className="scene-card">
           <div className="scene-card__media">
-            <SceneFrame images={[scene.src]} />
+            <StudioObject src={scene.src} />
           </div>
           <figcaption>
             <span>{t(scene.kicker)}</span>

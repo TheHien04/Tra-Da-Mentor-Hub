@@ -83,8 +83,9 @@
     top: 0;
     height: 100vh;
     min-height: 100vh;
+    margin-top: -2px;
     overflow: hidden;
-    background: #09291e;
+    background: #123d2c;
   }
 
   .auth-scene::after {
