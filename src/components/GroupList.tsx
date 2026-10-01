@@ -91,9 +91,9 @@ const GroupList = () => {
       />
       <EditorialBanner
         image="/media/quiet-table.jpg"
-        kicker={`03 · ${t('dashboard.sceneQuietKicker')}`}
-        title={t('dashboard.sceneQuiet')}
-        body={t('dashboard.cardQuietBody')}
+        kicker={t('lists.groupLeadKicker')}
+        title={t('lists.groupLead')}
+        body={t('lists.groupLeadBody')}
       />
 
       {error && (

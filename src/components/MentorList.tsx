@@ -107,9 +107,9 @@ const MentorList = () => {
       />
       <EditorialBanner
         image="/media/circle-session.jpg"
-        kicker={`02 · ${t('dashboard.sceneCircleKicker')}`}
-        title={t('dashboard.sceneCircle')}
-        body={t('dashboard.cardCircleBody')}
+        kicker={t('lists.mentorLeadKicker')}
+        title={t('lists.mentorLead')}
+        body={t('lists.mentorLeadBody')}
       />
 
       <SearchFilter
