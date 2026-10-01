@@ -18,6 +18,7 @@
     "INVALID_CREDENTIALS": "Those credentials were not accepted.",
     "ACCOUNT_INACTIVE": "This account is inactive.",
     "FILE_TOO_LARGE": "That image must be under 2MB.",
+    "SLOT_PAST": "That time has already passed.",
     "INTERNAL": "The server could not complete that request."
   },
   "command": {

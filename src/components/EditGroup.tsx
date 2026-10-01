@@ -10,11 +10,14 @@ import { FormShell, FormField, FormActions } from './ui/FormShell';
 import { Alert } from './ui/Alert';
 import Skeleton from './Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useAuth } from '../context/AuthContext';
 
 const DAY_KEYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 
 const EditGroup = () => {
   const { t } = useAppTranslation();
+  const { state } = useAuth();
+  const isAdmin = state.user?.role === 'admin';
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: mentors = [] } = useMentors();
@@ -121,6 +124,7 @@ const EditGroup = () => {
           value={formData.mentorId}
           onChange={handleChange}
           required
+          disabled={!isAdmin}
         >
           <option value="">{t('form.selectMentor')}</option>
           {mentors.map((m) => (

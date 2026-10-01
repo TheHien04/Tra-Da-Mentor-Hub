@@ -17,6 +17,7 @@ import {
 } from '../services/slotStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
+import { parseSlotInput } from '../lib/slotInput.js';
 
 const router = express.Router();
 
@@ -26,9 +27,22 @@ function canManageSlot(actor, slot) {
   return actor.role === 'mentor' && actor.mentorId === slot.mentorId;
 }
 
+function slotError(res, parsed) {
+  if (!parsed?.error) return false;
+  if (parsed.error === 'SLOT_PAST') {
+    fail(res, 400, 'SLOT_PAST');
+    return true;
+  }
+  fail(res, 400, 'VALIDATION');
+  return true;
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const actor = await loadActor(req);
+    if (!actor?.isAdmin && actor?.role !== 'mentor' && actor?.role !== 'mentee') {
+      return fail(res, 403, 'FORBIDDEN');
+    }
     const { mentorId, menteeId, availableOnly } = req.query;
     let list = await listSlots({ mentorId, menteeId, availableOnly });
 
@@ -59,11 +73,13 @@ router.post('/', async (req, res, next) => {
     if (!actor.isAdmin && req.body.mentorId && req.body.mentorId !== actor.mentorId) {
       return fail(res, 403, 'FORBIDDEN');
     }
+    const parsed = parseSlotInput({ date, time, duration, meetingLink });
+    if (slotError(res, parsed)) return;
 
     const created = await withSlotLock(mentorId, async () => {
-      const conflict = await hasSlotConflict({ mentorId, date, time, duration });
+      const conflict = await hasSlotConflict({ mentorId, ...parsed });
       if (conflict) return null;
-      return createSlot({ mentorId, date, time, duration, meetingLink });
+      return createSlot({ mentorId, ...parsed });
     });
     if (!created) return fail(res, 409, 'SLOT_CONFLICT');
     const newSlot = created;
@@ -95,6 +111,7 @@ router.patch('/:id/book', async (req, res, next) => {
 
     const existing = await getSlotById(req.params.id);
     if (!existing) return fail(res, 404, 'NOT_FOUND', 'Slot not found');
+    if (slotError(res, parseSlotInput(existing))) return;
     const slot = await withSlotLock(existing.mentorId, () => bookSlot(req.params.id, menteeId));
     if (!slot) return fail(res, 409, 'SLOT_TAKEN');
 
@@ -122,24 +139,24 @@ router.patch('/:id', async (req, res, next) => {
     if (!existing) return fail(res, 404, 'NOT_FOUND', 'Slot not found');
     if (!canManageSlot(actor, existing)) return fail(res, 403, 'FORBIDDEN');
 
+    const parsed = parseSlotInput({
+      date: req.body.date || existing.date,
+      time: req.body.time || existing.time,
+      duration: req.body.duration ?? existing.duration,
+      meetingLink: req.body.meetingLink !== undefined ? req.body.meetingLink : existing.meetingLink,
+    });
+    if (slotError(res, parsed)) return;
+
     const result = await withSlotLock(existing.mentorId, async () => {
-      const nextSlot = {
-        date: req.body.date || existing.date,
-        time: req.body.time || existing.time,
-        duration: req.body.duration ?? existing.duration,
-      };
       const conflict = await hasSlotConflict({
         mentorId: existing.mentorId,
-        ...nextSlot,
+        date: parsed.date,
+        time: parsed.time,
+        duration: parsed.duration,
         ignoreId: existing._id,
       });
       if (conflict) return { conflict: true };
-      const slot = await updateSlot(req.params.id, {
-        date: req.body.date,
-        time: req.body.time,
-        duration: req.body.duration,
-        meetingLink: req.body.meetingLink,
-      });
+      const slot = await updateSlot(req.params.id, parsed);
       return { slot };
     });
     if (result.conflict) return fail(res, 409, 'SLOT_CONFLICT');

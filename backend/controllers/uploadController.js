@@ -18,14 +18,32 @@ const MIME_EXT = {
   'image/gif': '.gif',
 };
 
-function parseDataUrl(dataUrl) {
+function matchesMagic(mime, buffer) {
+  if (buffer.length < 12) return false;
+  if (mime === 'image/jpeg') return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (mime === 'image/png') {
+    return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (mime === 'image/gif') {
+    const head = buffer.subarray(0, 6).toString('ascii');
+    return head === 'GIF87a' || head === 'GIF89a';
+  }
+  if (mime === 'image/webp') {
+    return buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+  }
+  return false;
+}
+
+export function parseDataUrl(dataUrl) {
   const match = /^data:(image\/[a-z+]+);base64,(.+)$/i.exec(dataUrl || '');
   if (!match) return null;
   const mime = match[1].toLowerCase();
   const ext = MIME_EXT[mime];
   if (!ext) return null;
   const buffer = Buffer.from(match[2], 'base64');
+  if (!buffer.length) return null;
   if (buffer.length > MAX_BYTES) return { error: 'FILE_TOO_LARGE' };
+  if (!matchesMagic(mime, buffer)) return null;
   return { mime, ext, buffer };
 }
 

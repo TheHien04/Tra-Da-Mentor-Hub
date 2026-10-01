@@ -218,7 +218,7 @@ function AppContent() {
             <Route
               path="/groups/:id/edit"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <EditGroup />
                 </ProtectedRoute>
               }

@@ -10,13 +10,18 @@ import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShel
 import Badge from './Badge';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useConfirm } from '../context/ConfirmContext';
+import { useAuth } from '../context/AuthContext';
 import { useMentor } from '../hooks/queries/useMentor';
 import { queryKeys } from '../hooks/queries/keys';
 
 const MentorDetail = () => {
   const { t } = useAppTranslation();
   const { confirm } = useConfirm();
+  const { state } = useAuth();
   const { id } = useParams<{ id: string }>();
+  const role = state.user?.role;
+  const canEdit = role === 'admin' || (role === 'mentor' && state.user?.mentorId === id);
+  const canDelete = role === 'admin';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: mentor, isLoading: loading, isError, error: queryError } = useMentor(id);
@@ -86,16 +91,20 @@ const MentorDetail = () => {
       error={error}
       notFound={!loading && !mentor}
       actions={
-        mentor && (
+        mentor && (canEdit || canDelete) ? (
           <>
-            <Link to={`/mentors/${id}/edit`} className="btn btn-primary">
-              {t('common.edit')}
-            </Link>
-            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
-              <HiOutlineTrash className="h-4 w-4" />
-            </button>
+            {canEdit && (
+              <Link to={`/mentors/${id}/edit`} className="btn btn-primary">
+                {t('common.edit')}
+              </Link>
+            )}
+            {canDelete && (
+              <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+                <HiOutlineTrash className="h-4 w-4" />
+              </button>
+            )}
           </>
-        )
+        ) : null
       }
     >
       {mentor && (

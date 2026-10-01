@@ -12,8 +12,13 @@ const router = express.Router();
 
 router.get('/', async (req, res, next) => {
   try {
+    const actor = await loadActor(req);
     const { status, track, q } = req.query;
-    const data = await listTestimonials({ status, track, q });
+    const data = await listTestimonials({
+      status: actor?.isAdmin ? status : 'PUBLISHED',
+      track,
+      q: typeof q === 'string' ? q.slice(0, 80) : undefined,
+    });
     res.json({ success: true, data });
   } catch (e) {
     next(e);
@@ -22,19 +27,18 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { menteeName, mentorName, content, rating, track } = req.body;
-    if (!menteeName?.trim() || !mentorName?.trim() || !content?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'menteeName, mentorName, and content are required',
-      });
+    const menteeName = String(req.body?.menteeName || '').trim();
+    const mentorName = String(req.body?.mentorName || '').trim();
+    const content = String(req.body?.content || '').trim();
+    if (!menteeName || !mentorName || !content) {
+      return fail(res, 400, 'VALIDATION', 'menteeName, mentorName, and content are required');
     }
     const item = await createTestimonial({
       menteeName,
       mentorName,
       content,
-      rating,
-      track,
+      rating: req.body?.rating,
+      track: req.body?.track,
       status: 'PENDING',
     });
     res.status(201).json({ success: true, data: item });
@@ -53,7 +57,7 @@ router.patch('/:id', async (req, res, next) => {
       if (req.body[k] !== undefined) updates[k] = req.body[k];
     });
     const item = await updateTestimonial(req.params.id, updates);
-    if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+    if (!item) return fail(res, 404, 'NOT_FOUND');
     res.json({ success: true, data: item });
   } catch (e) {
     next(e);
@@ -65,7 +69,7 @@ router.delete('/:id', async (req, res, next) => {
     const actor = await loadActor(req);
     if (!actor?.isAdmin) return fail(res, 403, 'FORBIDDEN');
     const item = await deleteTestimonial(req.params.id);
-    if (!item) return res.status(404).json({ success: false, message: 'Not found' });
+    if (!item) return fail(res, 404, 'NOT_FOUND');
     res.json({ success: true, data: item });
   } catch (e) {
     next(e);

@@ -20,6 +20,7 @@ export function validate(schema) {
 
         return res.status(400).json({
           success: false,
+          code: 'VALIDATION',
           type: "VALIDATION_ERROR",
           message: "Validation failed",
           errors: formattedErrors,
@@ -29,11 +30,11 @@ export function validate(schema) {
       // Replace req.body with validated data
       req.body = result.data;
       next();
-    } catch (error) {
+    } catch {
       return res.status(500).json({
         success: false,
-        message: "Validation error",
-        error: error.message,
+        code: 'INTERNAL',
+        message: 'The server could not complete that request.',
       });
     }
   };
@@ -70,9 +71,11 @@ export const validateMentor = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION',
       message: 'Validation failed',
-      errors 
+      errors,
     });
   }
 
@@ -105,9 +108,11 @@ export const validateMentee = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION',
       message: 'Validation failed',
-      errors 
+      errors,
     });
   }
 
@@ -143,9 +148,11 @@ export const validateGroup = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION',
       message: 'Validation failed',
-      errors 
+      errors,
     });
   }
 

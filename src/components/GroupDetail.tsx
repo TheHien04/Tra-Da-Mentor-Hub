@@ -8,6 +8,7 @@ import { ProfileHero } from './ui';
 import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShell';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useConfirm } from '../context/ConfirmContext';
+import { useAuth } from '../context/AuthContext';
 
 interface Mentee {
   _id: string;
@@ -20,6 +21,7 @@ interface Group {
   _id: string;
   name: string;
   description?: string;
+  mentorId?: string;
   mentor?: { _id?: string; name: string; email?: string };
   mentees?: Mentee[];
   maxSize?: number;
@@ -57,6 +59,7 @@ function readGroupDetail(data: unknown): Group | null {
     _id: row._id,
     name: row.name,
     description: typeof row.description === 'string' ? row.description : undefined,
+    mentorId: typeof row.mentorId === 'string' ? row.mentorId : mentor?._id,
     mentor,
     mentees,
     maxSize: typeof row.maxSize === 'number' ? row.maxSize : undefined,
@@ -67,6 +70,8 @@ function readGroupDetail(data: unknown): Group | null {
 const GroupDetail = () => {
   const { t } = useAppTranslation();
   const { confirm } = useConfirm();
+  const { state } = useAuth();
+  const role = state.user?.role;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [group, setGroup] = useState<Group | null>(null);
@@ -135,16 +140,18 @@ const GroupDetail = () => {
       error={error}
       notFound={!loading && !group}
       actions={
-        group && (
+        group && (role === 'admin' || (role === 'mentor' && state.user?.mentorId === group.mentorId)) ? (
           <>
             <Link to={`/groups/${id}/edit`} className="btn btn-primary">
               {t('common.edit')}
             </Link>
-            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
-              <HiOutlineTrash className="h-4 w-4" />
-            </button>
+            {role === 'admin' && (
+              <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+                <HiOutlineTrash className="h-4 w-4" />
+              </button>
+            )}
           </>
-        )
+        ) : null
       }
     >
       {group && (
