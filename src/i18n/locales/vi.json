@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "Nền tảng Hướng dẫn",
-    "description": "Kết nối người hướng dẫn và học viên để cùng phát triển"
+    "description": "Kết nối người hướng dẫn và học viên để cùng phát triển",
+    "brand": "Trà Đá Mentor"
   },
   "command": {
     "title": "Menu lệnh",
@@ -140,7 +141,9 @@
     "summaryLine": "{{mentors}} mentor · {{mentees}} mentee · {{groups}} nhóm · {{completed}} hoàn thành · {{inProgress}} đang học",
     "analyticsBannerTitle": "Bảng phân tích chương trình",
     "analyticsBannerDesc": "Biểu đồ, KPI, track & xuất CSV từ dữ liệu thật",
-    "viewAnalytics": "Xem phân tích"
+    "viewAnalytics": "Xem phân tích",
+    "openSlots": "Open slots",
+    "myBookings": "My bookings"
   },
   "lists": {
     "searchMentors": "Tìm mentor…",
@@ -190,7 +193,8 @@
     "progressMax": "Tiến độ tối đa %",
     "groupsShown": "{{shown}} hiển thị · {{total}} nhóm",
     "confirmDeleteGroup": "Xóa nhóm {{name}}?",
-    "groupCapacity": "{{count}}/{{max}} mentees"
+    "groupCapacity": "{{count}}/{{max}} mentees",
+    "emptyMentorsBrowse": "Mentors will show up here once an admin adds them."
   },
   "mentor": {
     "title": "Người hướng dẫn",
@@ -299,7 +303,8 @@
     "interviewed": "Đã phỏng vấn",
     "invited": "Đã mời",
     "loadError": "Không tải được dữ liệu",
-    "retry": "Thử lại"
+    "retry": "Thử lại",
+    "previous": "Previous"
   },
   "detail": {
     "profile": "Hồ sơ",
@@ -596,7 +601,11 @@
       "bookFailed": "Đặt thất bại",
       "emptyTitle": "Chưa có khung giờ",
       "emptyDesc": "Chưa có slot. Mentor có thể thêm lịch rảnh ở trên.",
-      "noMenteeProfile": "Cần liên kết hồ sơ mentee trước khi đặt (đăng nhập mentee hoặc liên hệ admin)."
+      "noMenteeProfile": "Cần liên kết hồ sơ mentee trước khi đặt (đăng nhập mentee hoặc liên hệ admin).",
+      "cancelBooking": "Cancel booking",
+      "cancelSuccess": "Booking cancelled.",
+      "cancelFailed": "Could not cancel this booking.",
+      "emptyMentee": "No open times yet. Check back after your mentor publishes a slot."
     },
     "analytics": {
       "description": "Sức khỏe chương trình theo thời gian thực — mentor, buổi học, track & kỹ năng",
@@ -1132,5 +1141,18 @@
         }
       ]
     }
+  },
+  "errors": {
+    "NETWORK": "Cannot reach the server. Start it with npm run dev:all.",
+    "GENERIC": "Something went wrong. Try again.",
+    "FORBIDDEN": "You do not have access to this action.",
+    "NOT_FOUND": "That record was not found.",
+    "VALIDATION": "Check the form and try again.",
+    "CONFLICT": "This conflicts with an existing record.",
+    "EMAIL_TAKEN": "That email is already in use.",
+    "SLOT_TAKEN": "This slot is already booked.",
+    "SLOT_CONFLICT": "This time overlaps another slot.",
+    "UNAUTHORIZED": "Please sign in again.",
+    "INTERNAL": "The server could not complete that request."
   }
 }

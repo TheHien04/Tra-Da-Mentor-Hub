@@ -11,8 +11,9 @@ const APPLICATION_STATUSES = [
 const menteeProfileSchema = new mongoose.Schema(
   {
     _id: { type: String, required: true },
+    userId: { type: String, default: null, index: true },
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, trim: true, lowercase: true },
+    email: { type: String, required: true, trim: true, lowercase: true, index: true },
     phone: { type: String, default: '' },
     track: { type: String, required: true },
     school: { type: String, default: '' },

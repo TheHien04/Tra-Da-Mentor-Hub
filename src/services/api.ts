@@ -1,6 +1,6 @@
 import axios from 'axios';
 import env from '../config/env';
-import { getAccessToken } from '../lib/secureStorage';
+import { clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens } from '../lib/secureStorage';
 import { handleError } from '../utils/errorHandler';
 import type { AnalyticsSnapshot } from '../lib/analyticsCompute';
 
@@ -26,19 +26,72 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Add error interceptor for better error handling
+let refreshPromise: Promise<string> | null = null;
+
+async function refreshSession(): Promise<string> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) throw new Error('No refresh token');
+  const response = await axios.post(`${env.apiUrl}/auth/refresh`, { refreshToken });
+  const accessToken = response.data?.data?.accessToken as string | undefined;
+  const nextRefresh = (response.data?.data?.refreshToken as string | undefined) || refreshToken;
+  if (!accessToken) throw new Error('Refresh failed');
+  setAuthTokens(accessToken, nextRefresh);
+  return accessToken;
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Use centralized error handler
-    handleError(error, false); // Don't show toast here, let components decide
+  async (error) => {
+    const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
+    const url = String(original?.url || '');
+    const isCredentialCall = /\/auth\/(login|refresh|register)/.test(url);
+    if (error.response?.status === 401 && original && !original._retry && !isCredentialCall) {
+      original._retry = true;
+      try {
+        if (!refreshPromise) {
+          refreshPromise = refreshSession().finally(() => {
+            refreshPromise = null;
+          });
+        }
+        const accessToken = await refreshPromise;
+        original.headers = original.headers || {};
+        original.headers.Authorization = `Bearer ${accessToken}`;
+        return api(original);
+      } catch (refreshError) {
+        clearAuthTokens();
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.assign('/login');
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+    handleError(error, false);
     return Promise.reject(error);
   }
 );
 
 // Mentor API
+export interface ListParams {
+  q?: string;
+  page?: number;
+  limit?: number;
+  track?: string;
+  mentorshipType?: string;
+  duration?: string;
+  capacity?: 'active' | 'full' | 'none';
+  expertise?: string;
+  applicationStatus?: string;
+}
+
+export interface Paged<T> {
+  data: T[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
 export const mentorApi = {
-  getAll: () => api.get('/mentors'),
+  getAll: (params?: ListParams) => api.get<Paged<Record<string, unknown>> | Record<string, unknown>[]>('/mentors', { params }),
   getById: (id: string) => api.get(`/mentors/${id}`),
   getMenteesByMentorId: (id: string) => api.get(`/mentors/${id}/mentees`),
   getGroupsByMentorId: (id: string) => api.get(`/mentors/${id}/groups`),
@@ -49,7 +102,7 @@ export const mentorApi = {
 
 // Mentee API
 export const menteeApi = {
-  getAll: () => api.get('/mentees'),
+  getAll: (params?: ListParams) => api.get('/mentees', { params }),
   getById: (id: string) => api.get(`/mentees/${id}`),
   create: (data: Record<string, unknown>) => api.post('/mentees', data),
   update: (id: string, data: Record<string, unknown>) => api.patch(`/mentees/${id}`, data),
@@ -60,7 +113,7 @@ export const menteeApi = {
 
 // Group API
 export const groupApi = {
-  getAll: () => api.get('/groups'),
+  getAll: (params?: ListParams) => api.get('/groups', { params }),
   getById: (id: string) => api.get(`/groups/${id}`),
   getByIdFull: (id: string) => api.get(`/groups/${id}/full`),
   getMenteesByGroupId: (id: string) => api.get(`/groups/${id}/mentees`),
@@ -83,8 +136,10 @@ export const slotsApi = {
     api.get('/slots', { params }),
   create: (data: { mentorId: string; date: string; time: string; duration: number; meetingLink?: string }) =>
     api.post('/slots', data),
-  book: (slotId: string, menteeId: string) =>
-    api.patch(`/slots/${slotId}/book`, { menteeId }),
+  book: (slotId: string, menteeId?: string) =>
+    api.patch(`/slots/${slotId}/book`, menteeId ? { menteeId } : {}),
+  cancelBooking: (slotId: string) => api.delete(`/slots/${slotId}/booking`),
+  remove: (slotId: string) => api.delete(`/slots/${slotId}`),
   update: (slotId: string, data: { date?: string; time?: string; duration?: number; meetingLink?: string }) =>
     api.patch(`/slots/${slotId}`, data),
 };
@@ -153,10 +208,9 @@ export interface MatchSuggestion {
 }
 
 export const notificationsApi = {
-  list: (userId?: string) => api.get('/notifications', { params: { userId } }),
-  markRead: (id: string, userId?: string) =>
-    api.patch(`/notifications/${id}/read`, { userId }),
-  markAllRead: (userId?: string) => api.post('/notifications/read-all', { userId }),
+  list: () => api.get('/notifications'),
+  markRead: (id: string) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.post('/notifications/read-all'),
 };
 
 export const matchingApi = {

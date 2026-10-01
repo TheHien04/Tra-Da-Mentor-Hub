@@ -26,19 +26,23 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { state } = useAuth();
-  const userId = getUserId(state.user) || 'all';
+  const userId = getUserId(state.user) || '';
   const { socket, connected } = useSocket(userId);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   const refresh = useCallback(async () => {
+    if (!state.isAuthenticated) {
+      setNotifications([]);
+      return;
+    }
     try {
-      const res = await notificationsApi.list(userId);
+      const res = await notificationsApi.list();
       const data = res.data?.data ?? res.data ?? [];
       setNotifications(Array.isArray(data) ? data : []);
     } catch {
       setNotifications([]);
     }
-  }, [userId]);
+  }, [state.isAuthenticated]);
 
   useEffect(() => {
     refresh();
@@ -58,16 +62,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const markRead = useCallback(
     async (id: string) => {
-      await notificationsApi.markRead(id, userId);
+      await notificationsApi.markRead(id);
       setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, read: true } : n)));
     },
-    [userId]
+    []
   );
 
   const markAllRead = useCallback(async () => {
-    await notificationsApi.markAllRead(userId);
+    await notificationsApi.markAllRead();
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, [userId]);
+  }, []);
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.read).length, [notifications]);
 

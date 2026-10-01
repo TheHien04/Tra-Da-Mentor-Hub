@@ -10,9 +10,18 @@ const router = express.Router();
 /** GET /api/matching/suggestions?menteeId=&mentorId=&limit=8 */
 router.get('/suggestions', async (req, res, next) => {
   try {
+    const { loadActor } = await import('../lib/actor.js');
+    const { fail } = await import('../lib/httpError.js');
+    const actor = await loadActor(req);
     const mentors = await listMentors();
     const mentees = await listMentees();
-    const { menteeId, mentorId, limit } = req.query;
+    let { menteeId, mentorId, limit } = req.query;
+    if (actor?.role === 'mentee' && !actor.isAdmin) {
+      if (!actor.menteeId) return fail(res, 403, 'FORBIDDEN');
+      menteeId = actor.menteeId;
+    } else if (actor?.role === 'mentor' && !actor.isAdmin) {
+      mentorId = actor.mentorId || mentorId;
+    }
 
     const suggestions = getMatchSuggestions(mentors, mentees, {
       menteeId: menteeId || undefined,

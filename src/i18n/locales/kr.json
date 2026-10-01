@@ -1,7 +1,8 @@
 {
   "app": {
     "title": "멘토 플랫폼",
-    "description": "멘토와 멘티를 연결하여 함께 성장"
+    "description": "멘토와 멘티를 연결하여 함께 성장",
+    "brand": "Trà Đá Mentor"
   },
   "nav": {
     "dashboard": "대시보드",
@@ -125,7 +126,9 @@
     "sessionOpenBadge": "Open",
     "analyticsBannerTitle": "Program analytics dashboard",
     "analyticsBannerDesc": "Charts, KPIs, tracks & export — all from live data",
-    "viewAnalytics": "View analytics"
+    "viewAnalytics": "View analytics",
+    "openSlots": "Open slots",
+    "myBookings": "My bookings"
   },
   "mentor": {
     "title": "멘토",
@@ -234,7 +237,8 @@
     "comingSoon": "Coming soon",
     "beta": "Beta",
     "new": "New",
-    "retry": "Try again"
+    "retry": "Try again",
+    "previous": "Previous"
   },
   "validation": {
     "required": "필수 항목입니다",
@@ -467,7 +471,11 @@
       "bookSuccess": "Slot booked.",
       "bookFailed": "Failed to book",
       "noMenteeProfile": "Link your mentee profile before booking (log in as mentee or contact admin).",
-      "calendarMeetCreated": "Google Meet link added to your calendar."
+      "calendarMeetCreated": "Google Meet link added to your calendar.",
+      "cancelBooking": "Cancel booking",
+      "cancelSuccess": "Booking cancelled.",
+      "cancelFailed": "Could not cancel this booking.",
+      "emptyMentee": "No open times yet. Check back after your mentor publishes a slot."
     },
     "insights": {
       "title": "AI Insights",
@@ -1089,7 +1097,8 @@
     "progressMax": "Progress max %",
     "groupsShown": "{{shown}} shown · {{total}} groups",
     "confirmDeleteGroup": "Delete group {{name}}?",
-    "groupCapacity": "{{count}}/{{max}} mentees"
+    "groupCapacity": "{{count}}/{{max}} mentees",
+    "emptyMentorsBrowse": "Mentors will show up here once an admin adds them."
   },
   "a11y": {
     "skipToContent": "Skip to main content",
@@ -1125,5 +1134,18 @@
     "title": "Something went wrong",
     "message": "Please refresh the page and try again.",
     "reload": "Reload page"
+  },
+  "errors": {
+    "NETWORK": "Cannot reach the server. Start it with npm run dev:all.",
+    "GENERIC": "Something went wrong. Try again.",
+    "FORBIDDEN": "You do not have access to this action.",
+    "NOT_FOUND": "That record was not found.",
+    "VALIDATION": "Check the form and try again.",
+    "CONFLICT": "This conflicts with an existing record.",
+    "EMAIL_TAKEN": "That email is already in use.",
+    "SLOT_TAKEN": "This slot is already booked.",
+    "SLOT_CONFLICT": "This time overlaps another slot.",
+    "UNAUTHORIZED": "Please sign in again.",
+    "INTERNAL": "The server could not complete that request."
   }
 }

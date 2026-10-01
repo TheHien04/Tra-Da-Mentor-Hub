@@ -22,6 +22,7 @@ import {
 } from 'react-icons/hi2';
 import logoImg from '../assets/logo.png';
 import { resolveAssetUrl } from '../lib/assetUrl';
+import { canAccessPath } from '../lib/navAccess';
 import { ThemeToggle } from './features/ThemeToggle';
 import { NotificationBell } from './features/NotificationBell';
 
@@ -69,20 +70,23 @@ const Navbar = () => {
     return location.pathname === to;
   };
 
-  const navLink = (to: string, label: string, icon: React.ReactNode, matchPrefix = false) => (
-    <Link to={to} className={`nav-item ${isActive(to, matchPrefix) ? 'active' : ''}`}>
-      {icon}
-      <span>{label}</span>
-    </Link>
-  );
+  const navLink = (to: string, label: string, icon: React.ReactNode, matchPrefix = false) => {
+    if (!canAccessPath(role, to)) return null;
+    return (
+      <Link to={to} className={`nav-item ${isActive(to, matchPrefix) ? 'active' : ''}`}>
+        {icon}
+        <span>{label}</span>
+      </Link>
+    );
+  };
 
   const iconClass = 'h-[18px] w-[18px]';
 
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
-        <img src={logoImg} alt="Tea Mentor" />
-        <h1>Tea Mentor</h1>
+        <img src={logoImg} alt={t('app.brand')} />
+        <h1>{t('app.brand')}</h1>
       </Link>
 
       <div className="flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">

@@ -5,12 +5,11 @@
  */
 
 import User from "../models/User.js";
-import Mentor from "../models/Mentor.js";
-import Mentee from "../models/Mentee.js";
 import {
   generateAccessToken,
   generateRefreshToken,
   verifyRefreshToken,
+  accessTtlSeconds,
 } from "../utils/jwt.js";
 import logger from '../config/logger.js';
 import { DEMO_USER, isDemoAuthEnabled, isDemoUserId } from '../config/demoAuth.js';
@@ -50,7 +49,7 @@ export async function login(req, res) {
           user: user.toJSON(),
           accessToken,
           refreshToken,
-          expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+          expiresIn: accessTtlSeconds(),
         },
       });
     }
@@ -98,6 +97,18 @@ export async function login(req, res) {
       await user.updateLastLogin();
       await user.addRefreshToken(refreshToken);
     }
+
+    let crmIds = {};
+    try {
+      crmIds = await ensureCrmProfileForUser({
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        userId: user._id.toString(),
+      });
+    } catch (crmErr) {
+      logger.warn('CRM profile sync on login failed:', crmErr.message);
+    }
     
     logger.info(`Login successful: ${email} (${user.role}) from IP: ${req.ip}`);
 
@@ -106,10 +117,10 @@ export async function login(req, res) {
       success: true,
       message: "Login successful",
       data: {
-        user: user.toJSON(),
+        user: { ...user.toJSON(), ...crmIds },
         accessToken,
         refreshToken,
-        expiresIn: 7 * 24 * 60 * 60, // 7 days in seconds
+        expiresIn: accessTtlSeconds(),
       },
     });
   } catch (error) {
@@ -165,21 +176,8 @@ export async function register(req, res) {
       role,
     });
 
-    // If registering as mentor or mentee, create related record
-    if (role === "mentor") {
-      await Mentor.create({
-        userId: newUser._id,
-        track: "tech", // default
-        maxMentees: 5,
-        expertise: [],
-      });
-    } else if (role === "mentee") {
-      await Mentee.create({
-        userId: newUser._id,
-        track: "tech", // default
-        interests: [],
-      });
-    }
+    // Legacy Mentor/Mentee collections are not the product profile.
+    // CRM profiles (mentor_profiles / mentee_profiles) are created below.
 
     let crmIds = {};
     try {
@@ -219,7 +217,7 @@ export async function register(req, res) {
         user: { ...newUser.toJSON(), ...crmIds },
         accessToken,
         refreshToken,
-        expiresIn: 7 * 24 * 60 * 60,
+        expiresIn: accessTtlSeconds(),
       },
     });
   } catch (error) {
@@ -254,11 +252,29 @@ export async function refreshToken(req, res) {
       });
     }
 
+    if (isDemoUserId(decoded.userId)) {
+      if (!isDemoAuthEnabled()) {
+        return res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: 'Invalid refresh token' });
+      }
+      const newAccessToken = generateAccessToken(DEMO_USER._id, DEMO_USER.email, DEMO_USER.role);
+      const newRefreshToken = generateRefreshToken(DEMO_USER._id);
+      return res.status(200).json({
+        success: true,
+        message: "Token refreshed",
+        data: {
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+          expiresIn: accessTtlSeconds(),
+        },
+      });
+    }
+
     // Get user
     const user = await User.findById(decoded.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
+        code: 'NOT_FOUND',
         message: "User not found",
       });
     }
@@ -269,12 +285,15 @@ export async function refreshToken(req, res) {
       logger.warn(`Invalid refresh token used for user: ${user.email} from IP: ${req.ip}`);
       return res.status(401).json({
         success: false,
+        code: 'UNAUTHORIZED',
         message: "Invalid refresh token",
       });
     }
 
-    // Generate new access token (keep same refresh token)
     const newAccessToken = generateAccessToken(user._id, user.email, user.role);
+    const newRefreshToken = generateRefreshToken(user._id);
+    await user.removeRefreshToken(refreshToken);
+    await user.addRefreshToken(newRefreshToken);
     
     logger.info(`Token refreshed for user: ${user.email} from IP: ${req.ip}`);
 
@@ -283,7 +302,8 @@ export async function refreshToken(req, res) {
       message: "Token refreshed",
       data: {
         accessToken: newAccessToken,
-        expiresIn: 7 * 24 * 60 * 60,
+        refreshToken: newRefreshToken,
+        expiresIn: accessTtlSeconds(),
       },
     });
   } catch (error) {
@@ -318,16 +338,6 @@ export async function getProfile(req, res) {
     }
 
     let profile = { ...user.toJSON() };
-    if (user.role === "mentor") {
-      const mentor = await Mentor.findOne({ userId: user._id });
-      profile.mentorData = mentor;
-      if (mentor?._id) profile.mentorId = mentor._id.toString();
-    } else if (user.role === "mentee") {
-      const mentee = await Mentee.findOne({ userId: user._id });
-      profile.menteeData = mentee;
-      if (mentee?._id) profile.menteeId = mentee._id.toString();
-    }
-
     try {
       const crmIds = await ensureCrmProfileForUser({
         email: user.email,

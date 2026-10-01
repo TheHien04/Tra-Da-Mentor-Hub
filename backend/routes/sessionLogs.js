@@ -3,21 +3,24 @@
  */
 
 import express from 'express';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authorize } from '../middleware/auth.js';
 import { createNotification } from '../services/notificationStore.js';
 import {
   listSessionLogs,
   upsertSessionLog,
   listNeedsSupport,
 } from '../services/sessionLogStore.js';
+import { loadActor } from '../lib/actor.js';
+import { fail } from '../lib/httpError.js';
 
 const router = express.Router();
 
-router.use(authenticate);
-
 router.get('/', async (req, res, next) => {
   try {
-    const { mentorId, menteeId } = req.query;
+    const actor = await loadActor(req);
+    let { mentorId, menteeId } = req.query;
+    if (actor?.role === 'mentor' && !actor.isAdmin) mentorId = actor.mentorId || '__none__';
+    if (actor?.role === 'mentee' && !actor.isAdmin) menteeId = actor.menteeId || '__none__';
     const list = await listSessionLogs({ mentorId, menteeId });
     res.json(list);
   } catch (e) {
@@ -27,12 +30,15 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    const actor = await loadActor(req);
     const { mentorId, menteeId, sessionDate, topic } = req.body;
     if (!mentorId || !menteeId || !sessionDate || !topic) {
-      return res.status(400).json({
-        success: false,
-        message: 'mentorId, menteeId, sessionDate, topic are required',
-      });
+      return fail(res, 400, 'VALIDATION', 'mentorId, menteeId, sessionDate, topic are required');
+    }
+    if (!actor?.isAdmin) {
+      const mentorOwns = actor?.role === 'mentor' && actor.mentorId === mentorId;
+      const menteeOwns = actor?.role === 'mentee' && actor.menteeId === menteeId;
+      if (!mentorOwns && !menteeOwns) return fail(res, 403, 'FORBIDDEN');
     }
 
     const { log, created } = await upsertSessionLog(req.body);

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useAuth } from '../../context/AuthContext';
+import { canAccessPath } from '../../lib/navAccess';
 import { HiOutlineMagnifyingGlass, HiOutlineCommandLine } from 'react-icons/hi2';
 
 export interface CommandItem {
@@ -57,7 +58,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       );
     }
 
-    return base;
+    return base.filter((item) => canAccessPath(role, item.href));
   }, [role, t]);
 
   const filtered = useMemo(() => {

@@ -122,6 +122,24 @@ export async function getSlotById(id) {
   return memory.find((s) => s._id === id) || null;
 }
 
+function minutesOf(time) {
+  const [h, m] = String(time || '0:0').split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export async function hasSlotConflict({ mentorId, date, time, duration, ignoreId }) {
+  const start = minutesOf(time);
+  const end = start + (Number(duration) || 60);
+  const slots = await listSlots({ mentorId });
+  return slots.some((slot) => {
+    if (ignoreId && slot._id === String(ignoreId)) return false;
+    if (slot.date !== String(date).slice(0, 10)) return false;
+    const otherStart = minutesOf(slot.time);
+    const otherEnd = otherStart + (Number(slot.duration) || 60);
+    return start < otherEnd && otherStart < end;
+  });
+}
+
 export async function bookSlot(id, menteeId) {
   if (useDb()) {
     const doc = await Slot.findOneAndUpdate(
@@ -137,6 +155,34 @@ export async function bookSlot(id, menteeId) {
   slot.menteeId = menteeId;
   slot.updatedAt = new Date().toISOString();
   return slot;
+}
+
+export async function cancelBooking(id) {
+  if (useDb()) {
+    const doc = await Slot.findByIdAndUpdate(
+      id,
+      { bookedBy: null, menteeId: null },
+      { new: true }
+    );
+    return toClient(doc);
+  }
+  const slot = memory.find((s) => s._id === id);
+  if (!slot) return null;
+  slot.bookedBy = null;
+  slot.menteeId = null;
+  slot.updatedAt = new Date().toISOString();
+  return slot;
+}
+
+export async function deleteSlot(id) {
+  if (useDb()) {
+    const doc = await Slot.findByIdAndDelete(id);
+    return toClient(doc);
+  }
+  const idx = memory.findIndex((s) => s._id === id);
+  if (idx === -1) return null;
+  const [removed] = memory.splice(idx, 1);
+  return removed;
 }
 
 export async function updateSlot(id, updates) {

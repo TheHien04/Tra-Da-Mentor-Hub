@@ -31,12 +31,13 @@ const SlotsPage = () => {
     refetch: refetchSlots,
   } = useSlots(slotParams);
   const { data: mentors = [] } = useMentors();
-  const [menteeProfileId, setMenteeProfileId] = useState<string | null>(null);
+  const [menteeProfileId, setMenteeProfileId] = useState<string | null>(state.user?.menteeId || null);
+  const ownMentorId = state.user?.mentorId || '';
   const { data: calendarStatus } = useCalendarStatus();
   const syncSlot = useSyncSlotToCalendar();
 
   const [form, setForm] = useState({
-    mentorId: '',
+    mentorId: state.user?.mentorId || '',
     date: new Date().toISOString().split('T')[0],
     time: '14:00',
     duration: 60,
@@ -46,6 +47,12 @@ const SlotsPage = () => {
   const invalidateSlots = () => {
     void queryClient.invalidateQueries({ queryKey: ['slots'] });
   };
+
+  useEffect(() => {
+    if (ownMentorId) {
+      setForm((current) => ({ ...current, mentorId: ownMentorId }));
+    }
+  }, [ownMentorId]);
 
   useEffect(() => {
     const fromProfile = getMenteeProfileId(state.user);
@@ -84,6 +91,17 @@ const SlotsPage = () => {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(e.response?.data?.message || t('pages.slots.addFailed'));
+    }
+  };
+
+  const handleCancel = async (slotId: string) => {
+    try {
+      await slotsApi.cancelBooking(slotId);
+      toast.success(t('pages.slots.cancelSuccess'));
+      invalidateSlots();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      toast.error(e.response?.data?.message || t('pages.slots.cancelFailed'));
     }
   };
 
@@ -134,6 +152,7 @@ const SlotsPage = () => {
       {showForm && (
         <form onSubmit={handleAddSlot} className="card p-6 mb-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {role === 'admin' ? (
             <FormField label={t('pages.sessionLog.mentor')} required>
               <select
                 className="input"
@@ -149,6 +168,11 @@ const SlotsPage = () => {
                 ))}
               </select>
             </FormField>
+            ) : (
+              <FormField label={t('pages.sessionLog.mentor')}>
+                <input className="input" value={mentors.find((m) => m._id === ownMentorId)?.name || ownMentorId} readOnly />
+              </FormField>
+            )}
             <FormField label={t('common.date')} required>
               <input
                 type="date"
@@ -222,7 +246,7 @@ const SlotsPage = () => {
       ) : !loadError && slots.length === 0 ? (
         <EmptyState
           title={t('pages.slots.emptyTitle')}
-          description={t('pages.slots.emptyDesc')}
+          description={role === 'mentee' ? t('pages.slots.emptyMentee') : t('pages.slots.emptyDesc')}
           actionLabel={
             role === 'mentor' || role === 'admin' ? t('pages.slots.addFreeSlot') : undefined
           }
@@ -269,6 +293,11 @@ const SlotsPage = () => {
                 {isOpen && (role === 'mentee' || role === 'admin') && (
                   <button type="button" className="btn btn-primary w-full mt-auto" onClick={() => handleBook(s._id)}>
                     {t('pages.slots.book')}
+                  </button>
+                )}
+                {!isOpen && (role === 'mentee' || role === 'mentor' || role === 'admin') && (
+                  <button type="button" className="btn btn-secondary w-full mt-auto" onClick={() => handleCancel(s._id)}>
+                    {t('pages.slots.cancelBooking')}
                   </button>
                 )}
               </article>

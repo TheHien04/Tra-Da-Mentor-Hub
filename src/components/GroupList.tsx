@@ -14,6 +14,7 @@ import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass } from './ui';
 import { Alert } from './ui/Alert';
 import { getApiErrorMessage } from '../lib/apiHelpers';
+import { useAuth } from '../context/AuthContext';
 
 interface Group {
   _id: string;
@@ -30,6 +31,9 @@ interface Group {
 
 const GroupList = () => {
   const { t } = useAppTranslation();
+  const { state } = useAuth();
+  const isAdmin = state.user?.role === 'admin';
+  const canAdd = state.user?.role === 'admin' || state.user?.role === 'mentor';
   const { confirm } = useConfirm();
   const queryClient = useQueryClient();
   const { data: groups = [], isLoading: loading, isError, error: queryError } = useGroups();
@@ -82,7 +86,7 @@ const GroupList = () => {
           total: groups.length,
         })}
         icon={<HiOutlineUsers className="h-7 w-7" />}
-        action={{ label: `+ ${t('group.addGroup')}`, href: '/groups/add' }}
+        action={canAdd ? { label: `+ ${t('group.addGroup')}`, href: '/groups/add' } : undefined}
       />
 
       {error && (
@@ -180,6 +184,7 @@ const GroupList = () => {
                   <Link to={`/groups/${group._id}`} className="btn btn-primary flex-1">
                     {t('group.viewDetails')}
                   </Link>
+                  {isAdmin && (
                   <button
                     type="button"
                     className="btn btn-ghost-danger px-3"
@@ -188,6 +193,7 @@ const GroupList = () => {
                   >
                     <HiOutlineTrash className="h-4 w-4" />
                   </button>
+                  )}
                 </div>
               </article>
             );
