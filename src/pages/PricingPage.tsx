@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { HiOutlineCreditCard } from 'react-icons/hi2';
 import { useAppTranslation } from '../hooks/useAppTranslation';
@@ -24,6 +24,19 @@ export const PricingPage = () => {
   const navigate = useNavigate();
   const { state } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void paymentsApi.availability().then((res) => {
+      if (active) setCheckoutOpen(Boolean(res.data?.data?.checkout));
+    }).catch(() => {
+      if (active) setCheckoutOpen(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const plans = useMemo(
     () =>
@@ -33,10 +46,13 @@ export const PricingPage = () => {
         price: useVnd ? PLAN_META[id].priceVnd : PLAN_META[id].priceUsd,
         name: t(`pages.pricing.plans.${id}.name`),
         description: t(`pages.pricing.plans.${id}.description`),
-        buttonText: t(`pages.pricing.plans.${id}.button`),
+        buttonText:
+          id !== 'free' && !checkoutOpen
+            ? t('pages.pricing.checkoutClosed')
+            : t(`pages.pricing.plans.${id}.button`),
         features: t(`pages.pricing.plans.${id}.features`, { returnObjects: true }) as string[],
       })),
-    [t, useVnd]
+    [t, useVnd, checkoutOpen]
   );
 
   const handleSubscribe = async (planId: string) => {
@@ -45,7 +61,7 @@ export const PricingPage = () => {
       navigate('/login');
       return;
     }
-    if (planId === 'free') return;
+    if (planId === 'free' || !checkoutOpen) return;
 
     setLoading(planId);
     try {
@@ -103,7 +119,7 @@ export const PricingPage = () => {
                 type="button"
                 className={`btn w-full ${plan.highlighted ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => handleSubscribe(plan.id)}
-                disabled={plan.disabled || loading === plan.id}
+                disabled={plan.disabled || !checkoutOpen && plan.id !== 'free' || loading === plan.id}
               >
                 {loading === plan.id ? t('pages.pricing.processing') : plan.buttonText}
               </button>

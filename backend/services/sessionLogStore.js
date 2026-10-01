@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
 import SessionLog from '../models/SessionLog.js';
 import { SESSION_LOG_DEMO } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 let memSeq = 1;
@@ -10,10 +10,6 @@ const DEMO_TARGET_MIN = 12;
 
 function sessionLogKey(s) {
   return `${s.mentorId}:${s.menteeId}:${s.topic}`;
-}
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
 }
 
 function toClient(doc) {

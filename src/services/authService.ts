@@ -3,19 +3,10 @@
  * Handles all API calls for auth operations
  */
 
-import type { AuthUser } from '../types/auth';
 import apiClient from './api';
-import {
-  clearAuthTokens,
-  getAccessToken,
-  getRefreshToken,
-  getStoredUserRaw,
-  migrateLegacyTokenStorage,
-  setAuthTokens,
-  setStoredUser,
-} from '../lib/secureStorage';
+import { clearAuthTokens, purgeLegacyAuthStorage } from '../lib/secureStorage';
 
-migrateLegacyTokenStorage();
+purgeLegacyAuthStorage();
 
 export interface LoginRequest {
   email: string;
@@ -41,9 +32,7 @@ export interface AuthResponse {
       name: string;
       role: 'user' | 'mentor' | 'mentee';
     };
-    accessToken: string;
-    refreshToken: string;
-    expiresIn: number;
+    expiresIn?: number;
   };
 }
 
@@ -69,7 +58,9 @@ export async function refreshAccessToken(
 }
 
 export async function getProfile(): Promise<unknown> {
-  const response = await apiClient.get('/auth/profile');
+  const response = await apiClient.get('/auth/profile', {
+    skipAuthRedirect: true,
+  } as never);
   return response.data;
 }
 
@@ -84,27 +75,6 @@ export async function logout(): Promise<unknown> {
 
 export function clearAuthData() {
   clearAuthTokens();
-}
-
-export function getStoredAccessToken(): string | null {
-  return getAccessToken();
-}
-
-export function getStoredRefreshToken(): string | null {
-  return getRefreshToken();
-}
-
-export function storeAuthTokens(accessToken: string, refreshToken: string) {
-  setAuthTokens(accessToken, refreshToken);
-}
-
-export function storeUserData(user: AuthUser) {
-  setStoredUser(user);
-}
-
-export function getStoredUserData() {
-  const userData = getStoredUserRaw();
-  return userData ? JSON.parse(userData) : null;
 }
 
 export default apiClient;

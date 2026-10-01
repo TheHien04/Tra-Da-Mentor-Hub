@@ -1,5 +1,6 @@
 import { verifyAccessToken } from '../utils/jwt.js';
 import logger from '../config/logger.js';
+import { readAccessCookie } from './sessionCookie.js';
 
 export function attachSocketAuth(io) {
   io.use((socket, next) => {
@@ -8,7 +9,8 @@ export function attachSocketAuth(io) {
       socket.handshake.auth?.token ||
       (typeof header === 'string' && header.startsWith('Bearer ')
         ? header.slice(7)
-        : null);
+        : null) ||
+      readAccessCookie({ headers: { cookie: socket.handshake.headers?.cookie } });
 
     if (!raw) {
       return next(new Error('Authentication required'));

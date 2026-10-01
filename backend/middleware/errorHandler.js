@@ -63,6 +63,10 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.code === 'DATABASE_UNAVAILABLE') {
+    error = new ApiError(503, 'Database is unavailable');
+  }
+
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const message = Object.values(err.errors)
@@ -95,7 +99,9 @@ export const errorHandler = (err, req, res, next) => {
 
   // Send response
   const code =
-    error.statusCode === 401
+    err.code === 'DATABASE_UNAVAILABLE'
+      ? 'DATABASE_UNAVAILABLE'
+      : error.statusCode === 401
       ? 'UNAUTHORIZED'
       : error.statusCode === 403
         ? 'FORBIDDEN'
@@ -103,7 +109,9 @@ export const errorHandler = (err, req, res, next) => {
           ? 'NOT_FOUND'
           : error.statusCode === 400
             ? 'VALIDATION'
-            : 'INTERNAL';
+            : error.statusCode === 503
+              ? 'DATABASE_UNAVAILABLE'
+              : 'INTERNAL';
 
   const isServerError = error.statusCode >= 500;
   res.status(error.statusCode).json({

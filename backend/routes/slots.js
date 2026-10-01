@@ -18,6 +18,8 @@ import {
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
 import { parseSlotInput } from '../lib/slotInput.js';
+import { readIdempotent, saveIdempotent } from '../lib/idempotency.js';
+import { recordAudit } from '../services/auditStore.js';
 
 const router = express.Router();
 
@@ -103,6 +105,9 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id/book', async (req, res, next) => {
   try {
     const actor = await loadActor(req);
+    const idemKey = req.get('Idempotency-Key');
+    const prior = readIdempotent(req.user?.userId, idemKey);
+    if (prior) return res.status(prior.status).json(prior.body);
     const menteeId = actor?.isAdmin ? req.body.menteeId : actor?.menteeId;
     if (!menteeId) return fail(res, 403, 'FORBIDDEN');
     if (!actor.isAdmin && req.body.menteeId && req.body.menteeId !== actor.menteeId) {
@@ -113,7 +118,12 @@ router.patch('/:id/book', async (req, res, next) => {
     if (!existing) return fail(res, 404, 'NOT_FOUND', 'Slot not found');
     if (slotError(res, parseSlotInput(existing))) return;
     const slot = await withSlotLock(existing.mentorId, () => bookSlot(req.params.id, menteeId));
-    if (!slot) return fail(res, 409, 'SLOT_TAKEN');
+    if (!slot) {
+      saveIdempotent(req.user?.userId, idemKey, 409, { success: false, code: 'SLOT_TAKEN' });
+      return fail(res, 409, 'SLOT_TAKEN');
+    }
+    await recordAudit(req, { action: 'slot.book', entity: 'slot', entityId: slot._id });
+    saveIdempotent(req.user?.userId, idemKey, 200, slot);
 
     const io = req.app.get('io');
     await createNotification(
@@ -174,6 +184,7 @@ router.delete('/:id/booking', async (req, res, next) => {
     const menteeOwns = actor?.role === 'mentee' && (existing.menteeId === actor.menteeId || existing.bookedBy === actor.menteeId);
     if (!canManageSlot(actor, existing) && !menteeOwns) return fail(res, 403, 'FORBIDDEN');
     const slot = await cancelBooking(req.params.id);
+    await recordAudit(req, { action: 'slot.cancel', entity: 'slot', entityId: req.params.id });
     res.json(slot);
   } catch (e) {
     next(e);

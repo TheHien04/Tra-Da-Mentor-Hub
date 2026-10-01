@@ -484,6 +484,7 @@
     "schedule": {
       "title": "Lịch trình",
       "description": "{{count}} buổi · {{upcoming}} sắp tới",
+      "onlyBooked": "Đây là buổi đã đặt. Khung giờ còn trống nằm ở trang khung giờ.",
       "searchPlaceholder": "Tìm buổi học…",
       "allStatus": "Mọi trạng thái",
       "allTypes": "Mọi loại",
@@ -636,6 +637,7 @@
     "slots": {
       "title": "Khung giờ trống",
       "description": "Mở hoặc nhả khung giờ ở đây. Vào họp thì mở Lịch trình.",
+      "onlyOpen": "Trang này chỉ hiện khung giờ còn trống. Buổi đã đặt nằm ở lịch trình.",
       "add": "Thêm khung giờ",
       "addFreeSlot": "Thêm slot trống",
       "closeForm": "Đóng form",
@@ -743,6 +745,7 @@
       "contactSalesLink": "Liên hệ Sales",
       "loginToSubscribe": "Vui lòng đăng nhập để đăng ký",
       "checkoutFailed": "Tạo phiên thanh toán thất bại",
+      "checkoutClosed": "Thanh toán chưa mở trên môi trường này",
       "processing": "Đang xử lý...",
       "plans": {
         "free": {

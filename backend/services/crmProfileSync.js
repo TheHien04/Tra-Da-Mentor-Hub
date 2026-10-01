@@ -2,11 +2,7 @@ import MentorProfile from '../models/MentorProfile.js';
 import MenteeProfile from '../models/MenteeProfile.js';
 import { createMentor, listMentors, updateMentor } from './mentorStore.js';
 import { createMentee, listMentees, updateMentee } from './menteeStore.js';
-import mongoose from 'mongoose';
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
+import { useDb } from '../lib/dataMode.js';
 
 async function findMentorByEmail(email) {
   const normalized = email.toLowerCase().trim();

@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
 import Testimonial from '../models/Testimonial.js';
 import { TESTIMONIAL_DEMO } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 
@@ -9,10 +9,6 @@ const DEMO_TARGET_MIN = 12;
 
 function testimonialKey(s) {
   return `${s.menteeName}:${s.mentorName}:${s.date}`;
-}
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
 }
 
 function escapeRegex(value) {

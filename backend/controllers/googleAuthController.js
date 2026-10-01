@@ -81,7 +81,7 @@ export async function handleGoogleCallback(req, res) {
       await user.save();
     }
 
-    const crmIds = await ensureCrmProfileForUser({
+    await ensureCrmProfileForUser({
       email: user.email,
       name: user.name,
       role: user.role,
@@ -102,18 +102,8 @@ export async function handleGoogleCallback(req, res) {
       accessMaxAgeMs: accessTtlSeconds() * 1000,
     });
 
-    const userPayload = {
-      ...user.toJSON(),
-      ...crmIds,
-    };
-
-    const params = new URLSearchParams({
-      accessToken,
-      user: JSON.stringify(userPayload),
-    });
-
     logger.info(`Google SSO login: ${email}`);
-    return res.redirect(`${FRONTEND_URL}/auth/callback#${params.toString()}`);
+    return res.redirect(`${FRONTEND_URL}/auth/callback`);
   } catch (error) {
     logger.error('Google callback error:', error);
     return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);

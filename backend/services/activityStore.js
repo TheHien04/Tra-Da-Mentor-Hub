@@ -1,13 +1,9 @@
-import mongoose from 'mongoose';
 import ActivityRecord from '../models/ActivityRecord.js';
 import { ACTIVITY_SEED } from '../data/crmSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 let memSeq = 1;
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;

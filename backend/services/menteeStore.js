@@ -1,14 +1,10 @@
-import mongoose from 'mongoose';
 import MenteeProfile, { APPLICATION_STATUSES } from '../models/MenteeProfile.js';
 import { MENTEE_SEED } from '../data/crmSeed.js';
 import { logMenteeCreated } from './activityLogger.js';
 import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;

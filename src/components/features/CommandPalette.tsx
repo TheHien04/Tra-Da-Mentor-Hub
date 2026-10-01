@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useAuth } from '../../context/AuthContext';
 import { canAccessPath } from '../../lib/navAccess';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 import { HiOutlineMagnifyingGlass, HiOutlineCommandLine } from 'react-icons/hi2';
 
 export interface CommandItem {
@@ -24,6 +25,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const { state } = useAuth();
   const role = state.user?.role;
   const [query, setQuery] = useState('');
+  const trapRef = useFocusTrap(open);
 
   const items = useMemo<CommandItem[]>(() => {
     const base: CommandItem[] = [
@@ -103,8 +105,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[12vh] px-4">
-      <button type="button" className="absolute inset-0 overlay-backdrop" aria-label="Close" onClick={onClose} />
+    <div ref={trapRef} className="fixed inset-0 z-[200] flex items-start justify-center pt-[12vh] px-4">
+      <button type="button" className="absolute inset-0 overlay-backdrop" aria-label={t('common.close')} onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
