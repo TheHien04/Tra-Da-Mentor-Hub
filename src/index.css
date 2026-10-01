@@ -815,8 +815,8 @@
   }
 
   .analytics-kpi--info .analytics-kpi__icon {
-    background: color-mix(in srgb, #6366f1 12%, var(--bg-surface));
-    color: color-mix(in srgb, #4f46e5 88%, var(--text-primary));
+    background: color-mix(in srgb, #86a914 18%, var(--bg-surface));
+    color: color-mix(in srgb, #3f5c0a 90%, var(--text-primary));
   }
 
   .analytics-kpi__label {
@@ -839,7 +839,7 @@
     background: linear-gradient(
       135deg,
       color-mix(in srgb, var(--accent) 12%, var(--bg-surface)),
-      color-mix(in srgb, #6366f1 8%, var(--bg-surface))
+      color-mix(in srgb, #86a914 14%, var(--bg-surface))
     );
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-default));
     text-decoration: none;
@@ -914,7 +914,7 @@
 
   .analytics-load-bar__fill {
     @apply h-full rounded-full transition-all duration-500;
-    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #5eead4));
+    background: linear-gradient(90deg, var(--accent), #86a914);
   }
 
   .analytics-load-bar__fill--full {
@@ -938,7 +938,7 @@
 
   .analytics-skill-bar__fill {
     @apply h-full rounded-full;
-    background: linear-gradient(90deg, var(--accent), #6366f1);
+    background: linear-gradient(90deg, var(--accent), #86a914);
   }
 
   .insights-stat-grid {
@@ -1141,7 +1141,7 @@
   }
 
   .analytics-insights-banner--insights .analytics-insights-banner__icon {
-    background: linear-gradient(135deg, #6366f1, color-mix(in srgb, var(--accent) 80%, #6366f1));
+    background: linear-gradient(135deg, #86a914, #123d2c);
   }
 
   /* Route progress (navigation) */
@@ -1159,7 +1159,7 @@
   }
 
   .route-progress--active {
-    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, #6366f1));
+    background: linear-gradient(90deg, var(--accent), #86a914);
     animation: routeProgress 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
@@ -1327,7 +1327,7 @@
     background: linear-gradient(
       135deg,
       color-mix(in srgb, var(--accent) 14%, var(--bg-surface)),
-      color-mix(in srgb, #6366f1 6%, var(--bg-surface)) 55%,
+      color-mix(in srgb, #86a914 12%, var(--bg-surface)) 55%,
       var(--bg-surface)
     );
   }
@@ -1416,7 +1416,7 @@
     inset: 0;
     background:
       radial-gradient(ellipse 60% 50% at 50% 0%, color-mix(in srgb, var(--accent) 15%, transparent), transparent),
-      radial-gradient(ellipse 40% 40% at 80% 80%, color-mix(in srgb, #6366f1 10%, transparent), transparent);
+      radial-gradient(ellipse 40% 40% at 80% 80%, color-mix(in srgb, #86a914 16%, transparent), transparent);
     pointer-events: none;
   }
 
@@ -1427,7 +1427,7 @@
 
   .not-found-card__code {
     @apply block text-6xl font-bold tracking-tighter mb-2;
-    background: linear-gradient(135deg, var(--accent), #6366f1);
+    background: linear-gradient(135deg, #123d2c, #86a914);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
