@@ -9,7 +9,10 @@
     "placeholder": "Tìm trang và thao tác…",
     "empty": "Không có kết quả",
     "hint": "Enter mở · Esc đóng",
-    "search": "Tìm nhanh"
+    "search": "Tìm nhanh",
+    "groupNavigate": "Đi tới",
+    "groupActions": "Thao tác",
+    "groupAdmin": "Quản trị"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",

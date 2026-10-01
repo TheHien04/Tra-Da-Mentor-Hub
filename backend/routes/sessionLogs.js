@@ -12,7 +12,6 @@ import {
 } from '../services/sessionLogStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
-import { recordAudit } from '../services/auditStore.js';
 import { getMentorById } from '../services/mentorStore.js';
 import { getMenteeById } from '../services/menteeStore.js';
 
@@ -94,11 +93,9 @@ router.post('/', async (req, res, next) => {
           io
         );
       }
-      await recordAudit(req, { action: 'sessionLog.create', entity: 'sessionLog', entityId: log._id });
       return res.status(201).json(log);
     }
 
-    await recordAudit(req, { action: 'sessionLog.update', entity: 'sessionLog', entityId: log._id });
     res.json(log);
   } catch (e) {
     next(e);

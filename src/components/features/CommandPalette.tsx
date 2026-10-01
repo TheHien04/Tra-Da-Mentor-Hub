@@ -30,17 +30,17 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const items = useMemo<CommandItem[]>(() => {
     const base: CommandItem[] = [
       { id: 'home', label: t('nav.dashboard'), href: '/', group: t('nav.dashboard') },
-      { id: 'mentors', label: t('nav.mentors'), href: '/mentors', group: 'Navigate', keywords: 'mentor' },
-      { id: 'mentees', label: t('nav.mentees'), href: '/mentees', group: 'Navigate', keywords: 'mentee student' },
-      { id: 'groups', label: t('nav.groups'), href: '/groups', group: 'Navigate' },
-      { id: 'schedule', label: t('nav.schedule'), href: '/schedule', group: 'Navigate' },
-      { id: 'slots', label: t('nav.slots'), href: '/slots', group: 'Navigate' },
-      { id: 'sessions', label: t('nav.sessions'), href: '/session-logs', group: 'Navigate' },
-      { id: 'analytics', label: t('nav.analytics'), href: '/analytics', group: 'Navigate' },
-      { id: 'insights', label: t('nav.insights', 'AI Insights'), href: '/insights', group: 'Navigate', keywords: 'smart match ai' },
-      { id: 'testimonials', label: t('nav.testimonials'), href: '/testimonials', group: 'Navigate' },
-      { id: 'add-mentor', label: t('mentor.addMentor'), href: '/mentors/add', group: 'Actions', keywords: 'create new' },
-      { id: 'add-mentee', label: t('mentee.addMentee'), href: '/mentees/add', group: 'Actions', keywords: 'create new' },
+      { id: 'mentors', label: t('nav.mentors'), href: '/mentors', group: t('command.groupNavigate'), keywords: 'mentor' },
+      { id: 'mentees', label: t('nav.mentees'), href: '/mentees', group: t('command.groupNavigate'), keywords: 'mentee student' },
+      { id: 'groups', label: t('nav.groups'), href: '/groups', group: t('command.groupNavigate') },
+      { id: 'schedule', label: t('nav.schedule'), href: '/schedule', group: t('command.groupNavigate') },
+      { id: 'slots', label: t('nav.slots'), href: '/slots', group: t('command.groupNavigate') },
+      { id: 'sessions', label: t('nav.sessions'), href: '/session-logs', group: t('command.groupNavigate') },
+      { id: 'analytics', label: t('nav.analytics'), href: '/analytics', group: t('command.groupNavigate') },
+      { id: 'insights', label: t('nav.insights', 'AI Insights'), href: '/insights', group: t('command.groupNavigate'), keywords: 'smart match ai' },
+      { id: 'testimonials', label: t('nav.testimonials'), href: '/testimonials', group: t('command.groupNavigate') },
+      { id: 'add-mentor', label: t('mentor.addMentor'), href: '/mentors/add', group: t('command.groupActions'), keywords: 'create new' },
+      { id: 'add-mentee', label: t('mentee.addMentee'), href: '/mentees/add', group: t('command.groupActions'), keywords: 'create new' },
     ];
 
     if (role === 'mentor' || role === 'admin') {
@@ -48,15 +48,15 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         id: 'applications',
         label: t('nav.applications'),
         href: '/applications',
-        group: 'Navigate',
+        group: t('command.groupNavigate'),
       });
     }
 
     if (role === 'admin') {
       base.push(
-        { id: 'export', label: t('nav.export'), href: '/admin/export', group: 'Admin' },
-        { id: 'invite', label: t('nav.invites'), href: '/admin/invite', group: 'Admin' },
-        { id: 'notifications', label: t('nav.notifications'), href: '/admin/notifications', group: 'Admin' }
+        { id: 'export', label: t('nav.export'), href: '/admin/export', group: t('command.groupAdmin') },
+        { id: 'invite', label: t('nav.invites'), href: '/admin/invite', group: t('command.groupAdmin') },
+        { id: 'notifications', label: t('nav.notifications'), href: '/admin/notifications', group: t('command.groupAdmin') }
       );
     }
 
@@ -105,9 +105,10 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   };
 
   return (
-    <div ref={trapRef} className="fixed inset-0 z-[200] flex items-start justify-center pt-[12vh] px-4">
+    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[12vh] px-4">
       <button type="button" className="absolute inset-0 overlay-backdrop" aria-label={t('common.close')} onClick={onClose} />
       <div
+        ref={trapRef}
         role="dialog"
         aria-modal="true"
         aria-label={t('command.title', 'Command menu')}
@@ -120,6 +121,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('command.placeholder', 'Search pages and actions…')}
+            aria-label={t('command.search', 'Quick search')}
             className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
           />
           <kbd className="hidden sm:inline-flex search-trigger px-1.5 py-0.5 text-[10px] font-medium rounded">esc</kbd>

@@ -17,6 +17,7 @@ import {
   bodySizeLimiter,
 } from './middleware/security.js';
 import { requireCsrf } from './middleware/csrf.js';
+import { auditMutations } from './middleware/auditMutations.js';
 import { requireApiAuth } from './middleware/requireApiAuth.js';
 import { getHealthPayload } from './lib/healthStatus.js';
 import { mountFrontend } from './lib/serveFrontend.js';
@@ -116,6 +117,7 @@ export function createApp(options = {}) {
 
   app.use(generalLimiter);
   app.use(requireApiAuth);
+  app.use(auditMutations);
 
   app.use('/api/auth', authLimiter, authRoutes);
   app.use('/api/mentors', mentorRoutes);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { slotsApi, menteeApi } from '../services/api';
 import { useSlots } from '../hooks/queries/useSlots';
@@ -23,6 +23,8 @@ const SlotsPage = () => {
   const role = state.user?.role || 'user';
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const bookingKeys = useRef(new Map<string, string>());
   const [filterMentorId, setFilterMentorId] = useState('');
   const slotParams = filterMentorId ? { mentorId: filterMentorId } : undefined;
   const {
@@ -107,13 +109,21 @@ const SlotsPage = () => {
   };
 
   const handleBook = async (slotId: string) => {
+    if (bookingId) return;
     const menteeId = menteeProfileId;
     if (!menteeId) {
       toast.warning(t('pages.slots.noMenteeProfile'));
       return;
     }
+    let key = bookingKeys.current.get(slotId);
+    if (!key) {
+      key = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${slotId}`;
+      bookingKeys.current.set(slotId, key);
+    }
+    setBookingId(slotId);
     try {
-      await slotsApi.book(slotId, menteeId);
+      await slotsApi.book(slotId, menteeId, key);
+      bookingKeys.current.delete(slotId);
       toast.success(t('pages.slots.bookSuccess'));
       if (calendarStatus?.connected) {
         try {
@@ -129,6 +139,8 @@ const SlotsPage = () => {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(e.response?.data?.message || t('pages.slots.bookFailed'));
+    } finally {
+      setBookingId(null);
     }
   };
 
@@ -288,7 +300,12 @@ const SlotsPage = () => {
                   </div>
                 </div>
                 {isOpen && (role === 'mentee' || role === 'admin') && (
-                  <button type="button" className="btn btn-primary w-full mt-auto" onClick={() => handleBook(s._id)}>
+                  <button
+                    type="button"
+                    className="btn btn-primary w-full mt-auto"
+                    disabled={bookingId === s._id}
+                    onClick={() => void handleBook(s._id)}
+                  >
                     {t('pages.slots.book')}
                   </button>
                 )}

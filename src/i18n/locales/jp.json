@@ -319,7 +319,10 @@
     "placeholder": "Search pages and actions…",
     "empty": "No results",
     "hint": "Enter to open · Esc to close",
-    "search": "Quick search"
+    "search": "Quick search",
+    "groupNavigate": "Go to",
+    "groupActions": "Do",
+    "groupAdmin": "Admin"
   },
   "language": {
     "change": "Change language",
