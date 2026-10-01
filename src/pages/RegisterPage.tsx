@@ -11,6 +11,7 @@ import { useAppTranslation } from '../hooks/useAppTranslation';
 import { registerFormSchema } from '../schemas/forms';
 import { ZodError } from 'zod';
 import { AuthPageFooter } from '../components/AuthPageFooter';
+import { AuthScene } from '../components/motion/AuthScene';
 import './AuthPage.css';
 
 interface FormData {
@@ -157,8 +158,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-shell auth-shell-wide">
+    <div className="auth-page auth-page--scene">
+      <AuthScene />
+      <div className="auth-shell auth-shell-wide auth-form-column">
         <div className="auth-card">
           <div className="text-center mb-8">
             <div className="auth-icon">

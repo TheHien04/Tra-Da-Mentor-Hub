@@ -20,6 +20,7 @@ import SearchFilter from './SearchFilter';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, SkillTags } from './ui';
+import { PageScene } from './motion/PageScene';
 
 const MentorList = () => {
   const { t } = useAppTranslation();
@@ -103,6 +104,10 @@ const MentorList = () => {
         })}
         icon={<HiOutlineAcademicCap className="h-7 w-7" />}
         action={isAdmin ? { label: `+ ${t('mentor.addMentor')}`, href: '/mentors/add' } : undefined}
+      />
+      <PageScene
+        images={['/media/circle-session.jpg', '/media/hero-session.jpg']}
+        caption={t('dashboard.sceneCircle')}
       />
 
       <SearchFilter

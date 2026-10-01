@@ -10,6 +10,7 @@ import { CommandPalette, useCommandPalette } from './components/features/Command
 import { OnboardingTour } from './components/features/OnboardingTour';
 import { RouteProgress } from './components/features/RouteProgress';
 import { ScrollToTop } from './components/features/ScrollToTop';
+import { ScrollMotion } from './components/motion/ScrollMotion';
 import { PwaInstallPrompt } from './components/features/PwaInstallPrompt';
 import { SkipToContent } from './components/features/SkipToContent';
 import { NotificationProvider } from './context/NotificationContext';
@@ -102,6 +103,7 @@ function AppContent() {
       <ScrollToTop />
       {isAuthPage ? <AuthLanguageBar /> : <Navbar />}
       <main id="main-content" className="content" tabIndex={-1}>
+        <ScrollMotion />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
