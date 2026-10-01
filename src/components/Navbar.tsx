@@ -89,7 +89,7 @@ const Navbar = () => {
         <h1>{t('app.brand')}</h1>
       </Link>
 
-      <div className="flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">
+      <div className="navbar-links flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">
         {navLink('/', t('nav.dashboard'), <HiOutlineHome className={iconClass} />)}
         {navLink('/mentors', t('nav.mentors'), <HiOutlineAcademicCap className={iconClass} />, true)}
         {navLink('/mentees', t('nav.mentees'), <HiOutlineUserGroup className={iconClass} />, true)}

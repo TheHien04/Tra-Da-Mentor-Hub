@@ -24,7 +24,7 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
   const { data: matches = [], isLoading, error } = useMatchSuggestions({
     menteeId,
     mentorId,
-    limit: compact ? 4 : 8,
+    limit: compact ? 2 : 8,
   });
 
   const explainQuery = useMatchExplain(
@@ -34,7 +34,7 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
   );
 
   return (
-    <section className="card p-6">
+    <section className={`card p-6${compact ? ' h-full' : ''}`}>
       <div className="flex items-start justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
           <span className="icon-chip">

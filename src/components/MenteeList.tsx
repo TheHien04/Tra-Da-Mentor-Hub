@@ -124,9 +124,9 @@ const MenteeList = () => {
       />
       <EditorialBanner
         image="/media/hero-session.jpg"
-        kicker={`01 · ${t('dashboard.sceneTalkKicker')}`}
-        title={t('dashboard.sceneTalk')}
-        body={t('dashboard.cardTalkBody')}
+        kicker={t('lists.menteeLeadKicker')}
+        title={t('lists.menteeLead')}
+        body={t('lists.menteeLeadBody')}
       />
 
       {successMessage && (

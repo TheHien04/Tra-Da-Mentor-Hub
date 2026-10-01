@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useSlots } from '../hooks/queries/useSlots';
+import { useMentors } from '../hooks/queries/useMentors';
 import { useAnalyticsSummary } from '../hooks/queries/useAnalytics';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -10,9 +11,7 @@ import {
   HiOutlineAcademicCap,
   HiOutlineUsers,
   HiOutlineTrophy,
-  HiOutlinePlus,
   HiOutlineCalendarDays,
-  HiOutlineArrowRight,
   HiOutlineChartBar,
 } from 'react-icons/hi2';
 import Skeleton from './Skeleton';
@@ -22,6 +21,7 @@ import { LiveActivityFeed } from './features/LiveActivityFeed';
 import { DashboardHero } from './features/DashboardHero';
 import { EditorialDeck } from './motion/EditorialDeck';
 import { EditorialSplit } from './motion/EditorialSplit';
+import { Diorama } from './motion/Diorama';
 import { PageShell } from './ui/PageShell';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 
@@ -82,6 +82,7 @@ const Dashboard = () => {
     isError: slotsError,
     error: slotsQueryError,
   } = useSlots(slotParams);
+  const { data: mentors = [] } = useMentors();
   const {
     data: summary,
     isLoading: summaryLoading,
@@ -103,7 +104,10 @@ const Dashboard = () => {
     upcomingSessions: UpcomingSession[];
     trendingSkills: { skill: string; count: number; percentage: number }[];
   } => {
-    const mentorName = (id: string) => id;
+    const mentorName = (id: string) =>
+      mentors.find((m) => String(m._id) === id)?.name ||
+      mentors.find((m) => String(m._id) === id)?.email ||
+      t('dashboard.unnamedMentor');
     const now = new Date();
 
     const futureSlots = slots
@@ -161,7 +165,7 @@ const Dashboard = () => {
         percentage: Math.round((count / maxCount) * 100),
       })),
     };
-  }, [slots, t, summary, isOps]);
+  }, [slots, mentors, t, summary, isOps]);
 
   const statCards = isOps
     ? [
@@ -184,10 +188,10 @@ const Dashboard = () => {
           href: '/groups',
         },
         {
-          label: t('dashboard.completedSessions'),
-          value: stats.menteesCompleted,
+          label: t('dashboard.mentorsAtCapacity'),
+          value: stats.mentorsAtCapacity,
           icon: HiOutlineTrophy,
-          href: '/analytics',
+          href: '/mentors',
         },
       ]
     : [
@@ -205,18 +209,22 @@ const Dashboard = () => {
         },
       ];
 
-  const quickActions = [
-    role === 'admin'
-      ? { label: t('mentor.addMentor'), href: '/mentors/add', icon: HiOutlinePlus }
-      : null,
-    role === 'admin'
-      ? { label: t('mentee.addMentee'), href: '/mentees/add', icon: HiOutlinePlus }
-      : null,
-    isOps ? { label: t('nav.analytics'), href: '/analytics', icon: HiOutlineChartBar } : null,
-    role === 'mentee'
-      ? { label: t('nav.slots'), href: '/slots', icon: HiOutlineCalendarDays }
-      : { label: t('nav.sessions'), href: '/session-logs', icon: HiOutlineCalendarDays },
-  ].filter((action): action is { label: string; href: string; icon: typeof HiOutlinePlus } => Boolean(action));
+  const next = upcomingSessions[0];
+  const nextHref = next ? '/schedule' : role === 'mentee' ? '/slots' : role === 'admin' ? '/insights' : '/slots';
+  const nextLabel = next
+    ? t('dashboard.nextUpOpen')
+    : role === 'mentee'
+      ? t('dashboard.bookSession')
+      : role === 'admin'
+        ? t('dashboard.reviewMatch')
+        : t('dashboard.openSlot');
+  const nextHint = next
+    ? null
+    : role === 'mentee'
+      ? t('dashboard.nextUpHintMentee')
+      : role === 'admin'
+        ? t('dashboard.nextUpHintAdmin')
+        : t('dashboard.nextUpHintMentor');
 
   const progressItems = [
     { label: t('dashboard.progressCompleted'), value: stats.menteesCompleted, pct: stats.totalMentees },
@@ -228,71 +236,27 @@ const Dashboard = () => {
   return (
     <PageShell>
       <DashboardHero />
-      <EditorialDeck
-        items={[
-          {
-            n: '01',
-            kicker: t('dashboard.sceneTalkKicker'),
-            title: t('dashboard.sceneTalk'),
-            body: t('dashboard.cardTalkBody'),
-            href: '/schedule',
-            image: '/media/hero-session.jpg',
-            action: t('dashboard.cardExplore'),
-          },
-          {
-            n: '02',
-            kicker: t('dashboard.sceneCircleKicker'),
-            title: t('dashboard.sceneCircle'),
-            body: t('dashboard.cardCircleBody'),
-            href: '/groups',
-            image: '/media/circle-session.jpg',
-            action: t('dashboard.cardExplore'),
-          },
-          {
-            n: '03',
-            kicker: t('dashboard.sceneQuietKicker'),
-            title: t('dashboard.sceneQuiet'),
-            body: t('dashboard.cardQuietBody'),
-            href: isOps ? '/insights' : '/mentors',
-            image: '/media/quiet-table.jpg',
-            action: t('dashboard.cardExplore'),
-          },
-        ]}
-      />
-      <EditorialSplit
-        image="/media/auth-tea.jpg"
-        light={{
-          n: '04',
-          kicker: t('nav.schedule'),
-          title: t('dashboard.splitTitle'),
-          body: t('dashboard.splitBody'),
-          href: '/schedule',
-          action: t('dashboard.cardExplore'),
-        }}
-        forest={{
-          n: '05',
-          kicker: isOps ? t('nav.insights') : t('nav.mentors'),
-          title: t('dashboard.forestTitle'),
-          body: t('dashboard.forestBody'),
-          href: isOps ? '/insights' : '/mentors',
-          action: t('dashboard.cardExplore'),
-        }}
-      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-reveal>
-        {quickActions.map((action) => (
-          <Link
-            key={action.href}
-            to={action.href}
-            className="group flex items-center gap-3 card card-hover px-4 py-3.5"
-          >
-            <span className="icon-chip">
-              <action.icon className="h-4 w-4" />
-            </span>
-            <span className="text-sm font-medium text-primary">{action.label}</span>
-            <HiOutlineArrowRight className="ml-auto h-4 w-4 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="work-grid">
+        <section className="next-up" aria-labelledby="next-up-title">
+          <div className="min-w-0">
+            <p className="next-up__kicker">{t('dashboard.nextUp')}</p>
+            <h2 id="next-up-title" className="next-up__title">
+              {next ? next.title : t('dashboard.nextUpEmpty')}
+            </h2>
+            <p className="next-up__meta">
+              {next ? `${next.date} · ${next.time}` : nextHint}
+            </p>
+          </div>
+          <Link to={nextHref} className="btn btn-primary shrink-0">
+            {nextLabel}
           </Link>
-        ))}
+        </section>
+        <SmartMatchPanel
+          compact
+          menteeId={role === 'mentee' ? state.user?.menteeId || undefined : undefined}
+          mentorId={role === 'mentor' ? state.user?.mentorId || undefined : undefined}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" data-reveal>
@@ -392,8 +356,7 @@ const Dashboard = () => {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" data-reveal>
-        <SmartMatchPanel compact />
+      <div className="mb-8" data-reveal>
         <LiveActivityFeed />
       </div>
 
@@ -433,6 +396,64 @@ const Dashboard = () => {
           })}
         </section>
       )}
+
+      <div className="work-studio">
+        <div className="work-studio__stage" aria-hidden>
+          <Diorama />
+        </div>
+        <div className="min-w-0">
+          <EditorialDeck
+            items={[
+              {
+                n: '01',
+                kicker: t('dashboard.sceneTalkKicker'),
+                title: t('dashboard.sceneTalk'),
+                body: t('dashboard.cardTalkBody'),
+                href: '/schedule',
+                image: '/media/hero-session.jpg',
+                action: t('dashboard.cardExplore'),
+              },
+              {
+                n: '02',
+                kicker: t('dashboard.sceneCircleKicker'),
+                title: t('dashboard.sceneCircle'),
+                body: t('dashboard.cardCircleBody'),
+                href: '/groups',
+                image: '/media/circle-session.jpg',
+                action: t('dashboard.cardExplore'),
+              },
+              {
+                n: '03',
+                kicker: t('dashboard.sceneQuietKicker'),
+                title: t('dashboard.sceneQuiet'),
+                body: t('dashboard.cardQuietBody'),
+                href: isOps ? '/insights' : '/mentors',
+                image: '/media/quiet-table.jpg',
+                action: t('dashboard.cardExplore'),
+              },
+            ]}
+          />
+          <EditorialSplit
+            image="/media/auth-tea.jpg"
+            light={{
+              n: '04',
+              kicker: t('nav.schedule'),
+              title: t('dashboard.splitTitle'),
+              body: t('dashboard.splitBody'),
+              href: '/schedule',
+              action: t('dashboard.cardExplore'),
+            }}
+            forest={{
+              n: '05',
+              kicker: isOps ? t('nav.insights') : t('nav.mentors'),
+              title: t('dashboard.forestTitle'),
+              body: t('dashboard.forestBody'),
+              href: isOps ? '/insights' : '/mentors',
+              action: t('dashboard.cardExplore'),
+            }}
+          />
+        </div>
+      </div>
 
       {error && (
         <Alert variant="error" title={t('common.loadError')} className="mt-4">

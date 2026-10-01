@@ -195,10 +195,10 @@ const TestimonialsPage = () => {
         </div>
       </PageHeader>
       <EditorialBanner
-        image="/media/hero-session.jpg"
-        kicker={`01 · ${t('dashboard.sceneTalkKicker')}`}
-        title={t('dashboard.sceneTalk')}
-        body={t('dashboard.cardTalkBody')}
+        image="/media/quiet-table.jpg"
+        kicker={t('lists.testimonialLeadKicker')}
+        title={t('lists.testimonialLead')}
+        body={t('lists.testimonialLeadBody')}
       />
 
       <div className="insights-stat-grid mb-6">

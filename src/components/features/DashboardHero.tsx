@@ -7,7 +7,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useGreeting } from '../../hooks/useGreeting';
-import { Diorama } from '../motion/Diorama';
 
 export function DashboardHero() {
   const { t } = useAppTranslation();
@@ -33,9 +32,10 @@ export function DashboardHero() {
         : role === 'admin'
           ? t('dashboard.adminSubtitle')
           : t('dashboard.defaultSubtitle');
+  const canReviewMatches = role === 'admin' || role === 'mentor';
 
   return (
-    <section className="dashboard-hero" aria-labelledby="dashboard-hero-title">
+    <section className="dashboard-hero dashboard-hero--work" aria-labelledby="dashboard-hero-title">
       <div className="dashboard-hero__mesh" aria-hidden />
       <div className="dashboard-hero__inner">
         <div className="dashboard-hero__copy">
@@ -57,14 +57,18 @@ export function DashboardHero() {
             <HiOutlineCalendarDays className="h-4 w-4" />
             {t('nav.schedule')}
           </Link>
-          <Link to="/insights" className="btn btn-secondary dashboard-hero__cta">
-            <HiOutlineSparkles className="h-4 w-4" />
-            {t('nav.insights')}
-            <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
-          </Link>
-        </div>
-        <div className="dashboard-hero__scene">
-          <Diorama />
+          {canReviewMatches ? (
+            <Link to="/insights" className="btn btn-secondary dashboard-hero__cta">
+              <HiOutlineSparkles className="h-4 w-4" />
+              {t('nav.insights')}
+              <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
+            </Link>
+          ) : (
+            <Link to="/slots" className="btn btn-secondary dashboard-hero__cta">
+              {t('dashboard.bookSession')}
+              <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
+            </Link>
+          )}
         </div>
       </div>
     </section>
