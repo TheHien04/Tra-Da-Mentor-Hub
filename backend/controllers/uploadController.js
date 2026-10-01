@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 import { randomBytes } from 'crypto';
 import { updateMentor } from '../services/mentorStore.js';
 import { updateMentee } from '../services/menteeStore.js';
+import { loadActor } from '../lib/actor.js';
+import { fail } from '../lib/httpError.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, '../uploads/avatars');
@@ -29,13 +31,19 @@ function parseDataUrl(dataUrl) {
 
 export async function uploadAvatar(req, res, next) {
   try {
+    const actor = await loadActor(req);
     const { entityType, entityId, dataUrl } = req.body || {};
     if (!['mentor', 'mentee'].includes(entityType)) {
-      return res.status(400).json({ message: 'Invalid entity type' });
+      return fail(res, 400, 'VALIDATION', 'Invalid entity type');
     }
     if (!entityId || typeof entityId !== 'string') {
-      return res.status(400).json({ message: 'Entity ID required' });
+      return fail(res, 400, 'VALIDATION', 'Entity ID required');
     }
+    const owns =
+      actor?.isAdmin ||
+      (entityType === 'mentor' && actor?.mentorId === entityId) ||
+      (entityType === 'mentee' && actor?.menteeId === entityId);
+    if (!owns) return fail(res, 403, 'FORBIDDEN');
 
     const parsed = parseDataUrl(dataUrl);
     if (!parsed) {

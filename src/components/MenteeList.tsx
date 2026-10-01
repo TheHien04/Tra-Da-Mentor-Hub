@@ -19,6 +19,7 @@ import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, SkillTags } from './ui';
 import { Alert } from './ui/Alert';
 import { getApiErrorMessage } from '../lib/apiHelpers';
+import { useAuth } from '../context/AuthContext';
 
 interface Mentee {
   _id: string;
@@ -33,6 +34,8 @@ interface Mentee {
 
 const MenteeList = () => {
   const { t } = useAppTranslation();
+  const { state } = useAuth();
+  const isAdmin = state.user?.role === 'admin';
   const { confirm } = useConfirm();
   const queryClient = useQueryClient();
   const trackOptions = getTrackOptions(t, true);
@@ -116,7 +119,7 @@ const MenteeList = () => {
           completed,
         })}
         icon={<HiOutlineUserGroup className="h-7 w-7" />}
-        action={{ label: `+ ${t('mentee.addMentee')}`, href: '/mentees/add' }}
+        action={isAdmin ? { label: `+ ${t('mentee.addMentee')}`, href: '/mentees/add' } : undefined}
       />
 
       {successMessage && (
@@ -252,6 +255,7 @@ const MenteeList = () => {
                   {t('mentee.viewDetails')}
                   <HiOutlineArrowRight className="h-4 w-4" />
                 </Link>
+                {isAdmin && (
                 <button
                   type="button"
                   className="btn btn-ghost-danger px-3"
@@ -261,6 +265,7 @@ const MenteeList = () => {
                 >
                   <HiOutlineTrash className="h-4 w-4" />
                 </button>
+                )}
               </div>
             </article>
           ))}

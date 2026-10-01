@@ -104,7 +104,7 @@ export async function handleGoogleCallback(req, res) {
     });
 
     logger.info(`Google SSO login: ${email}`);
-    return res.redirect(`${FRONTEND_URL}/auth/callback?${params.toString()}`);
+    return res.redirect(`${FRONTEND_URL}/auth/callback#${params.toString()}`);
   } catch (error) {
     logger.error('Google callback error:', error);
     return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);

@@ -1,7 +1,21 @@
 {
   "app": {
     "title": "Mentor Platform",
+    "brand": "Trà Đá Mentor",
     "description": "Connecting mentors and mentees for growth"
+  },
+  "errors": {
+    "NETWORK": "Cannot reach the server. Start it with npm run dev:all.",
+    "GENERIC": "Something went wrong. Try again.",
+    "FORBIDDEN": "You do not have access to this action.",
+    "NOT_FOUND": "That record was not found.",
+    "VALIDATION": "Check the form and try again.",
+    "CONFLICT": "This conflicts with an existing record.",
+    "EMAIL_TAKEN": "That email is already in use.",
+    "SLOT_TAKEN": "This slot is already booked.",
+    "SLOT_CONFLICT": "This time overlaps another slot.",
+    "UNAUTHORIZED": "Please sign in again.",
+    "INTERNAL": "The server could not complete that request."
   },
   "command": {
     "title": "Command menu",
@@ -99,6 +113,8 @@
     "statistics": "Statistics",
     "totalMentors": "Total Mentors",
     "totalMentees": "Total Mentees",
+    "openSlots": "Open slots",
+    "myBookings": "My bookings",
     "activeGroups": "Active Groups",
     "completedSessions": "Completed Sessions",
     "mentorSubtitle": "Your mentoring sessions and mentee capacity",
@@ -172,6 +188,7 @@
     "emptyMentorsTitle": "No mentors found",
     "emptyMentorsSearch": "Try a different search or clear filters.",
     "emptyMentorsDefault": "Add your first mentor to get started.",
+    "emptyMentorsBrowse": "Mentors will show up here once an admin adds them.",
     "emptyMenteesTitle": "No mentees found",
     "emptyMenteesSearch": "Try another search or add a new mentee.",
     "emptyMenteesDefault": "Add your first mentee to get started.",
@@ -259,6 +276,7 @@
     "success": "Success",
     "confirm": "Confirm",
     "back": "Back",
+    "previous": "Previous",
     "next": "Next",
     "submit": "Submit",
     "close": "Close",
@@ -598,8 +616,12 @@
       "bookSuccess": "Slot booked.",
       "calendarMeetCreated": "Google Meet link added to your calendar.",
       "bookFailed": "Failed to book",
+      "cancelBooking": "Cancel booking",
+      "cancelSuccess": "Booking cancelled.",
+      "cancelFailed": "Could not cancel this booking.",
       "emptyTitle": "No slots",
       "emptyDesc": "No slots yet. Mentors can add availability above.",
+      "emptyMentee": "No open times yet. Check back after your mentor publishes a slot.",
       "noMenteeProfile": "Link your mentee profile before booking (log in as mentee or contact admin)."
     },
     "analytics": {

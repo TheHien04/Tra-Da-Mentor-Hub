@@ -25,8 +25,9 @@ export function getRefreshToken(): string | null {
 
 export function setAuthTokens(accessToken: string, refreshToken: string): void {
   try {
+    if (!accessToken) return;
     sessionStorage.setItem(ACCESS_KEY, accessToken);
-    localStorage.setItem(REFRESH_KEY, refreshToken);
+    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
     // Migrate legacy copies
     localStorage.removeItem(ACCESS_KEY);
   } catch {

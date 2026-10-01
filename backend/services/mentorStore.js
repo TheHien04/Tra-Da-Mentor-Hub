@@ -38,10 +38,24 @@ export async function getMentorById(id) {
 }
 
 export async function createMentor(body) {
+  const email = String(body.email || '').toLowerCase().trim();
+  if (email) {
+    const duplicate = useDb()
+      ? await MentorProfile.findOne({ email }).lean()
+      : memory.find((m) => String(m.email || '').toLowerCase() === email);
+    if (duplicate) {
+      const error = new Error('EMAIL_TAKEN');
+      error.code = 'EMAIL_TAKEN';
+      throw error;
+    }
+  }
+
   const _id = body._id || `m${Date.now()}`;
   const data = {
     _id,
     ...body,
+    email,
+    userId: body.userId || null,
     mentees: body.mentees || [],
     groups: body.groups || [],
     expertise: body.expertise || [],

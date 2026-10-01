@@ -326,7 +326,32 @@
             }
           }
         },
-        "responses": { "200": { "description": "Booked" } }
+        "responses": { "200": { "description": "Booked as the signed-in mentee. Admin may pass menteeId." } }
+      }
+    },
+    "/api/slots/{id}/booking": {
+      "delete": {
+        "tags": ["Slots"],
+        "summary": "Cancel a booking",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Booking cleared" }, "403": { "description": "Forbidden" } }
+      }
+    },
+    "/api/slots/{id}": {
+      "patch": {
+        "tags": ["Slots"],
+        "summary": "Reschedule a slot owned by the mentor",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Updated" }, "409": { "description": "Time conflict" } }
+      },
+      "delete": {
+        "tags": ["Slots"],
+        "summary": "Delete an unbooked slot",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Deleted" } }
       }
     },
     "/api/session-logs": {

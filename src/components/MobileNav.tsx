@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './features/ThemeToggle';
 import { NotificationBell } from './features/NotificationBell';
+import { canAccessPath } from '../lib/navAccess';
 
 const MobileNav = () => {
   const { t } = useAppTranslation();
@@ -21,35 +22,35 @@ const MobileNav = () => {
   const { state, logout } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const role = state.user?.role || 'user';
-  const isAdmin = role === 'admin';
-  const isMentorOrAdmin = role === 'mentor' || role === 'admin';
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   const primary = [
     { to: '/', label: t('nav.dashboard'), icon: HiOutlineHome },
-    { to: '/schedule', label: t('nav.schedule'), icon: HiOutlineClock },
-    { to: '/mentors', label: t('nav.mentors'), icon: HiOutlineAcademicCap },
-  ];
+    role === 'mentee'
+      ? { to: '/slots', label: t('nav.slots'), icon: HiOutlineClock }
+      : { to: '/schedule', label: t('nav.schedule'), icon: HiOutlineClock },
+    role === 'mentor'
+      ? { to: '/mentees', label: t('nav.mentees'), icon: HiOutlineAcademicCap }
+      : { to: '/mentors', label: t('nav.mentors'), icon: HiOutlineAcademicCap },
+  ].filter((item) => canAccessPath(role, item.to));
 
   const moreLinks = [
     { to: '/mentees', label: t('nav.mentees') },
+    { to: '/mentors', label: t('nav.mentors') },
     { to: '/groups', label: t('nav.groups') },
+    { to: '/slots', label: t('nav.slots') },
     { to: '/schedule', label: t('nav.schedule') },
     { to: '/session-logs', label: t('nav.sessions') },
-    ...(isMentorOrAdmin ? [{ to: '/applications', label: t('nav.applications') }] : []),
+    { to: '/applications', label: t('nav.applications') },
     { to: '/analytics', label: t('nav.analytics') },
     { to: '/insights', label: t('nav.insights') },
     { to: '/testimonials', label: t('nav.testimonials') },
-    ...(isAdmin
-      ? [
-          { to: '/admin/export', label: t('nav.export') },
-          { to: '/admin/invite', label: t('nav.invites') },
-          { to: '/admin/notifications', label: t('nav.notifications') },
-        ]
-      : []),
-  ];
+    { to: '/admin/export', label: t('nav.export') },
+    { to: '/admin/invite', label: t('nav.invites') },
+    { to: '/admin/notifications', label: t('nav.notifications') },
+  ].filter((item) => canAccessPath(role, item.to) && !primary.some((p) => p.to === item.to));
 
   const handleLogout = async () => {
     setMoreOpen(false);

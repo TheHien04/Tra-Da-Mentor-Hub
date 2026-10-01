@@ -42,18 +42,23 @@ export function validate(schema) {
 // Legacy validators (kept for backward compatibility)
 // Basic validation middleware for mentor data
 export const validateMentor = (req, res, next) => {
+  const isPartial = req.method === 'PATCH';
   const { name, email, phone, maxMentees } = req.body;
 
   const errors = [];
 
-  if (!name || name.trim() === '') {
-    errors.push('Name is required');
+  if (!isPartial || name !== undefined) {
+    if (!name || String(name).trim() === '') {
+      errors.push('Name is required');
+    }
   }
 
-  if (!email || email.trim() === '') {
-    errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Invalid email format');
+  if (!isPartial || email !== undefined) {
+    if (!email || String(email).trim() === '') {
+      errors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push('Invalid email format');
+    }
   }
 
   if (phone && !/^\d{10,}$/.test(phone.replace(/\D/g, ''))) {
@@ -76,18 +81,23 @@ export const validateMentor = (req, res, next) => {
 
 // Validation middleware for mentee data
 export const validateMentee = (req, res, next) => {
+  const isPartial = req.method === 'PATCH';
   const { name, email, phone } = req.body;
 
   const errors = [];
 
-  if (!name || name.trim() === '') {
-    errors.push('Name is required');
+  if (!isPartial || name !== undefined) {
+    if (!name || String(name).trim() === '') {
+      errors.push('Name is required');
+    }
   }
 
-  if (!email || email.trim() === '') {
-    errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Invalid email format');
+  if (!isPartial || email !== undefined) {
+    if (!email || String(email).trim() === '') {
+      errors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push('Invalid email format');
+    }
   }
 
   if (phone && !/^\d{10,}$/.test(phone.replace(/\D/g, ''))) {

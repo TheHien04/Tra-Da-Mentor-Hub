@@ -2,11 +2,9 @@ import { useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-import type { Mentor, Mentee } from '../types/models';
-import { useMentors } from '../hooks/queries/useMentors';
-import { useMentees } from '../hooks/queries/useMentees';
-import { useGroups } from '../hooks/queries/useGroups';
 import { useSlots } from '../hooks/queries/useSlots';
+import { useAnalyticsSummary } from '../hooks/queries/useAnalytics';
+import { useAuth } from '../context/AuthContext';
 import {
   HiOutlineUserGroup,
   HiOutlineAcademicCap,
@@ -52,7 +50,10 @@ function parseSlotDateTime(date: string, time?: string) {
 }
 
 const Dashboard = () => {
-  const { t } = useAppTranslation();
+  const { t, i18n } = useAppTranslation();
+  const { state } = useAuth();
+  const role = state.user?.role || 'user';
+  const isOps = role === 'admin' || role === 'mentor';
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const calendar = searchParams.get('calendar');
@@ -68,25 +69,32 @@ const Dashboard = () => {
     next.delete('calendar');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, t]);
+  const slotParams =
+    role === 'mentor' && state.user?.mentorId
+      ? { mentorId: state.user.mentorId }
+      : role === 'mentee' && state.user?.menteeId
+        ? { menteeId: state.user.menteeId }
+        : undefined;
   const {
-    data: mentorsList = [],
-    isLoading: mentorsLoading,
-    isError: mentorsError,
-    error: mentorsQueryError,
-  } = useMentors();
+    data: slots = [],
+    isLoading: slotsLoading,
+    isError: slotsError,
+    error: slotsQueryError,
+  } = useSlots(slotParams);
   const {
-    data: menteesData = [],
-    isLoading: menteesLoading,
-    isError: menteesError,
-    error: menteesQueryError,
-  } = useMentees();
-  const { data: groupsList = [], isLoading: groupsLoading } = useGroups();
-  const { data: slots = [], isLoading: slotsLoading } = useSlots();
+    data: summary,
+    isLoading: summaryLoading,
+    isError: summaryError,
+    error: summaryQueryError,
+  } = useAnalyticsSummary('90d', i18n.language || 'en', isOps);
 
-  const loading = mentorsLoading || menteesLoading || groupsLoading || slotsLoading;
-  const error =
-    mentorsError || menteesError
-      ? getApiErrorMessage(mentorsQueryError || menteesQueryError)
+  const loading = slotsLoading || (isOps && summaryLoading);
+  const error = isOps
+    ? summaryError
+      ? getApiErrorMessage(summaryQueryError)
+      : null
+    : slotsError
+      ? getApiErrorMessage(slotsQueryError)
       : null;
 
   const { stats, upcomingSessions, trendingSkills } = useMemo((): {
@@ -94,9 +102,7 @@ const Dashboard = () => {
     upcomingSessions: UpcomingSession[];
     trendingSkills: { skill: string; count: number; percentage: number }[];
   } => {
-    const mentors = mentorsList as Mentor[];
-    const mentees = menteesData as Mentee[];
-    const mentorName = (id: string) => mentors.find((m) => m._id === id)?.name || id;
+    const mentorName = (id: string) => id;
     const now = new Date();
 
     const futureSlots = slots
@@ -129,36 +135,23 @@ const Dashboard = () => {
       isBooked: s.isBooked,
     }));
 
-    const skillMap = new Map<string, number>();
-    mentees.forEach((m) => {
-      (m.interests || []).forEach((skill: string) => {
-        const key = skill.trim();
-        if (key) skillMap.set(key, (skillMap.get(key) || 0) + 1);
-      });
-    });
-    if (skillMap.size === 0) {
-      mentors.forEach((m) => {
-        (m.expertise || []).forEach((skill: string) => {
-          const key = skill.trim();
-          if (key) skillMap.set(key, (skillMap.get(key) || 0) + 1);
-        });
-      });
-    }
-    const topSkills = [...skillMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topSkills = (summary?.topSkills || []).slice(0, 5).map((skill) => [skill.skill, skill.count] as const);
     const maxCount = topSkills[0]?.[1] || 1;
+    const completed = summary?.progressSegments.find((s) => s.key === 'completed')?.value || 0;
+    const inProgress = summary?.progressSegments.find((s) => s.key === 'inProgress')?.value || 0;
+    const justStarted = summary?.progressSegments.find((s) => s.key === 'justStarted')?.value || 0;
+    const myBooked = slots.filter((s) => s.bookedBy || s.menteeId).length;
+    const myOpen = slots.length - myBooked;
 
     return {
       stats: {
-        totalMentors: mentors.length,
-        totalMentees: mentees.length,
-        totalGroups: groupsList.length,
-        mentorsAtCapacity: mentors.filter(
-          (m) => m.maxMentees && m.mentees && m.mentees.length >= m.maxMentees
-        ).length,
-        menteesCompleted: mentees.filter((m) => m.progress === 100).length,
-        menteesInProgress: mentees.filter((m) => m.progress && m.progress > 0 && m.progress < 100)
-          .length,
-        menteesJustStarted: mentees.filter((m) => !m.progress || m.progress === 0).length,
+        totalMentors: isOps ? summary?.kpis.mentors || 0 : myOpen,
+        totalMentees: isOps ? summary?.kpis.mentees || 0 : myBooked,
+        totalGroups: isOps ? summary?.kpis.groups || 0 : 0,
+        mentorsAtCapacity: isOps ? summary?.kpis.mentorsAtCapacity || 0 : 0,
+        menteesCompleted: isOps ? completed : myBooked,
+        menteesInProgress: isOps ? inProgress : myOpen,
+        menteesJustStarted: justStarted,
       },
       upcomingSessions: upcoming,
       trendingSkills: topSkills.map(([skill, count]) => ({
@@ -167,41 +160,62 @@ const Dashboard = () => {
         percentage: Math.round((count / maxCount) * 100),
       })),
     };
-  }, [mentorsList, menteesData, groupsList, slots, t]);
+  }, [slots, t, summary, isOps]);
 
-  const statCards = [
-    {
-      label: t('dashboard.totalMentors'),
-      value: stats.totalMentors,
-      icon: HiOutlineAcademicCap,
-      href: '/mentors',
-    },
-    {
-      label: t('dashboard.totalMentees'),
-      value: stats.totalMentees,
-      icon: HiOutlineUserGroup,
-      href: '/mentees',
-    },
-    {
-      label: t('dashboard.activeGroups'),
-      value: stats.totalGroups,
-      icon: HiOutlineUsers,
-      href: '/groups',
-    },
-    {
-      label: t('dashboard.completedSessions'),
-      value: stats.menteesCompleted,
-      icon: HiOutlineTrophy,
-      href: '/mentees',
-    },
-  ];
+  const statCards = isOps
+    ? [
+        {
+          label: t('dashboard.totalMentors'),
+          value: stats.totalMentors,
+          icon: HiOutlineAcademicCap,
+          href: '/mentors',
+        },
+        {
+          label: t('dashboard.totalMentees'),
+          value: stats.totalMentees,
+          icon: HiOutlineUserGroup,
+          href: '/mentees',
+        },
+        {
+          label: t('dashboard.activeGroups'),
+          value: stats.totalGroups,
+          icon: HiOutlineUsers,
+          href: '/groups',
+        },
+        {
+          label: t('dashboard.completedSessions'),
+          value: stats.menteesCompleted,
+          icon: HiOutlineTrophy,
+          href: '/analytics',
+        },
+      ]
+    : [
+        {
+          label: t('dashboard.openSlots'),
+          value: stats.totalMentors,
+          icon: HiOutlineCalendarDays,
+          href: '/slots',
+        },
+        {
+          label: t('dashboard.myBookings'),
+          value: stats.totalMentees,
+          icon: HiOutlineTrophy,
+          href: '/schedule',
+        },
+      ];
 
   const quickActions = [
-    { label: t('mentor.addMentor'), href: '/mentors/add', icon: HiOutlinePlus },
-    { label: t('mentee.addMentee'), href: '/mentees/add', icon: HiOutlinePlus },
-    { label: t('nav.analytics'), href: '/analytics', icon: HiOutlineChartBar },
-    { label: t('nav.sessions'), href: '/session-logs', icon: HiOutlineCalendarDays },
-  ];
+    role === 'admin'
+      ? { label: t('mentor.addMentor'), href: '/mentors/add', icon: HiOutlinePlus }
+      : null,
+    role === 'admin'
+      ? { label: t('mentee.addMentee'), href: '/mentees/add', icon: HiOutlinePlus }
+      : null,
+    isOps ? { label: t('nav.analytics'), href: '/analytics', icon: HiOutlineChartBar } : null,
+    role === 'mentee'
+      ? { label: t('nav.slots'), href: '/slots', icon: HiOutlineCalendarDays }
+      : { label: t('nav.sessions'), href: '/session-logs', icon: HiOutlineCalendarDays },
+  ].filter((action): action is { label: string; href: string; icon: typeof HiOutlinePlus } => Boolean(action));
 
   const progressItems = [
     { label: t('dashboard.progressCompleted'), value: stats.menteesCompleted, pct: stats.totalMentees },
@@ -214,7 +228,7 @@ const Dashboard = () => {
     <PageShell>
       <DashboardHero />
 
-      <div className="dashboard-promo-grid">
+      {isOps && <div className="dashboard-promo-grid">
       <Link to="/analytics" className="analytics-insights-banner group">
         <span className="analytics-insights-banner__icon">
           <HiOutlineChartBar className="h-5 w-5" />
@@ -239,7 +253,7 @@ const Dashboard = () => {
             {t('dashboard.viewInsights')} →
           </span>
         </Link>
-      </div>
+      </div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         {quickActions.map((action) => (
@@ -359,7 +373,7 @@ const Dashboard = () => {
         <LiveActivityFeed />
       </div>
 
-      <section className="card p-6 mb-8">
+      {isOps && <section className="card p-6 mb-8">
         <h2 className="text-base font-semibold text-primary mb-5">{t('dashboard.overview')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {progressItems.map((item) => (
@@ -381,9 +395,9 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {!loading && !error && (
+      {!loading && !error && isOps && (
         <section className="card px-6 py-5 text-sm text-secondary leading-relaxed">
           <strong className="text-primary font-medium">{t('dashboard.statistics')}:</strong>{' '}
           {t('dashboard.summaryLine', {

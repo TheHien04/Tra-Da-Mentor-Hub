@@ -129,7 +129,7 @@ function AppContent() {
             <Route
               path="/mentors"
               element={
-                <ProtectedRoute requiredRole={['mentor', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <MentorList />
                 </ProtectedRoute>
               }
@@ -137,7 +137,7 @@ function AppContent() {
             <Route
               path="/mentors/add"
               element={
-                <ProtectedRoute requiredRole={['mentor', 'admin']}>
+                <ProtectedRoute requiredRole={['admin']}>
                   <AddMentor />
                 </ProtectedRoute>
               }
@@ -145,7 +145,7 @@ function AppContent() {
             <Route
               path="/mentors/:id"
               element={
-                <ProtectedRoute requiredRole={['mentor', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <MentorDetail />
                 </ProtectedRoute>
               }
@@ -161,7 +161,7 @@ function AppContent() {
             <Route
               path="/mentees"
               element={
-                <ProtectedRoute requiredRole={['mentee', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <MenteeList />
                 </ProtectedRoute>
               }
@@ -169,7 +169,7 @@ function AppContent() {
             <Route
               path="/mentees/add"
               element={
-                <ProtectedRoute requiredRole={['mentee', 'admin']}>
+                <ProtectedRoute requiredRole={['admin']}>
                   <AddMentee />
                 </ProtectedRoute>
               }
@@ -177,7 +177,7 @@ function AppContent() {
             <Route
               path="/mentees/:id"
               element={
-                <ProtectedRoute requiredRole={['mentee', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <MenteeDetail />
                 </ProtectedRoute>
               }
@@ -201,7 +201,7 @@ function AppContent() {
             <Route
               path="/groups/add"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <AddGroup />
                 </ProtectedRoute>
               }
@@ -281,7 +281,7 @@ function AppContent() {
             <Route
               path="/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <AnalyticsPage />
                 </ProtectedRoute>
               }
@@ -289,7 +289,7 @@ function AppContent() {
             <Route
               path="/insights"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <InsightsPage />
                 </ProtectedRoute>
               }
@@ -297,7 +297,7 @@ function AppContent() {
             <Route
               path="/testimonials"
               element={
-                <ProtectedRoute requiredRole={['admin', 'mentor']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <TestimonialsPage />
                 </ProtectedRoute>
               }

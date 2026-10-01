@@ -6,8 +6,19 @@ import {
   updateActivity,
   deleteActivity,
 } from '../services/activityStore.js';
+import { loadActor } from '../lib/actor.js';
+import { fail } from '../lib/httpError.js';
 
 const router = express.Router();
+
+async function requireAdmin(req, res) {
+  const actor = await loadActor(req);
+  if (!actor?.isAdmin) {
+    fail(res, 403, 'FORBIDDEN');
+    return false;
+  }
+  return true;
+}
 
 router.get('/', async (req, res, next) => {
   try {
@@ -20,6 +31,7 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
+    if (!(await requireAdmin(req, res))) return;
     const activity = await createActivity(req.body);
     res.status(201).json(activity);
   } catch (e) {
@@ -39,6 +51,7 @@ router.get('/:id', async (req, res, next) => {
 
 router.put('/:id', async (req, res, next) => {
   try {
+    if (!(await requireAdmin(req, res))) return;
     const activity = await updateActivity(req.params.id, req.body);
     if (!activity) return res.status(404).json({ message: 'Không tìm thấy activity' });
     res.json(activity);
@@ -49,6 +62,7 @@ router.put('/:id', async (req, res, next) => {
 
 router.patch('/:id', async (req, res, next) => {
   try {
+    if (!(await requireAdmin(req, res))) return;
     const activity = await updateActivity(req.params.id, req.body);
     if (!activity) return res.status(404).json({ message: 'Không tìm thấy activity' });
     res.json(activity);
@@ -59,6 +73,7 @@ router.patch('/:id', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
+    if (!(await requireAdmin(req, res))) return;
     const activity = await deleteActivity(req.params.id);
     if (!activity) return res.status(404).json({ message: 'Không tìm thấy activity' });
     res.json({ message: 'Đã xóa activity' });

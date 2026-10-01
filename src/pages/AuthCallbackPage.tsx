@@ -12,9 +12,13 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const accessToken = searchParams.get('accessToken');
-    const refreshToken = searchParams.get('refreshToken');
-    const userRaw = searchParams.get('user');
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const accessToken = hash.get('accessToken') || searchParams.get('accessToken');
+    const refreshToken = hash.get('refreshToken') || searchParams.get('refreshToken');
+    const userRaw = hash.get('user') || searchParams.get('user');
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
 
     if (!accessToken || !refreshToken || !userRaw) {
       setError(t('auth.oauth.missingTokens'));

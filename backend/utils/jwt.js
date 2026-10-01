@@ -89,3 +89,13 @@ export function verifyRefreshToken(token) {
 export function decodeToken(token) {
   return jwt.decode(token);
 }
+
+/** Access-token lifetime in seconds, matching JWT_EXPIRE (default 15m). */
+export function accessTtlSeconds() {
+  const raw = String(env.jwtExpire || '15m');
+  const match = /^(\d+)([smhd])$/.exec(raw);
+  if (!match) return 15 * 60;
+  const amount = Number(match[1]);
+  const unit = { s: 1, m: 60, h: 3600, d: 86400 }[match[2]];
+  return amount * unit;
+}

@@ -71,6 +71,9 @@ function buildSnapshot({
   });
   const mentorUtilization =
     utilizationCount > 0 ? Math.round(utilizationSum / utilizationCount) : 0;
+  const mentorsAtCapacity = mentors.filter(
+    (m) => (m.mentees?.length || 0) >= (m.maxMentees || 10)
+  ).length;
 
   const scores = [];
   logsInPeriod.forEach((l) => {
@@ -171,6 +174,7 @@ function buildSnapshot({
       openSlots,
       sessionsLogged: logsInPeriod.length,
       mentorUtilization,
+      mentorsAtCapacity,
       needsSupport,
     },
     progressSegments: [

@@ -61,7 +61,7 @@ const env = {
 
   jwtSecret:
     process.env.JWT_SECRET || (isTest ? CI_TEST_JWT : getEnvVar("JWT_SECRET")),
-  jwtExpire: process.env.JWT_EXPIRE || "7d",
+  jwtExpire: process.env.JWT_EXPIRE || "15m",
   jwtRefreshSecret:
     process.env.JWT_REFRESH_SECRET ||
     (isTest ? CI_TEST_REFRESH : getEnvVar("JWT_REFRESH_SECRET")),

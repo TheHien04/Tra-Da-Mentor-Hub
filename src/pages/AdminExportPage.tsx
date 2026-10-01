@@ -47,8 +47,8 @@ const AdminExportPage = () => {
     setLoading(true);
     try {
       const res = await mentorApi.getAll();
-      const data = res.data?.data ?? res.data ?? [];
-      const list = Array.isArray(data) ? data : [];
+      const payload = res.data as { data?: Record<string, unknown>[] } | Record<string, unknown>[];
+      const list = Array.isArray(payload) ? payload : payload.data ?? [];
       const rows: string[][] = [
         [
           t('pages.admin.export.colId'),
@@ -83,8 +83,8 @@ const AdminExportPage = () => {
     setLoading(true);
     try {
       const res = await menteeApi.getAll();
-      const data = res.data?.data ?? res.data ?? [];
-      const list = Array.isArray(data) ? data : [];
+      const payload = res.data as { data?: Record<string, unknown>[] } | Record<string, unknown>[];
+      const list = Array.isArray(payload) ? payload : payload.data ?? [];
       const rows: string[][] = [
         [
           t('pages.admin.export.colId'),

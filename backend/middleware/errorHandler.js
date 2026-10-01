@@ -94,11 +94,23 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   // Send response
+  const code =
+    error.statusCode === 401
+      ? 'UNAUTHORIZED'
+      : error.statusCode === 403
+        ? 'FORBIDDEN'
+        : error.statusCode === 404
+          ? 'NOT_FOUND'
+          : error.statusCode === 400
+            ? 'VALIDATION'
+            : 'INTERNAL';
+
   res.status(error.statusCode).json({
     success: false,
+    code,
     status: error.status || 'error',
     message: error.message,
-    ...(env.isDev && { stack: err.stack }), // Stack trace only in development
+    ...(env.isDev && { stack: err.stack }),
   });
 };
 

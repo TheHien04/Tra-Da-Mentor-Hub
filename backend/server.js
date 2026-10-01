@@ -40,6 +40,11 @@ async function bootstrapStores() {
     }
     logger.warn('MongoDB unavailable — using in-memory store fallback (development only)');
   }
+  const seedOnBoot = !env.isProduction && process.env.SEED_ON_BOOT !== 'false';
+  if (!seedOnBoot) {
+    logger.info('Skipping demo seed on boot');
+    return;
+  }
   await Promise.all([
     seedMentorsIfEmpty(),
     seedMenteesIfEmpty(),

@@ -27,6 +27,7 @@ export interface AnalyticsKpis {
   openSlots: number;
   sessionsLogged: number;
   mentorUtilization: number;
+  mentorsAtCapacity: number;
   needsSupport: number;
 }
 
@@ -115,6 +116,9 @@ export function buildAnalyticsSnapshot({
   });
   const mentorUtilization =
     utilizationCount > 0 ? Math.round(utilizationSum / utilizationCount) : 0;
+  const mentorsAtCapacity = mentors.filter(
+    (m) => (m.mentees?.length || 0) >= (m.maxMentees || 10)
+  ).length;
 
   const scores: number[] = [];
   logsInPeriod.forEach((l) => {
@@ -215,6 +219,7 @@ export function buildAnalyticsSnapshot({
       openSlots,
       sessionsLogged: logsInPeriod.length,
       mentorUtilization,
+      mentorsAtCapacity,
       needsSupport,
     },
     progressSegments: [

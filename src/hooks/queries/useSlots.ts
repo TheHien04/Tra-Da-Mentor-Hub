@@ -15,7 +15,7 @@ export interface SlotRow {
   googleCalendarEventId?: string | null;
 }
 
-export function useSlots(params?: { mentorId?: string }) {
+export function useSlots(params?: { mentorId?: string; menteeId?: string; availableOnly?: string }) {
   return useQuery({
     queryKey: queryKeys.slots(params),
     queryFn: async () => {

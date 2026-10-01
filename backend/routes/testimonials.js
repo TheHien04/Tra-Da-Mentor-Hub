@@ -5,6 +5,8 @@ import {
   updateTestimonial,
   deleteTestimonial,
 } from '../services/testimonialStore.js';
+import { loadActor } from '../lib/actor.js';
+import { fail } from '../lib/httpError.js';
 
 const router = express.Router();
 
@@ -43,6 +45,8 @@ router.post('/', async (req, res, next) => {
 
 router.patch('/:id', async (req, res, next) => {
   try {
+    const actor = await loadActor(req);
+    if (!actor?.isAdmin) return fail(res, 403, 'FORBIDDEN');
     const allowed = ['status', 'rating', 'content', 'track', 'menteeName', 'mentorName'];
     const updates = {};
     allowed.forEach((k) => {
@@ -58,6 +62,8 @@ router.patch('/:id', async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
+    const actor = await loadActor(req);
+    if (!actor?.isAdmin) return fail(res, 403, 'FORBIDDEN');
     const item = await deleteTestimonial(req.params.id);
     if (!item) return res.status(404).json({ success: false, message: 'Not found' });
     res.json({ success: true, data: item });
