@@ -39,7 +39,7 @@ const GroupDetail = () => {
     if (!id) return;
     groupApi
       .getByIdFull(id)
-      .then((res) => setGroup(res.data))
+      .then((res) => setGroup(res.data as Group))
       .catch((err) => setError(getApiErrorMessage(err)))
       .finally(() => setLoading(false));
   }, [id]);

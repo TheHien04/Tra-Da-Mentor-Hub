@@ -51,12 +51,17 @@ const ApplicationsPage = () => {
     menteeApi
       .getAll()
       .then((res) => {
-        const data = res.data?.data ?? res.data ?? [];
-        const withStatus = Array.isArray(data)
-          ? data.map((m: MenteeWithStatus) => ({
-              ...m,
-              name: m.name || m.email?.split('@')[0] || m._id,
-              applicationStatus: m.applicationStatus || 'pending',
+        const payload = res.data;
+        const data = Array.isArray(payload) ? payload : payload.data;
+        const withStatus: MenteeWithStatus[] = Array.isArray(data)
+          ? data.map((m) => ({
+              _id: m._id || '',
+              name: m.name || m.email?.split('@')[0] || m._id || '',
+              email: m.email,
+              school: m.school,
+              track: m.track,
+              interests: m.interests,
+              applicationStatus: (m.applicationStatus || 'pending') as ApplicationStatus,
             }))
           : [];
         setMentees(withStatus);
