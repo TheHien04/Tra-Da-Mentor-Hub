@@ -20,6 +20,7 @@ import { Alert } from './ui/Alert';
 import { SmartMatchPanel } from './features/SmartMatchPanel';
 import { LiveActivityFeed } from './features/LiveActivityFeed';
 import { DashboardHero } from './features/DashboardHero';
+import { SceneStrip } from './motion/SceneStrip';
 import { PageShell } from './ui/PageShell';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 import { getApiErrorMessage } from '../lib/apiHelpers';
@@ -227,8 +228,9 @@ const Dashboard = () => {
   return (
     <PageShell>
       <DashboardHero />
+      <SceneStrip />
 
-      {isOps && <div className="dashboard-promo-grid">
+      {isOps && <div className="dashboard-promo-grid" data-reveal>
       <Link to="/analytics" className="analytics-insights-banner group">
         <span className="analytics-insights-banner__icon">
           <HiOutlineChartBar className="h-5 w-5" />
@@ -255,7 +257,7 @@ const Dashboard = () => {
         </Link>
       </div>}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-reveal>
         {quickActions.map((action) => (
           <Link
             key={action.href}
@@ -271,7 +273,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8" data-reveal>
         {loading
           ? [1, 2, 3, 4].map((i) => (
               <div key={i} className="stat-card">
@@ -295,7 +297,7 @@ const Dashboard = () => {
             ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" data-reveal>
         <section className="card p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-semibold text-primary flex items-center gap-2">
@@ -368,12 +370,12 @@ const Dashboard = () => {
         </section>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" data-reveal>
         <SmartMatchPanel compact />
         <LiveActivityFeed />
       </div>
 
-      {isOps && <section className="card p-6 mb-8">
+      {isOps && <section className="card p-6 mb-8" data-reveal>
         <h2 className="text-base font-semibold text-primary mb-5">{t('dashboard.overview')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {progressItems.map((item) => (
