@@ -49,10 +49,11 @@ export async function createNotification(payload, io) {
   }
 
   if (io) {
-    io.emit('notification', notification);
-    if (payload.userId && payload.userId !== 'all') {
-      io.to(`user:${payload.userId}`).emit('notification', notification);
-    }
+    const target = notification.userId;
+    if (target === 'all') io.to('role:all').emit('notification', notification);
+    else if (target === 'mentors') io.to('role:mentors').emit('notification', notification);
+    else if (target === 'mentees') io.to('role:mentees').emit('notification', notification);
+    else if (target) io.to(`user:${target}`).emit('notification', notification);
   }
   return notification;
 }

@@ -20,6 +20,8 @@ import {
 import { requireApiAuth } from './middleware/requireApiAuth.js';
 import { getHealthPayload } from './lib/healthStatus.js';
 import { mountFrontend } from './lib/serveFrontend.js';
+import { verifyAccessToken } from './utils/jwt.js';
+import { readAccessCookie } from './lib/sessionCookie.js';
 import { handleWebhook as handleStripeWebhook } from './controllers/paymentsController.js';
 import authRoutes from './routes/auth.js';
 import mentorRoutes from './routes/mentors.js';
@@ -92,7 +94,15 @@ export function createApp(options = {}) {
   app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
   app.use(express.json({ limit: '2mb' }));
-  app.use('/uploads', express.static(__uploadsDir));
+  app.use('/uploads', (req, res, next) => {
+    const header = req.headers.authorization;
+    const bearer = header?.startsWith('Bearer ') ? header.slice(7) : null;
+    const token = bearer || readAccessCookie(req);
+    if (!token || !verifyAccessToken(token)) {
+      return res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: 'Authentication required' });
+    }
+    return next();
+  }, express.static(__uploadsDir, { index: false, dotfiles: 'deny' }));
   app.use(sanitizeInputs);
   app.use(xssProtection);
 

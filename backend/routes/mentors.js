@@ -1,17 +1,17 @@
 import express from 'express';
 import { validateMentor } from '../middleware/validation.js';
 import {
-  listMentors,
   getMentorById,
   createMentor,
   updateMentor,
   deleteMentor,
+  queryMentorDirectory,
 } from '../services/mentorStore.js';
 import { listMentees } from '../services/menteeStore.js';
 import { listGroups } from '../services/groupStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
-import { sendList } from '../lib/listQuery.js';
+import { sendDirectory } from '../lib/directoryQuery.js';
 
 const router = express.Router();
 
@@ -21,8 +21,8 @@ function ownsMentor(actor, id) {
 
 router.get('/', async (req, res, next) => {
   try {
-    const mentors = await listMentors();
-    sendList(res, mentors, req.query, ['name', 'email', 'track', 'bio', 'expertise']);
+    const result = await queryMentorDirectory(req.query);
+    return sendDirectory(res, result);
   } catch (e) {
     next(e);
   }

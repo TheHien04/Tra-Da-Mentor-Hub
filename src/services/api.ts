@@ -45,6 +45,7 @@ export interface MatchSuggestion {
   score: number;
   matchedSkills: string[];
   reasons: string[];
+  reasonCodes?: { code: 'skills' | 'track' | 'capacity' | 'profile'; skills?: string[] }[];
   capacity: { active: number; max: number };
 }
 
@@ -74,6 +75,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000,
+  withCredentials: true,
 });
 
 // Add auth token to requests
@@ -92,10 +94,13 @@ let refreshPromise: Promise<string> | null = null;
 
 async function refreshSession(): Promise<string> {
   const refreshToken = getRefreshToken();
-  if (!refreshToken) throw new Error('No refresh token');
-  const response = await axios.post(`${env.apiUrl}/auth/refresh`, { refreshToken });
+  const response = await axios.post(
+    `${env.apiUrl}/auth/refresh`,
+    refreshToken ? { refreshToken } : {},
+    { withCredentials: true }
+  );
   const accessToken = response.data?.data?.accessToken as string | undefined;
-  const nextRefresh = (response.data?.data?.refreshToken as string | undefined) || refreshToken;
+  const nextRefresh = (response.data?.data?.refreshToken as string | undefined) || refreshToken || '';
   if (!accessToken) throw new Error('Refresh failed');
   setAuthTokens(accessToken, nextRefresh);
   return accessToken;

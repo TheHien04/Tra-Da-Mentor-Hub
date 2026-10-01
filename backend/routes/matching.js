@@ -16,11 +16,19 @@ router.get('/suggestions', async (req, res, next) => {
     const mentors = await listMentors();
     const mentees = await listMentees();
     let { menteeId, mentorId, limit } = req.query;
-    if (actor?.role === 'mentee' && !actor.isAdmin) {
+    if (actor?.isAdmin) {
+      menteeId = menteeId || undefined;
+      mentorId = mentorId || undefined;
+    } else if (actor?.role === 'mentee') {
       if (!actor.menteeId) return fail(res, 403, 'FORBIDDEN');
       menteeId = actor.menteeId;
-    } else if (actor?.role === 'mentor' && !actor.isAdmin) {
-      mentorId = actor.mentorId || mentorId;
+      mentorId = undefined;
+    } else if (actor?.role === 'mentor') {
+      if (!actor.mentorId) return fail(res, 403, 'FORBIDDEN');
+      mentorId = actor.mentorId;
+      menteeId = undefined;
+    } else {
+      return fail(res, 403, 'FORBIDDEN');
     }
 
     const suggestions = getMatchSuggestions(mentors, mentees, {
@@ -42,14 +50,23 @@ router.get('/suggestions', async (req, res, next) => {
 /** GET /api/matching/explain?mentorId=&menteeId= */
 router.get('/explain', async (req, res, next) => {
   try {
+    const { loadActor } = await import('../lib/actor.js');
+    const { fail } = await import('../lib/httpError.js');
+    const actor = await loadActor(req);
     const { mentorId, menteeId } = req.query;
     if (!mentorId || !menteeId) {
-      return res.status(400).json({ success: false, message: 'mentorId and menteeId required' });
+      return fail(res, 400, 'VALIDATION', 'mentorId and menteeId required');
+    }
+    if (!actor?.isAdmin) {
+      const allowed =
+        (actor?.role === 'mentee' && actor.menteeId === String(menteeId)) ||
+        (actor?.role === 'mentor' && actor.mentorId === String(mentorId));
+      if (!allowed) return fail(res, 403, 'FORBIDDEN');
     }
     const mentor = await getMentorById(String(mentorId));
     const mentee = await getMenteeById(String(menteeId));
     if (!mentor || !mentee) {
-      return res.status(404).json({ success: false, message: 'Mentor or mentee not found' });
+      return fail(res, 404, 'NOT_FOUND', 'Mentor or mentee not found');
     }
     const result = await explainMatch(mentor, mentee);
     res.json({ success: true, data: result });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { HiOutlineMagnifyingGlass, HiOutlineFunnel, HiOutlineXMark } from 'react-icons/hi2';
 
-interface FilterState {
+export interface FilterState {
   [key: string]: boolean | string;
 }
 

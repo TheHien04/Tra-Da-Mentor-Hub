@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useSlots } from '../hooks/queries/useSlots';
-import { useMentors } from '../hooks/queries/useMentors';
 import { useAnalyticsSummary } from '../hooks/queries/useAnalytics';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -24,6 +23,7 @@ import { EditorialSplit } from './motion/EditorialSplit';
 import { Diorama } from './motion/Diorama';
 import { PageShell } from './ui/PageShell';
 import { getApiErrorMessage } from '../lib/apiHelpers';
+import { slotInstant } from '../lib/slotClock';
 
 interface DashboardStats {
   totalMentors: number;
@@ -46,8 +46,7 @@ interface UpcomingSession {
 }
 
 function parseSlotDateTime(date: string, time?: string) {
-  const normalized = time && time.length === 5 ? `${time}:00` : time || '00:00:00';
-  return new Date(`${date}T${normalized}`);
+  return slotInstant(date, time);
 }
 
 const Dashboard = () => {
@@ -82,7 +81,6 @@ const Dashboard = () => {
     isError: slotsError,
     error: slotsQueryError,
   } = useSlots(slotParams);
-  const { data: mentors = [] } = useMentors();
   const {
     data: summary,
     isLoading: summaryLoading,
@@ -104,10 +102,8 @@ const Dashboard = () => {
     upcomingSessions: UpcomingSession[];
     trendingSkills: { skill: string; count: number; percentage: number }[];
   } => {
-    const mentorName = (id: string) =>
-      mentors.find((m) => String(m._id) === id)?.name ||
-      mentors.find((m) => String(m._id) === id)?.email ||
-      t('dashboard.unnamedMentor');
+    const mentorName = (slot: (typeof slots)[number]) =>
+      slot.mentorName || t('dashboard.unnamedMentor');
     const now = new Date();
 
     const futureSlots = slots
@@ -131,9 +127,9 @@ const Dashboard = () => {
     const upcoming: UpcomingSession[] = [...booked, ...open].slice(0, 5).map((s) => ({
       _id: String(s.raw._id),
       title: s.isBooked
-        ? t('dashboard.slotSession', { mentor: mentorName(String(s.raw.mentorId)) })
-        : t('dashboard.slotOpen', { mentor: mentorName(String(s.raw.mentorId)) }),
-      mentor: mentorName(String(s.raw.mentorId)),
+        ? t('dashboard.slotSession', { mentor: mentorName(s.raw) })
+        : t('dashboard.slotOpen', { mentor: mentorName(s.raw) }),
+      mentor: mentorName(s.raw),
       date: s.date,
       time: s.time,
       type: 'ONE_ON_ONE' as const,
@@ -165,7 +161,7 @@ const Dashboard = () => {
         percentage: Math.round((count / maxCount) * 100),
       })),
     };
-  }, [slots, mentors, t, summary, isOps]);
+  }, [slots, t, summary, isOps]);
 
   const statCards = isOps
     ? [
@@ -368,7 +364,7 @@ const Dashboard = () => {
               <p className="text-xs font-medium text-muted mb-1">{item.label}</p>
               <p className="text-2xl font-semibold tabular-nums text-primary">{item.value}</p>
               <p className="text-xs text-muted mt-1">
-                {item.pct > 0 ? `${Math.round((item.value / item.pct) * 100)}%` : '—'}
+                {item.pct > 0 ? t('dashboard.progressShare', { value: item.value, total: item.pct }) : '—'}
               </p>
               <div className="mt-3 h-1 rounded-full surface-muted overflow-hidden">
                 <div

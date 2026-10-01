@@ -3,6 +3,7 @@ import StudyGroup from '../models/StudyGroup.js';
 import { GROUP_SEED } from '../data/crmSeed.js';
 import { logGroupCreated } from './activityLogger.js';
 import { getMentorById } from './mentorStore.js';
+import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
 
 const memory = [];
 
@@ -137,4 +138,15 @@ export async function seedGroupsIfEmpty() {
   if (memory.length === 0) {
     GROUP_SEED.forEach((s) => memory.push({ ...s }));
   }
+}
+
+const GROUP_TEXT = ['name', 'topic', 'description'];
+
+export async function queryGroupDirectory(query, baseFilter) {
+  if (!useDb()) return queryMemoryDirectory(memory, query, GROUP_TEXT, baseFilter);
+  return queryMongoDirectory(StudyGroup, query, {
+    textFields: GROUP_TEXT,
+    baseFilter,
+    map: toClient,
+  });
 }

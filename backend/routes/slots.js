@@ -13,6 +13,7 @@ import {
   hasSlotConflict,
   cancelBooking,
   deleteSlot,
+  withSlotLock,
 } from '../services/slotStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
@@ -59,10 +60,13 @@ router.post('/', async (req, res, next) => {
       return fail(res, 403, 'FORBIDDEN');
     }
 
-    const conflict = await hasSlotConflict({ mentorId, date, time, duration });
-    if (conflict) return fail(res, 409, 'SLOT_CONFLICT');
-
-    const newSlot = await createSlot({ mentorId, date, time, duration, meetingLink });
+    const created = await withSlotLock(mentorId, async () => {
+      const conflict = await hasSlotConflict({ mentorId, date, time, duration });
+      if (conflict) return null;
+      return createSlot({ mentorId, date, time, duration, meetingLink });
+    });
+    if (!created) return fail(res, 409, 'SLOT_CONFLICT');
+    const newSlot = created;
     const io = req.app.get('io');
     await createNotification(
       {
@@ -91,7 +95,7 @@ router.patch('/:id/book', async (req, res, next) => {
 
     const existing = await getSlotById(req.params.id);
     if (!existing) return fail(res, 404, 'NOT_FOUND', 'Slot not found');
-    const slot = await bookSlot(req.params.id, menteeId);
+    const slot = await withSlotLock(existing.mentorId, () => bookSlot(req.params.id, menteeId));
     if (!slot) return fail(res, 409, 'SLOT_TAKEN');
 
     const io = req.app.get('io');
@@ -118,25 +122,28 @@ router.patch('/:id', async (req, res, next) => {
     if (!existing) return fail(res, 404, 'NOT_FOUND', 'Slot not found');
     if (!canManageSlot(actor, existing)) return fail(res, 403, 'FORBIDDEN');
 
-    const nextSlot = {
-      date: req.body.date || existing.date,
-      time: req.body.time || existing.time,
-      duration: req.body.duration ?? existing.duration,
-    };
-    const conflict = await hasSlotConflict({
-      mentorId: existing.mentorId,
-      ...nextSlot,
-      ignoreId: existing._id,
+    const result = await withSlotLock(existing.mentorId, async () => {
+      const nextSlot = {
+        date: req.body.date || existing.date,
+        time: req.body.time || existing.time,
+        duration: req.body.duration ?? existing.duration,
+      };
+      const conflict = await hasSlotConflict({
+        mentorId: existing.mentorId,
+        ...nextSlot,
+        ignoreId: existing._id,
+      });
+      if (conflict) return { conflict: true };
+      const slot = await updateSlot(req.params.id, {
+        date: req.body.date,
+        time: req.body.time,
+        duration: req.body.duration,
+        meetingLink: req.body.meetingLink,
+      });
+      return { slot };
     });
-    if (conflict) return fail(res, 409, 'SLOT_CONFLICT');
-
-    const slot = await updateSlot(req.params.id, {
-      date: req.body.date,
-      time: req.body.time,
-      duration: req.body.duration,
-      meetingLink: req.body.meetingLink,
-    });
-    res.json(slot);
+    if (result.conflict) return fail(res, 409, 'SLOT_CONFLICT');
+    res.json(result.slot);
   } catch (e) {
     next(e);
   }

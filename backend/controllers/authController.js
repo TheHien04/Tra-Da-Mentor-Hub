@@ -13,7 +13,18 @@ import {
 } from "../utils/jwt.js";
 import logger from '../config/logger.js';
 import { DEMO_USER, isDemoAuthEnabled, isDemoUserId } from '../config/demoAuth.js';
+import { fail } from '../lib/httpError.js';
 import { ensureCrmProfileForUser } from '../services/crmProfileSync.js';
+import { setSessionCookies, clearSessionCookies, readRefreshCookie } from '../lib/sessionCookie.js';
+import { forgetAccountActive } from '../lib/activeUser.js';
+
+function issueSession(res, { accessToken, refreshToken }) {
+  setSessionCookies(res, {
+    accessToken,
+    refreshToken,
+    accessMaxAgeMs: accessTtlSeconds() * 1000,
+  });
+}
 
 /**
  * Login handler
@@ -30,15 +41,13 @@ export async function login(req, res) {
       const isValidPassword = await user.comparePassword(password);
       if (!isValidPassword) {
         logger.warn(`Login failed - Invalid password for: ${email} from IP: ${req.ip}`);
-        return res.status(401).json({
-          success: false,
-          message: "Invalid credentials",
-        });
+        return fail(res, 401, 'INVALID_CREDENTIALS');
       }
 
       // Generate tokens
       const accessToken = generateAccessToken(user._id, user.email, user.role);
       const refreshToken = generateRefreshToken(user._id);
+      issueSession(res, { accessToken, refreshToken });
       
       logger.info(`Login successful (mock user): ${email} (${user.role}) from IP: ${req.ip}`);
 
@@ -64,29 +73,20 @@ export async function login(req, res) {
 
     if (!user) {
       logger.warn(`Login failed - User not found: ${email} from IP: ${req.ip}`);
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
+      return fail(res, 401, 'INVALID_CREDENTIALS');
     }
 
     // Check password
     const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) {
       logger.warn(`Login failed - Invalid password for: ${email} from IP: ${req.ip}`);
-      return res.status(401).json({
-        success: false,
-        message: "Invalid credentials",
-      });
+      return fail(res, 401, 'INVALID_CREDENTIALS');
     }
 
     // Check if user is active
     if (!user.isActive) {
       logger.warn(`Login failed - Account inactive: ${email} from IP: ${req.ip}`);
-      return res.status(403).json({
-        success: false,
-        message: "Your account is inactive",
-      });
+      return fail(res, 403, 'ACCOUNT_INACTIVE');
     }
 
     // Update last login and store refresh token (skip for mock user)
@@ -97,6 +97,7 @@ export async function login(req, res) {
       await user.updateLastLogin();
       await user.addRefreshToken(refreshToken);
     }
+    issueSession(res, { accessToken, refreshToken });
 
     let crmIds = {};
     try {
@@ -201,6 +202,7 @@ export async function register(req, res) {
     
     // Store refresh token
     await newUser.addRefreshToken(refreshToken);
+    issueSession(res, { accessToken, refreshToken });
     
     if (inviteToken) {
       const { consumeInviteToken } = await import("../services/inviteStore.js");
@@ -234,30 +236,25 @@ export async function register(req, res) {
  */
 export async function refreshToken(req, res) {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body?.refreshToken || readRefreshCookie(req);
 
     if (!refreshToken) {
-      return res.status(400).json({
-        success: false,
-        message: "Refresh token is required",
-      });
+      return fail(res, 400, 'VALIDATION', 'Refresh token is required');
     }
 
     // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired refresh token",
-      });
+      return fail(res, 401, 'UNAUTHORIZED', 'Invalid or expired refresh token');
     }
 
     if (isDemoUserId(decoded.userId)) {
       if (!isDemoAuthEnabled()) {
-        return res.status(401).json({ success: false, code: 'UNAUTHORIZED', message: 'Invalid refresh token' });
+        return fail(res, 401, 'UNAUTHORIZED', 'Invalid refresh token');
       }
       const newAccessToken = generateAccessToken(DEMO_USER._id, DEMO_USER.email, DEMO_USER.role);
       const newRefreshToken = generateRefreshToken(DEMO_USER._id);
+      issueSession(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
       return res.status(200).json({
         success: true,
         message: "Token refreshed",
@@ -272,11 +269,12 @@ export async function refreshToken(req, res) {
     // Get user
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        code: 'NOT_FOUND',
-        message: "User not found",
-      });
+      return fail(res, 401, 'UNAUTHORIZED', 'Invalid refresh token');
+    }
+
+    if (!user.isActive) {
+      forgetAccountActive(user._id);
+      return fail(res, 403, 'ACCOUNT_INACTIVE');
     }
     
     // Check if refresh token exists in user's token list
@@ -294,6 +292,7 @@ export async function refreshToken(req, res) {
     const newRefreshToken = generateRefreshToken(user._id);
     await user.removeRefreshToken(refreshToken);
     await user.addRefreshToken(newRefreshToken);
+    issueSession(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
     
     logger.info(`Token refreshed for user: ${user.email} from IP: ${req.ip}`);
 
@@ -371,14 +370,15 @@ export async function getProfile(req, res) {
  */
 export async function logout(req, res) {
   try {
+    clearSessionCookies(res);
+    const refreshToken = req.body?.refreshToken || readRefreshCookie(req);
+
     if (isDemoUserId(req.user?.userId)) {
       return res.status(200).json({
         success: true,
         message: "Logout successful",
       });
     }
-
-    const { refreshToken } = req.body;
 
     if (refreshToken) {
       const user = await User.findById(req.user.userId);

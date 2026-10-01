@@ -6,21 +6,27 @@
 
 import { verifyAccessToken } from "../utils/jwt.js";
 import logger from "../config/logger.js";
+import { readAccessCookie } from "../lib/sessionCookie.js";
+import { isAccountActive } from "../lib/activeUser.js";
+
+function bearerToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) return authHeader.slice(7);
+  return readAccessCookie(req);
+}
 
 /**
  * Middleware to verify JWT token
  */
-export function authenticate(req, res, next) {
+export async function authenticate(req, res, next) {
   try {
     // Get token from header
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const token = bearerToken(req);
 
     if (!token) {
       return res.status(401).json({
         success: false,
+        code: "UNAUTHORIZED",
         type: "AUTHENTICATION_ERROR",
         message: "No token provided",
       });
@@ -32,8 +38,18 @@ export function authenticate(req, res, next) {
     if (!decoded) {
       return res.status(401).json({
         success: false,
+        code: "UNAUTHORIZED",
         type: "AUTHENTICATION_ERROR",
         message: "Invalid or expired token",
+      });
+    }
+
+    if (!(await isAccountActive(decoded.userId))) {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_INACTIVE",
+        type: "AUTHORIZATION_ERROR",
+        message: "Your account is inactive",
       });
     }
 
@@ -64,6 +80,7 @@ export function authorize(...allowedRoles) {
     if (!req.user) {
       return res.status(401).json({
         success: false,
+        code: "UNAUTHORIZED",
         message: "Not authenticated",
       });
     }
@@ -71,6 +88,7 @@ export function authorize(...allowedRoles) {
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
+        code: "FORBIDDEN",
         type: "AUTHORIZATION_ERROR",
         message: "Not authorized for this action",
       });
@@ -85,10 +103,7 @@ export function authorize(...allowedRoles) {
  */
 export function optionalAuth(req, res, next) {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const token = bearerToken(req);
 
     if (token) {
       const decoded = verifyAccessToken(token);

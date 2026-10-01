@@ -109,6 +109,11 @@
     "nextUpHintMentor": "슬롯을 열거나, 기다리는 사람을 확인하세요.",
     "nextUpHintAdmin": "방이 조용합니다. 다음은 정원과 매칭입니다.",
     "unnamedMentor": "멘토",
+    "progressShare": "{{value}} / {{total}}",
+    "matchReasonSkills": "겹치는 기술: {{skills}}",
+    "matchReasonTrack": "같은 분야",
+    "matchReasonCapacity": "멘토에게 자리가 있음",
+    "matchReasonProfile": "전체 프로필을 바탕으로 한 제안",
     "sessionTypeGroup": "Group",
     "sessionTypeOneOnOne": "1:1",
     "skillsInDemand": "Skills in demand",
@@ -1184,6 +1189,9 @@
     "SLOT_TAKEN": "This slot is already booked.",
     "SLOT_CONFLICT": "This time overlaps another slot.",
     "UNAUTHORIZED": "Please sign in again.",
+    "INVALID_CREDENTIALS": "Those credentials were not accepted.",
+    "ACCOUNT_INACTIVE": "This account is inactive.",
+    "FILE_TOO_LARGE": "That image must be under 2MB.",
     "INTERNAL": "The server could not complete that request."
   }
 }

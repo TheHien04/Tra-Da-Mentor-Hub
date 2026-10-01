@@ -9,6 +9,17 @@ import { Alert } from '../ui/Alert';
 import { LaunchBadge } from '../ui/LaunchBadge';
 import Skeleton from '../Skeleton';
 
+function formatMatchReason(match: MatchSuggestion, t: (key: string, options?: Record<string, unknown>) => string) {
+  const reason = match.reasonCodes?.[0];
+  if (!reason) return match.reasons[0];
+  if (reason.code === 'skills') {
+    return t('dashboard.matchReasonSkills', { skills: (reason.skills || []).join(', ') });
+  }
+  if (reason.code === 'track') return t('dashboard.matchReasonTrack');
+  if (reason.code === 'capacity') return t('dashboard.matchReasonCapacity');
+  return t('dashboard.matchReasonProfile');
+}
+
 interface SmartMatchPanelProps {
   menteeId?: string;
   mentorId?: string;
@@ -99,7 +110,7 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
                 <p className="text-sm font-medium text-primary truncate">
                   {menteeId ? m.mentorName : mentorId ? m.menteeName : `${m.mentorName} ↔ ${m.menteeName}`}
                 </p>
-                <p className="text-xs text-muted mt-0.5 line-clamp-1">{m.reasons[0]}</p>
+                <p className="text-xs text-muted mt-0.5 line-clamp-1">{formatMatchReason(m, t)}</p>
                 {m.matchedSkills.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {m.matchedSkills.slice(0, 3).map((s: string) => (

@@ -20,14 +20,14 @@ export default function AuthCallbackPage() {
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    if (!accessToken || !refreshToken || !userRaw) {
+    if (!accessToken || !userRaw) {
       setError(t('auth.oauth.missingTokens'));
       return;
     }
 
     try {
       const user = normalizeAuthUser(JSON.parse(userRaw) as Record<string, unknown>);
-      completeOAuthLogin({ user, accessToken, refreshToken });
+      completeOAuthLogin({ user, accessToken, refreshToken: refreshToken || '' });
       navigate('/', { replace: true });
     } catch {
       setError(t('auth.oauth.parseError'));

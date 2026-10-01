@@ -109,6 +109,11 @@
     "nextUpHintMentor": "スロットを開くか、待っている人を確認する。",
     "nextUpHintAdmin": "部屋は静かです。次は定員とマッチングです。",
     "unnamedMentor": "メンター",
+    "progressShare": "{{value}} / {{total}}",
+    "matchReasonSkills": "共通スキル: {{skills}}",
+    "matchReasonTrack": "同じ分野",
+    "matchReasonCapacity": "メンターに空きがある",
+    "matchReasonProfile": "プロフィール全体からの提案",
     "sessionTypeGroup": "Group",
     "sessionTypeOneOnOne": "1:1",
     "skillsInDemand": "Skills in demand",
@@ -1184,6 +1189,9 @@
     "SLOT_TAKEN": "This slot is already booked.",
     "SLOT_CONFLICT": "This time overlaps another slot.",
     "UNAUTHORIZED": "Please sign in again.",
+    "INVALID_CREDENTIALS": "Those credentials were not accepted.",
+    "ACCOUNT_INACTIVE": "This account is inactive.",
+    "FILE_TOO_LARGE": "That image must be under 2MB.",
     "INTERNAL": "The server could not complete that request."
   }
 }

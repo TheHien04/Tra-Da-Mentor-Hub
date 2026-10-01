@@ -7,6 +7,9 @@ const MESSAGES = {
   SLOT_TAKEN: 'This slot is already booked',
   SLOT_CONFLICT: 'This time overlaps another slot',
   UNAUTHORIZED: 'Authentication required',
+  INVALID_CREDENTIALS: 'Invalid credentials',
+  ACCOUNT_INACTIVE: 'Your account is inactive',
+  FILE_TOO_LARGE: 'Image must be under 2MB',
 };
 
 export function fail(res, status, code, message) {

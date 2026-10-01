@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import MentorProfile from '../models/MentorProfile.js';
 import { MENTOR_SEED } from '../data/crmSeed.js';
 import { logMentorCreated } from './activityLogger.js';
+import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
 
 const memory = [];
 
@@ -141,4 +142,16 @@ export async function seedMentorsIfEmpty() {
   if (memory.length === 0) {
     MENTOR_SEED.forEach((s) => memory.push({ ...s }));
   }
+}
+
+const MENTOR_TEXT = ['name', 'email', 'track', 'bio', 'expertise'];
+
+export async function queryMentorDirectory(query, baseFilter) {
+  if (!useDb()) return queryMemoryDirectory(memory, query, MENTOR_TEXT, baseFilter);
+  return queryMongoDirectory(MentorProfile, query, {
+    textFields: MENTOR_TEXT,
+    skillFields: ['expertise'],
+    baseFilter,
+    map: toClient,
+  });
 }
