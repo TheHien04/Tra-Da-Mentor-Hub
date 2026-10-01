@@ -20,9 +20,9 @@ import { Alert } from './ui/Alert';
 import { SmartMatchPanel } from './features/SmartMatchPanel';
 import { LiveActivityFeed } from './features/LiveActivityFeed';
 import { DashboardHero } from './features/DashboardHero';
-import { SceneStrip } from './motion/SceneStrip';
+import { EditorialDeck } from './motion/EditorialDeck';
+import { EditorialSplit } from './motion/EditorialSplit';
 import { PageShell } from './ui/PageShell';
-import { HiOutlineSparkles } from 'react-icons/hi2';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 
 interface DashboardStats {
@@ -228,34 +228,56 @@ const Dashboard = () => {
   return (
     <PageShell>
       <DashboardHero />
-      <SceneStrip />
-
-      {isOps && <div className="dashboard-promo-grid" data-reveal>
-      <Link to="/analytics" className="analytics-insights-banner group">
-        <span className="analytics-insights-banner__icon">
-          <HiOutlineChartBar className="h-5 w-5" />
-        </span>
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-semibold text-primary">{t('dashboard.analyticsBannerTitle')}</span>
-          <span className="block text-xs text-muted mt-0.5">{t('dashboard.analyticsBannerDesc')}</span>
-        </span>
-        <span className="text-sm font-medium shrink-0" style={{ color: 'var(--accent)' }}>
-          {t('dashboard.viewAnalytics')} →
-        </span>
-      </Link>
-        <Link to="/insights" className="analytics-insights-banner analytics-insights-banner--insights group">
-          <span className="analytics-insights-banner__icon">
-            <HiOutlineSparkles className="h-5 w-5" />
-          </span>
-          <span className="flex-1 min-w-0">
-            <span className="block text-sm font-semibold text-primary">{t('dashboard.insightsBannerTitle')}</span>
-            <span className="block text-xs text-muted mt-0.5">{t('dashboard.insightsBannerDesc')}</span>
-          </span>
-          <span className="text-sm font-medium shrink-0" style={{ color: 'var(--accent)' }}>
-            {t('dashboard.viewInsights')} →
-          </span>
-        </Link>
-      </div>}
+      <EditorialDeck
+        items={[
+          {
+            n: '01',
+            kicker: t('dashboard.sceneTalkKicker'),
+            title: t('dashboard.sceneTalk'),
+            body: t('dashboard.cardTalkBody'),
+            href: '/schedule',
+            image: '/media/hero-session.jpg',
+            action: t('dashboard.cardExplore'),
+          },
+          {
+            n: '02',
+            kicker: t('dashboard.sceneCircleKicker'),
+            title: t('dashboard.sceneCircle'),
+            body: t('dashboard.cardCircleBody'),
+            href: '/groups',
+            image: '/media/circle-session.jpg',
+            action: t('dashboard.cardExplore'),
+          },
+          {
+            n: '03',
+            kicker: t('dashboard.sceneQuietKicker'),
+            title: t('dashboard.sceneQuiet'),
+            body: t('dashboard.cardQuietBody'),
+            href: isOps ? '/insights' : '/mentors',
+            image: '/media/quiet-table.jpg',
+            action: t('dashboard.cardExplore'),
+          },
+        ]}
+      />
+      <EditorialSplit
+        image="/media/auth-tea.jpg"
+        light={{
+          n: '04',
+          kicker: t('nav.schedule'),
+          title: t('dashboard.splitTitle'),
+          body: t('dashboard.splitBody'),
+          href: '/schedule',
+          action: t('dashboard.cardExplore'),
+        }}
+        forest={{
+          n: '05',
+          kicker: isOps ? t('nav.insights') : t('nav.mentors'),
+          title: t('dashboard.forestTitle'),
+          body: t('dashboard.forestBody'),
+          href: isOps ? '/insights' : '/mentors',
+          action: t('dashboard.cardExplore'),
+        }}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-8" data-reveal>
         {quickActions.map((action) => (
