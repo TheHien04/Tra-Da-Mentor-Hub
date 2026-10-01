@@ -19,7 +19,6 @@ import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
 import { parseSlotInput } from '../lib/slotInput.js';
 import { readIdempotent, saveIdempotent } from '../lib/idempotency.js';
-import { recordAudit } from '../services/auditStore.js';
 
 const router = express.Router();
 
@@ -122,7 +121,6 @@ router.patch('/:id/book', async (req, res, next) => {
       saveIdempotent(req.user?.userId, idemKey, 409, { success: false, code: 'SLOT_TAKEN' });
       return fail(res, 409, 'SLOT_TAKEN');
     }
-    await recordAudit(req, { action: 'slot.book', entity: 'slot', entityId: slot._id });
     saveIdempotent(req.user?.userId, idemKey, 200, slot);
 
     const io = req.app.get('io');
@@ -184,7 +182,6 @@ router.delete('/:id/booking', async (req, res, next) => {
     const menteeOwns = actor?.role === 'mentee' && (existing.menteeId === actor.menteeId || existing.bookedBy === actor.menteeId);
     if (!canManageSlot(actor, existing) && !menteeOwns) return fail(res, 403, 'FORBIDDEN');
     const slot = await cancelBooking(req.params.id);
-    await recordAudit(req, { action: 'slot.cancel', entity: 'slot', entityId: req.params.id });
     res.json(slot);
   } catch (e) {
     next(e);

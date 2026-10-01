@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { createApp } from '../createApp.js';
+import { oauthCallbackUrl } from '../controllers/googleAuthController.js';
 import { lockDataMode, resetDataMode, useDb } from '../lib/dataMode.js';
 import { readIdempotent, saveIdempotent } from '../lib/idempotency.js';
 
@@ -51,5 +52,46 @@ describe('cookie session CSRF', () => {
       .set('X-CSRF-Token', decodeURIComponent(csrf))
       .send({});
     expect(passed.status).not.toBe(403);
+  });
+});
+
+describe('Google callback URL', () => {
+  it('lands on the app without a token in the address', () => {
+    const url = oauthCallbackUrl('https://app.example.com');
+    expect(url).toBe('https://app.example.com/auth/callback');
+    const parsed = new URL(url);
+    expect(parsed.search).toBe('');
+    expect(parsed.hash).toBe('');
+    expect(url).not.toMatch(/accessToken|refreshToken/);
+  });
+});
+
+describe('audit log covers admin writes', () => {
+  const app = createApp({ mountSpa: false });
+
+  it('records a successful broadcast', async () => {
+    lockDataMode('memory');
+    const login = await request(app).post('/api/auth/login').send({
+      email: 'admin@example.com',
+      password: 'AdminPass123',
+    });
+    expect(login.status).toBe(200);
+    const token = login.body?.data?.accessToken;
+    expect(token).toBeTruthy();
+
+    const sent = await request(app)
+      .post('/api/admin/broadcast')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ message: 'hello', channel: 'in_app' });
+    expect(sent.status).toBe(200);
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const audit = await request(app)
+      .get('/api/admin/audit')
+      .set('Authorization', `Bearer ${token}`);
+    expect(audit.status).toBe(200);
+    const actions = (audit.body.data || []).map((row) => row.action);
+    expect(actions).toContain('admin.post');
   });
 });

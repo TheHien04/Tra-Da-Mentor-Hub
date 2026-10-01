@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   HiOutlineHome,
@@ -14,6 +14,7 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './features/ThemeToggle';
 import { NotificationBell } from './features/NotificationBell';
 import { canAccessPath } from '../lib/navAccess';
+import { useFocusTrap } from '../lib/useFocusTrap';
 
 const MobileNav = () => {
   const { t } = useAppTranslation();
@@ -21,7 +22,17 @@ const MobileNav = () => {
   const navigate = useNavigate();
   const { state, logout } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+  const sheetRef = useFocusTrap(moreOpen);
   const role = state.user?.role || 'user';
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [moreOpen]);
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
@@ -84,7 +95,13 @@ const MobileNav = () => {
       </nav>
 
       {moreOpen && (
-        <div className="mobile-nav-sheet" role="dialog" aria-modal="true">
+        <div
+          ref={sheetRef}
+          className="mobile-nav-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('nav.more', 'More')}
+        >
           <div className="mobile-nav-sheet-backdrop" onClick={() => setMoreOpen(false)} aria-hidden />
           <div className="mobile-nav-sheet-panel">
             <div className="mobile-nav-sheet-header">

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { HiOutlineXMark, HiOutlineArrowRight } from 'react-icons/hi2';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 
 type Role = 'admin' | 'mentor' | 'mentee' | 'user';
 
@@ -17,6 +18,21 @@ export function OnboardingTour() {
   const role = (state.user?.role || 'user') as Role;
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
+  const trapRef = useFocusTrap(visible && state.isAuthenticated);
+
+  const finish = useCallback(() => {
+    localStorage.setItem(storageKey(role), 'done');
+    setVisible(false);
+  }, [role]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') finish();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [visible, finish]);
 
   const steps = useMemo(() => {
     const base = [
@@ -47,13 +63,14 @@ export function OnboardingTour() {
   const current = steps[step];
   const isLast = step >= steps.length - 1;
 
-  const finish = () => {
-    localStorage.setItem(storageKey(role), 'done');
-    setVisible(false);
-  };
-
   return (
-    <div className="onboarding-tour" role="dialog" aria-labelledby="onboarding-title">
+    <div
+      ref={trapRef}
+      className="onboarding-tour"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-title"
+    >
       <div className="onboarding-tour__card">
         <button type="button" className="onboarding-tour__close" aria-label={t('common.close')} onClick={finish}>
           <HiOutlineXMark className="h-5 w-5" />

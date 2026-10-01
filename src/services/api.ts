@@ -205,11 +205,11 @@ export const slotsApi = {
   getAll: (params?: { mentorId?: string; menteeId?: string; availableOnly?: string }) =>
     api.get<Slot[]>('/slots', { params }),
   create: (data: Schemas['SlotWrite']) => api.post<Slot>('/slots', data),
-  book: (slotId: string, menteeId?: string) =>
+  book: (slotId: string, menteeId?: string, idempotencyKey?: string) =>
     api.patch<Slot>(`/slots/${slotId}/book`, menteeId ? { menteeId } : {}, {
       headers: {
         'Idempotency-Key':
-          globalThis.crypto?.randomUUID?.() || `${Date.now()}-${slotId}`,
+          idempotencyKey || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${slotId}`,
       },
     }),
   cancelBooking: (slotId: string) => api.delete<Slot>(`/slots/${slotId}/booking`),
