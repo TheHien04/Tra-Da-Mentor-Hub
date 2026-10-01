@@ -15,7 +15,7 @@ import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass } fr
 import { Alert } from './ui/Alert';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { useAuth } from '../context/AuthContext';
-import { StudioBand } from './motion/StudioBand';
+import { EditorialBanner } from './motion/EditorialBanner';
 
 interface Group {
   _id: string;
@@ -89,10 +89,11 @@ const GroupList = () => {
         icon={<HiOutlineUsers className="h-7 w-7" />}
         action={canAdd ? { label: `+ ${t('group.addGroup')}`, href: '/groups/add' } : undefined}
       />
-      <StudioBand
-        kicker={t('dashboard.sceneQuietKicker')}
+      <EditorialBanner
+        image="/media/quiet-table.jpg"
+        kicker={`03 · ${t('dashboard.sceneQuietKicker')}`}
         title={t('dashboard.sceneQuiet')}
-        src="/media/table-3d.jpg"
+        body={t('dashboard.cardQuietBody')}
       />
 
       {error && (

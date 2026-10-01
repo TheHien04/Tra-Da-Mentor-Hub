@@ -20,7 +20,7 @@ import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, Ski
 import { Alert } from './ui/Alert';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { useAuth } from '../context/AuthContext';
-import { StudioBand } from './motion/StudioBand';
+import { EditorialBanner } from './motion/EditorialBanner';
 
 interface Mentee {
   _id: string;
@@ -122,10 +122,11 @@ const MenteeList = () => {
         icon={<HiOutlineUserGroup className="h-7 w-7" />}
         action={isAdmin ? { label: `+ ${t('mentee.addMentee')}`, href: '/mentees/add' } : undefined}
       />
-      <StudioBand
-        kicker={t('dashboard.sceneTalkKicker')}
+      <EditorialBanner
+        image="/media/hero-session.jpg"
+        kicker={`01 · ${t('dashboard.sceneTalkKicker')}`}
         title={t('dashboard.sceneTalk')}
-        src="/media/glass-3d.jpg"
+        body={t('dashboard.cardTalkBody')}
       />
 
       {successMessage && (

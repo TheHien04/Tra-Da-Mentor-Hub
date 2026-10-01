@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useGreeting } from '../../hooks/useGreeting';
-import { StudioObject } from '../motion/StudioObject';
+import { Diorama } from '../motion/Diorama';
 
 export function DashboardHero() {
   const { t } = useAppTranslation();
@@ -64,7 +64,7 @@ export function DashboardHero() {
           </Link>
         </div>
         <div className="dashboard-hero__scene">
-          <StudioObject src="/media/glass-3d.jpg" priority />
+          <Diorama />
         </div>
       </div>
     </section>
