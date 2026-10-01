@@ -15,8 +15,8 @@ import {
   authLimiter,
   sanitizeInputs,
   bodySizeLimiter,
-  xssProtection,
 } from './middleware/security.js';
+import { requireCsrf } from './middleware/csrf.js';
 import { requireApiAuth } from './middleware/requireApiAuth.js';
 import { getHealthPayload } from './lib/healthStatus.js';
 import { mountFrontend } from './lib/serveFrontend.js';
@@ -74,7 +74,7 @@ export function createApp(options = {}) {
         origin: true,
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'Idempotency-Key'],
       }
     : {
         origin(origin, callback) {
@@ -85,7 +85,7 @@ export function createApp(options = {}) {
         },
         credentials: env.corsCredentials,
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token', 'Idempotency-Key'],
       };
 
   app.use(cors(corsOptions));
@@ -93,7 +93,8 @@ export function createApp(options = {}) {
 
   app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(requireCsrf);
   app.use('/uploads', (req, res, next) => {
     const header = req.headers.authorization;
     const bearer = header?.startsWith('Bearer ') ? header.slice(7) : null;
@@ -104,7 +105,6 @@ export function createApp(options = {}) {
     return next();
   }, express.static(__uploadsDir, { index: false, dotfiles: 'deny' }));
   app.use(sanitizeInputs);
-  app.use(xssProtection);
 
   app.use('/api/docs', docsRoutes);
 

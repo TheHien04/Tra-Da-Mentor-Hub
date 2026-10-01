@@ -256,8 +256,15 @@ const SlotsPage = () => {
           }
         />
       ) : !loadError ? (
+        <>
+        <p className="text-sm text-secondary mb-4">
+          {t('pages.slots.onlyOpen')}{' '}
+          <Link to="/schedule" className="font-medium" style={{ color: 'var(--accent)' }}>
+            {t('nav.schedule')}
+          </Link>
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {slots.map((s) => {
+          {slots.filter((s) => !s.bookedBy).map((s) => {
             const mentorName = s.mentorName || getMentorName(s.mentorId);
             const isOpen = !s.bookedBy;
             return (
@@ -309,6 +316,7 @@ const SlotsPage = () => {
             );
           })}
         </div>
+        </>
       ) : null}
     </PageShell>
   );

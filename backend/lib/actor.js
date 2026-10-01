@@ -1,12 +1,8 @@
-import mongoose from 'mongoose';
 import MentorProfile from '../models/MentorProfile.js';
 import MenteeProfile from '../models/MenteeProfile.js';
 import { listMentors } from '../services/mentorStore.js';
 import { listMentees } from '../services/menteeStore.js';
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
+import { useDb } from './dataMode.js';
 
 async function findLinkedId(Model, listFn, { userId, email }) {
   if (useDb()) {

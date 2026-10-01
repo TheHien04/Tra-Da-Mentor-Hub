@@ -339,6 +339,7 @@
     "schedule": {
       "title": "Schedule",
       "description": "{{count}} sessions · {{upcoming}} upcoming",
+      "onlyBooked": "This page is the sessions you already booked. Open times live on the slots page.",
       "searchPlaceholder": "Search sessions…",
       "allStatus": "All status",
       "allTypes": "All types",
@@ -492,6 +493,7 @@
     "slots": {
       "title": "Slots",
       "description": "Manage availability for mentoring sessions",
+      "onlyOpen": "This page only shows open times. Booked sessions are on the schedule.",
       "add": "Add slot",
       "book": "Book",
       "emptyTitle": "No slots",
@@ -792,6 +794,7 @@
       "contactSalesLink": "Contact Sales",
       "loginToSubscribe": "Please login to subscribe",
       "checkoutFailed": "Failed to create checkout session",
+      "checkoutClosed": "Checkout is not open in this environment",
       "processing": "Processing...",
       "plans": {
         "free": {

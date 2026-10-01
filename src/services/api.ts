@@ -1,6 +1,6 @@
 import axios from 'axios';
 import env from '../config/env';
-import { clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens } from '../lib/secureStorage';
+import { clearAuthTokens, readCsrfToken } from '../lib/secureStorage';
 import { handleError } from '../utils/errorHandler';
 import type { AnalyticsSnapshot } from '../lib/analyticsCompute';
 import type { components } from '../types/openapi';
@@ -81,29 +81,29 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const method = (config.method || 'get').toUpperCase();
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const csrf = readCsrfToken();
+      if (csrf) config.headers['X-CSRF-Token'] = csrf;
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<void> | null = null;
 
-async function refreshSession(): Promise<string> {
-  const refreshToken = getRefreshToken();
+async function refreshSession(): Promise<void> {
+  const csrf = readCsrfToken();
   const response = await axios.post(
     `${env.apiUrl}/auth/refresh`,
-    refreshToken ? { refreshToken } : {},
-    { withCredentials: true }
+    {},
+    {
+      withCredentials: true,
+      headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+    }
   );
-  const accessToken = response.data?.data?.accessToken as string | undefined;
-  const nextRefresh = (response.data?.data?.refreshToken as string | undefined) || refreshToken || '';
-  if (!accessToken) throw new Error('Refresh failed');
-  setAuthTokens(accessToken, nextRefresh);
-  return accessToken;
+  if (!response.data?.success) throw new Error('Refresh failed');
 }
 
 api.interceptors.response.use(
@@ -120,13 +120,16 @@ api.interceptors.response.use(
             refreshPromise = null;
           });
         }
-        const accessToken = await refreshPromise;
-        original.headers = original.headers || {};
-        original.headers.Authorization = `Bearer ${accessToken}`;
+        await refreshPromise;
         return api(original);
       } catch (refreshError) {
         clearAuthTokens();
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        const skipRedirect = Boolean((original as { skipAuthRedirect?: boolean }).skipAuthRedirect);
+        if (
+          !skipRedirect &&
+          typeof window !== 'undefined' &&
+          !window.location.pathname.startsWith('/login')
+        ) {
           window.location.assign('/login');
         }
         return Promise.reject(refreshError);
@@ -203,7 +206,12 @@ export const slotsApi = {
     api.get<Slot[]>('/slots', { params }),
   create: (data: Schemas['SlotWrite']) => api.post<Slot>('/slots', data),
   book: (slotId: string, menteeId?: string) =>
-    api.patch<Slot>(`/slots/${slotId}/book`, menteeId ? { menteeId } : {}),
+    api.patch<Slot>(`/slots/${slotId}/book`, menteeId ? { menteeId } : {}, {
+      headers: {
+        'Idempotency-Key':
+          globalThis.crypto?.randomUUID?.() || `${Date.now()}-${slotId}`,
+      },
+    }),
   cancelBooking: (slotId: string) => api.delete<Slot>(`/slots/${slotId}/booking`),
   remove: (slotId: string) => api.delete(`/slots/${slotId}`),
   update: (slotId: string, data: Schemas['SlotPatch']) => api.patch<Slot>(`/slots/${slotId}`, data),
@@ -258,6 +266,7 @@ export const authApi = {
 };
 
 export const paymentsApi = {
+  availability: () => api.get<{ success: boolean; data: { checkout: boolean } }>('/payments/availability'),
   createCheckout: (plan: string) =>
     api.post('/payments/create-checkout', { plan } satisfies Schemas['CheckoutRequest']),
 };

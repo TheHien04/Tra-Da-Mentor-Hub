@@ -1,15 +1,11 @@
-import mongoose from 'mongoose';
 import Slot from '../models/Slot.js';
 import { getMentorById } from './mentorStore.js';
 import { getMenteeById } from './menteeStore.js';
 import { slotInstant, todayKey } from '../lib/slotClock.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 let memSeq = 1;
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 /** Demo slots with dates relative to today (booked + open) */
 function buildUpcomingSeed() {

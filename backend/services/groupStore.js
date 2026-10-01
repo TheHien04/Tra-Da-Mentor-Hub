@@ -1,15 +1,11 @@
-import mongoose from 'mongoose';
 import StudyGroup from '../models/StudyGroup.js';
 import { GROUP_SEED } from '../data/crmSeed.js';
 import { logGroupCreated } from './activityLogger.js';
 import { getMentorById } from './mentorStore.js';
 import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;

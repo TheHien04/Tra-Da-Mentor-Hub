@@ -26,6 +26,16 @@ function issueSession(res, { accessToken, refreshToken }) {
   });
 }
 
+/** Browsers keep tokens in httpOnly cookies. Tests still receive them in JSON. */
+function clientSession(data, tokens) {
+  const body = { ...data, expiresIn: accessTtlSeconds() };
+  if (process.env.NODE_ENV === 'test') {
+    body.accessToken = tokens.accessToken;
+    body.refreshToken = tokens.refreshToken;
+  }
+  return body;
+}
+
 /**
  * Login handler
  */
@@ -54,12 +64,7 @@ export async function login(req, res) {
       return res.status(200).json({
         success: true,
         message: "Login successful",
-        data: {
-          user: user.toJSON(),
-          accessToken,
-          refreshToken,
-          expiresIn: accessTtlSeconds(),
-        },
+        data: clientSession({ user: user.toJSON() }, { accessToken, refreshToken }),
       });
     }
 
@@ -117,12 +122,7 @@ export async function login(req, res) {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      data: {
-        user: { ...user.toJSON(), ...crmIds },
-        accessToken,
-        refreshToken,
-        expiresIn: accessTtlSeconds(),
-      },
+        data: clientSession({ user: { ...user.toJSON(), ...crmIds } }, { accessToken, refreshToken }),
     });
   } catch (error) {
     logger.error("Login error:", { error: error.message, email: req.body?.email, ip: req.ip });
@@ -215,12 +215,10 @@ export async function register(req, res) {
     return res.status(201).json({
       success: true,
       message: "Registration successful",
-      data: {
-        user: { ...newUser.toJSON(), ...crmIds },
-        accessToken,
-        refreshToken,
-        expiresIn: accessTtlSeconds(),
-      },
+        data: clientSession(
+        { user: { ...newUser.toJSON(), ...crmIds } },
+        { accessToken, refreshToken }
+      ),
     });
   } catch (error) {
     logger.error("Register error:", { error: error.message, email: req.body?.email, ip: req.ip });
@@ -258,11 +256,7 @@ export async function refreshToken(req, res) {
       return res.status(200).json({
         success: true,
         message: "Token refreshed",
-        data: {
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-          expiresIn: accessTtlSeconds(),
-        },
+        data: clientSession({}, { accessToken: newAccessToken, refreshToken: newRefreshToken }),
       });
     }
 
@@ -299,11 +293,7 @@ export async function refreshToken(req, res) {
     return res.status(200).json({
       success: true,
       message: "Token refreshed",
-      data: {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-        expiresIn: accessTtlSeconds(),
-      },
+        data: clientSession({}, { accessToken: newAccessToken, refreshToken: newRefreshToken }),
     });
   } catch (error) {
     logger.error("Refresh token error:", { error: error.message, ip: req.ip });

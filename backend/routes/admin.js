@@ -9,10 +9,20 @@ import { sendZaloBroadcast, getZaloRecipientIdsForAudience } from '../utils/zalo
 import logger from '../config/logger.js';
 import env from '../config/env.js';
 import { fail } from '../lib/httpError.js';
+import { listAudit } from '../services/auditStore.js';
 
 const router = express.Router();
 
 router.use(authenticate, authorize('admin'), adminLimiter);
+
+router.get('/audit', async (req, res, next) => {
+  try {
+    const data = await listAudit(req.query.limit);
+    res.json({ success: true, data });
+  } catch (e) {
+    next(e);
+  }
+});
 
 /** GET /api/admin/broadcasts — recent admin broadcast notifications */
 router.get('/broadcasts', async (_req, res, next) => {

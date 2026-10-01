@@ -13,6 +13,11 @@ test.describe('Critical paths', () => {
     await loginAsAdmin(page);
   });
 
+  test('the browser does not keep an access token', async ({ page }) => {
+    const stored = await page.evaluate(() => sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken'));
+    expect(stored).toBeNull();
+  });
+
   test('slots page loads', async ({ page }) => {
     await page.goto('/slots');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

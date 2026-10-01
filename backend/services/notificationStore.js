@@ -1,13 +1,9 @@
-import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { BROADCAST_NOTIFICATION_DEMO } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 let seq = 1;
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;

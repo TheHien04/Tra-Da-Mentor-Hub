@@ -14,7 +14,12 @@ export async function apiLogin(
     throw new Error(`Login failed: ${res.status()} ${await res.text()}`);
   }
   const body = await res.json();
-  return body.data.accessToken as string;
+  if (body.data?.accessToken) return body.data.accessToken as string;
+  const raw = res.headers()['set-cookie'] || '';
+  const joined = Array.isArray(raw) ? raw.join(';') : raw;
+  const match = joined.match(/tdm_access=([^;]+)/);
+  if (!match) throw new Error('Login did not return a session cookie');
+  return decodeURIComponent(match[1]);
 }
 
 export async function createInvite(

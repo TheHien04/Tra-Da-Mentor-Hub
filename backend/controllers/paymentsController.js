@@ -180,3 +180,8 @@ export const handleWebhook = async (req, res) => {
     res.status(500).json({ message: 'Webhook handling failed' });
   }
 };
+
+export const getCheckoutAvailability = (_req, res) => {
+  const checkout = Boolean(env.stripeSecretKey && env.stripeProPriceId && env.stripePremiumPriceId);
+  res.json({ success: true, data: { checkout } });
+};

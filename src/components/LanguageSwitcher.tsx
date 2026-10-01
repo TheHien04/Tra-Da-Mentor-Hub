@@ -4,11 +4,8 @@ import { useAppTranslation } from '../hooks/useAppTranslation';
 import { normalizeLang } from '../i18n/utils';
 
 const languages = [
-  { code: 'en' as const, nameKey: 'language.en', flag: '🇬🇧' },
   { code: 'vi' as const, nameKey: 'language.vi', flag: '🇻🇳' },
-  { code: 'jp' as const, nameKey: 'language.jp', flag: '🇯🇵' },
-  { code: 'kr' as const, nameKey: 'language.kr', flag: '🇰🇷' },
-  { code: 'cn' as const, nameKey: 'language.cn', flag: '🇨🇳' },
+  { code: 'en' as const, nameKey: 'language.en', flag: '🇬🇧' },
 ];
 
 interface LanguageSwitcherProps {

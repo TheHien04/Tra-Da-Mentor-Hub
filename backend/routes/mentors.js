@@ -12,6 +12,7 @@ import { listGroups } from '../services/groupStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
 import { sendDirectory } from '../lib/directoryQuery.js';
+import { recordAudit } from '../services/auditStore.js';
 import {
   pickFields,
   MENTOR_OWNER_FIELDS,
@@ -107,6 +108,7 @@ router.patch('/:id', validateMentor, async (req, res, next) => {
     const fields = actor.isAdmin ? MENTOR_ADMIN_FIELDS : MENTOR_OWNER_FIELDS;
     const mentor = await updateMentor(req.params.id, pickFields(req.body, fields));
     if (!mentor) return fail(res, 404, 'NOT_FOUND', 'Mentor not found');
+    await recordAudit(req, { action: 'mentor.update', entity: 'mentor', entityId: req.params.id });
     res.json(mentor);
   } catch (e) {
     next(e);

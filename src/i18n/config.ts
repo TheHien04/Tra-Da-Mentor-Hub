@@ -6,16 +6,10 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 // Import translation files
 import enTranslations from './locales/en.json';
 import viTranslations from './locales/vi.json';
-import jpTranslations from './locales/jp.json';
-import krTranslations from './locales/kr.json';
-import cnTranslations from './locales/cn.json';
 
 const resources = {
   en: { translation: enTranslations },
   vi: { translation: viTranslations },
-  jp: { translation: jpTranslations },
-  kr: { translation: krTranslations },
-  cn: { translation: cnTranslations },
 };
 
 i18n
@@ -23,8 +17,8 @@ i18n
   .use(initReactI18next) // Pass i18n instance to react-i18next
   .init({
     resources,
-    fallbackLng: 'en',
-    supportedLngs: ['en', 'vi', 'jp', 'kr', 'cn'],
+    fallbackLng: 'vi',
+    supportedLngs: ['en', 'vi'],
     nonExplicitSupportedLngs: true,
     load: 'languageOnly',
     debug: false,

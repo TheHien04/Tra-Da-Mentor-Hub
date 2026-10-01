@@ -17,6 +17,7 @@ import { CalendarConnectBar } from './features/CalendarConnectBar';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useSlots } from '../hooks/queries/useSlots';
 import { useCalendarStatus, useSyncSlotToCalendar } from '../hooks/queries/useCalendar';
+import { slotsApi } from '../services/api';
 import { slotInstant } from '../lib/slotClock';
 import { queryClient } from '../lib/queryClient';
 import { queryKeys } from '../hooks/queries/keys';
@@ -123,13 +124,25 @@ const ScheduleList = () => {
           s.location.toLowerCase().includes(q);
         const matchStatus = statusFilter === 'ALL' || s.status === statusFilter;
         const matchType = typeFilter === 'ALL' || s.type === typeFilter;
-        return matchQ && matchStatus && matchType;
+        return matchQ && matchStatus && matchType && !s.isOpen;
       })
       .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   }, [sessions, search, statusFilter, typeFilter]);
 
   const upcoming = filtered.filter((s) => s.status === 'SCHEDULED' && !s.isOpen).length;
   const openSlots = filtered.filter((s) => s.isOpen).length;
+
+  const openCount = sessions.filter((s) => s.isOpen).length;
+
+  const handleCancel = async (slotId: string) => {
+    try {
+      await slotsApi.cancelBooking(slotId);
+      toast.success(t('pages.slots.cancelSuccess'));
+      await refetchSlots();
+    } catch {
+      toast.error(t('pages.slots.cancelFailed'));
+    }
+  };
 
   const handleSyncCalendar = async (slotId: string) => {
     if (!calendarStatus?.connected) {
@@ -188,6 +201,14 @@ const ScheduleList = () => {
           <p className="insights-stat-card__label">{t('pages.schedule.statOpen')}</p>
         </div>
       </div>
+
+      <p className="text-sm text-secondary mb-4">
+        {t('pages.schedule.onlyBooked')}{' '}
+        <Link to="/slots" className="font-medium" style={{ color: 'var(--accent)' }}>
+          {t('nav.slots')}
+        </Link>
+        {openCount > 0 ? ` (${openCount})` : ''}
+      </p>
 
       <div className="card p-4 mb-6 space-y-4">
         <input
@@ -292,11 +313,21 @@ const ScheduleList = () => {
                         {t('pages.schedule.menteesCount', { count: s.mentees.length })}
                       </span>
                     </div>
-                    <div className="mt-4 pt-3 border-t flex flex-wrap gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                      <Link to="/slots" className="btn btn-primary text-sm inline-flex items-center gap-1">
-                        {t('pages.schedule.manageSlots')}
-                        <HiOutlineArrowRight className="h-3.5 w-3.5" />
-                      </Link>
+                    <div className="mt-4 pt-3 border-t flex flex-wrap items-center gap-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                      {s.location.startsWith('http') && (
+                        <a
+                          href={s.location}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary text-sm inline-flex items-center gap-1"
+                        >
+                          {t('pages.slots.joinMeeting')}
+                          <HiOutlineArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      <button type="button" className="text-sm font-medium text-muted" onClick={() => void handleCancel(s._id)}>
+                        {t('pages.slots.cancelBooking')}
+                      </button>
                       {!s.isOpen && !synced && (
                         <button
                           type="button"

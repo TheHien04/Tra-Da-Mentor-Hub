@@ -1,5 +1,8 @@
+import crypto from 'crypto';
+
 const ACCESS_COOKIE = 'tdm_access';
 const REFRESH_COOKIE = 'tdm_refresh';
+const CSRF_COOKIE = 'tdm_csrf';
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function secureCookie() {
@@ -31,6 +34,10 @@ export function readRefreshCookie(req) {
   return readCookie(req, REFRESH_COOKIE);
 }
 
+export function readCsrfCookie(req) {
+  return readCookie(req, CSRF_COOKIE);
+}
+
 export function setSessionCookies(res, { accessToken, refreshToken, accessMaxAgeMs }) {
   const base = {
     httpOnly: true,
@@ -51,6 +58,13 @@ export function setSessionCookies(res, { accessToken, refreshToken, accessMaxAge
       maxAge: REFRESH_MAX_AGE_MS,
     });
   }
+  res.cookie(CSRF_COOKIE, crypto.randomBytes(32).toString('hex'), {
+    httpOnly: false,
+    sameSite: 'lax',
+    secure: secureCookie(),
+    path: '/',
+    maxAge: REFRESH_MAX_AGE_MS,
+  });
 }
 
 export function clearSessionCookies(res) {
@@ -61,4 +75,5 @@ export function clearSessionCookies(res) {
   };
   res.clearCookie(ACCESS_COOKIE, { ...base, path: '/' });
   res.clearCookie(REFRESH_COOKIE, { ...base, path: '/api/auth' });
+  res.clearCookie(CSRF_COOKIE, { ...base, httpOnly: false, path: '/' });
 }

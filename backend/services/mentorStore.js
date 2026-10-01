@@ -1,14 +1,10 @@
-import mongoose from 'mongoose';
 import MentorProfile from '../models/MentorProfile.js';
 import { MENTOR_SEED } from '../data/crmSeed.js';
 import { logMentorCreated } from './activityLogger.js';
 import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;
