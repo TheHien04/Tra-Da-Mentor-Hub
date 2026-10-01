@@ -6,6 +6,7 @@ const MESSAGES = {
   EMAIL_TAKEN: 'Email already exists',
   SLOT_TAKEN: 'This slot is already booked',
   SLOT_CONFLICT: 'This time overlaps another slot',
+  SLOT_PAST: 'That time has already passed',
   UNAUTHORIZED: 'Authentication required',
   INVALID_CREDENTIALS: 'Invalid credentials',
   ACCOUNT_INACTIVE: 'Your account is inactive',

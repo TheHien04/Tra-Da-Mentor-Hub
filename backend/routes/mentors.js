@@ -12,6 +12,14 @@ import { listGroups } from '../services/groupStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
 import { sendDirectory } from '../lib/directoryQuery.js';
+import {
+  pickFields,
+  MENTOR_OWNER_FIELDS,
+  MENTOR_ADMIN_FIELDS,
+  redactMentor,
+  redactMentee,
+  mapDirectory,
+} from '../lib/profileFields.js';
 
 const router = express.Router();
 
@@ -21,8 +29,9 @@ function ownsMentor(actor, id) {
 
 router.get('/', async (req, res, next) => {
   try {
+    const actor = await loadActor(req);
     const result = await queryMentorDirectory(req.query);
-    return sendDirectory(res, result);
+    return sendDirectory(res, mapDirectory(result, (row) => redactMentor(row, actor)));
   } catch (e) {
     next(e);
   }
@@ -32,7 +41,7 @@ router.post('/', validateMentor, async (req, res, next) => {
   try {
     const actor = await loadActor(req);
     if (!actor?.isAdmin) return fail(res, 403, 'FORBIDDEN');
-    const mentor = await createMentor(req.body);
+    const mentor = await createMentor(pickFields(req.body, MENTOR_ADMIN_FIELDS));
     res.status(201).json(mentor);
   } catch (e) {
     if (e.code === 'EMAIL_TAKEN') return fail(res, 409, 'EMAIL_TAKEN');
@@ -48,7 +57,11 @@ router.get('/:id/mentees', async (req, res, next) => {
       return fail(res, 403, 'FORBIDDEN');
     }
     const mentees = await listMentees();
-    res.json(mentees.filter((m) => m.mentorId === req.params.id));
+    res.json(
+      mentees
+        .filter((m) => m.mentorId === req.params.id)
+        .map((m) => redactMentee(m, actor))
+    );
   } catch (e) {
     next(e);
   }
@@ -65,9 +78,10 @@ router.get('/:id/groups', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
+    const actor = await loadActor(req);
     const mentor = await getMentorById(req.params.id);
     if (!mentor) return fail(res, 404, 'NOT_FOUND', 'Mentor not found');
-    res.json(mentor);
+    res.json(redactMentor(mentor, actor));
   } catch (e) {
     next(e);
   }
@@ -77,7 +91,8 @@ router.put('/:id', validateMentor, async (req, res, next) => {
   try {
     const actor = await loadActor(req);
     if (!ownsMentor(actor, req.params.id)) return fail(res, 403, 'FORBIDDEN');
-    const mentor = await updateMentor(req.params.id, req.body, { replace: true });
+    const fields = actor.isAdmin ? MENTOR_ADMIN_FIELDS : MENTOR_OWNER_FIELDS;
+    const mentor = await updateMentor(req.params.id, pickFields(req.body, fields), { replace: true });
     if (!mentor) return fail(res, 404, 'NOT_FOUND', 'Mentor not found');
     res.json(mentor);
   } catch (e) {
@@ -89,7 +104,8 @@ router.patch('/:id', validateMentor, async (req, res, next) => {
   try {
     const actor = await loadActor(req);
     if (!ownsMentor(actor, req.params.id)) return fail(res, 403, 'FORBIDDEN');
-    const mentor = await updateMentor(req.params.id, req.body);
+    const fields = actor.isAdmin ? MENTOR_ADMIN_FIELDS : MENTOR_OWNER_FIELDS;
+    const mentor = await updateMentor(req.params.id, pickFields(req.body, fields));
     if (!mentor) return fail(res, 404, 'NOT_FOUND', 'Mentor not found');
     res.json(mentor);
   } catch (e) {

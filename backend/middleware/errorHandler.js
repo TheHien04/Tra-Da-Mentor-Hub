@@ -105,11 +105,14 @@ export const errorHandler = (err, req, res, next) => {
             ? 'VALIDATION'
             : 'INTERNAL';
 
+  const isServerError = error.statusCode >= 500;
   res.status(error.statusCode).json({
     success: false,
     code,
     status: error.status || 'error',
-    message: error.message,
+    message: isServerError
+      ? 'The server could not complete that request.'
+      : error.message,
     ...(env.isDev && { stack: err.stack }),
   });
 };

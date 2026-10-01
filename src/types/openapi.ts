@@ -2405,7 +2405,7 @@ export interface components {
             /** @example false */
             success: boolean;
             /** @enum {string} */
-            code: "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "EMAIL_TAKEN" | "SLOT_TAKEN" | "SLOT_CONFLICT" | "INTERNAL";
+            code: "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "EMAIL_TAKEN" | "SLOT_TAKEN" | "SLOT_CONFLICT" | "SLOT_PAST" | "INVALID_CREDENTIALS" | "ACCOUNT_INACTIVE" | "FILE_TOO_LARGE" | "INTERNAL";
             message: string;
         };
         Health: {

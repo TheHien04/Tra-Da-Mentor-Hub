@@ -8,6 +8,7 @@ import { sendBroadcastEmail } from '../utils/emailService.js';
 import { sendZaloBroadcast, getZaloRecipientIdsForAudience } from '../utils/zaloService.js';
 import logger from '../config/logger.js';
 import env from '../config/env.js';
+import { fail } from '../lib/httpError.js';
 
 const router = express.Router();
 
@@ -72,7 +73,7 @@ router.post('/broadcast', async (req, res, next) => {
   try {
     const { audience = 'all', subject, message, channel = 'in_app' } = req.body;
     if (!message?.trim()) {
-      return res.status(400).json({ success: false, message: 'message is required' });
+      return fail(res, 400, 'VALIDATION', 'message is required');
     }
 
     const normalizedChannel =

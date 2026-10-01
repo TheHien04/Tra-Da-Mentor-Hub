@@ -86,6 +86,10 @@
               "EMAIL_TAKEN",
               "SLOT_TAKEN",
               "SLOT_CONFLICT",
+              "SLOT_PAST",
+              "INVALID_CREDENTIALS",
+              "ACCOUNT_INACTIVE",
+              "FILE_TOO_LARGE",
               "INTERNAL"
             ]
           },

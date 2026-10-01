@@ -156,6 +156,7 @@ export const xssProtection = (req, res, next) => {
     logger.warn(`XSS attempt blocked from IP: ${req.ip}`);
     return res.status(400).json({
       success: false,
+      code: 'VALIDATION',
       message: 'Invalid input detected.',
     });
   }
