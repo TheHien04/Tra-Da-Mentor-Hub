@@ -18,12 +18,10 @@ import { Alert } from './ui/Alert';
 import { SmartMatchPanel } from './features/SmartMatchPanel';
 import { LiveActivityFeed } from './features/LiveActivityFeed';
 import { DashboardHero } from './features/DashboardHero';
-import { EditorialDeck } from './motion/EditorialDeck';
-import { EditorialSplit } from './motion/EditorialSplit';
-import { Diorama } from './motion/Diorama';
 import { PageShell } from './ui/PageShell';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { slotInstant } from '../lib/slotClock';
+import { skillLabel } from '../lib/skillLabel';
 
 interface DashboardStats {
   totalMentors: number;
@@ -50,7 +48,7 @@ function parseSlotDateTime(date: string, time?: string) {
 }
 
 const Dashboard = () => {
-  const { t, i18n } = useAppTranslation();
+  const { t, i18n, lang, formatDate } = useAppTranslation();
   const { state } = useAuth();
   const role = state.user?.role || 'user';
   const isOps = role === 'admin' || role === 'mentor';
@@ -206,6 +204,8 @@ const Dashboard = () => {
       ];
 
   const next = upcomingSessions[0];
+  const laterSessions = upcomingSessions.slice(1);
+  const formatSlotDay = (date: string) => formatDate(`${date}T12:00:00`);
   const nextHref = next ? '/schedule' : role === 'mentee' ? '/slots' : role === 'admin' ? '/insights' : '/slots';
   const nextLabel = next
     ? t('dashboard.nextUpOpen')
@@ -241,7 +241,7 @@ const Dashboard = () => {
               {next ? next.title : t('dashboard.nextUpEmpty')}
             </h2>
             <p className="next-up__meta">
-              {next ? `${next.date} · ${next.time}` : nextHint}
+              {next ? `${formatSlotDay(next.date)} · ${next.time}` : nextHint}
             </p>
           </div>
           <Link to={nextHref} className="btn btn-primary shrink-0">
@@ -279,22 +279,20 @@ const Dashboard = () => {
             ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8" data-reveal>
+      <div className={`grid grid-cols-1 gap-6 mb-8 ${laterSessions.length ? 'lg:grid-cols-2' : ''}`} data-reveal>
+        {laterSessions.length > 0 && (
         <section className="card p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-base font-semibold text-primary flex items-center gap-2">
               <HiOutlineCalendarDays className="h-5 w-5 text-muted" />
-              {t('dashboard.upcomingEvents')}
+              {t('dashboard.laterSessions')}
             </h2>
             <Link to="/schedule" className="text-sm font-medium transition-colors" style={{ color: 'var(--accent)' }}>
               {t('dashboard.viewAll')}
             </Link>
           </div>
           <ul className="space-y-2">
-            {upcomingSessions.length === 0 && (
-              <li className="text-sm text-muted py-4 text-center">{t('dashboard.noUpcoming')}</li>
-            )}
-            {upcomingSessions.map((session) => (
+            {laterSessions.map((session) => (
               <li
                 key={session._id}
                 className="list-row flex items-center gap-3"
@@ -302,28 +300,21 @@ const Dashboard = () => {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-primary truncate">{session.title}</p>
                   <p className="text-xs text-muted mt-0.5">
-                    {session.mentor} · {session.date} · {session.time}
+                    {session.mentor} · {formatSlotDay(session.date)} · {session.time}
                   </p>
                 </div>
                 <span
                   className={`badge-pill shrink-0 ${
-                    session.isBooked
-                      ? session.type === 'GROUP'
-                        ? 'badge-accent'
-                        : 'badge-neutral'
-                      : 'badge-success'
+                    session.isBooked ? 'badge-neutral' : 'badge-success'
                   }`}
                 >
-                  {session.isBooked
-                    ? session.type === 'GROUP'
-                      ? t('dashboard.sessionTypeGroup')
-                      : t('dashboard.sessionTypeOneOnOne')
-                    : t('dashboard.sessionOpenBadge')}
+                  {session.isBooked ? t('dashboard.sessionTypeOneOnOne') : t('dashboard.sessionOpenBadge')}
                 </span>
               </li>
             ))}
           </ul>
         </section>
+        )}
 
         <section className="card p-6">
           <h2 className="text-base font-semibold text-primary flex items-center gap-2 mb-5">
@@ -339,7 +330,7 @@ const Dashboard = () => {
                 <span className="analytics-skill-row__rank">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between text-sm mb-1 gap-2">
-                    <span className="font-medium text-primary truncate">{skill.skill}</span>
+                    <span className="font-medium text-primary truncate">{skillLabel(skill.skill, lang)}</span>
                     <span className="text-muted tabular-nums shrink-0">{skill.count}</span>
                   </div>
                   <div className="analytics-skill-bar">
@@ -392,64 +383,6 @@ const Dashboard = () => {
           })}
         </section>
       )}
-
-      <div className="work-studio">
-        <div className="work-studio__stage" aria-hidden>
-          <Diorama />
-        </div>
-        <div className="min-w-0">
-          <EditorialDeck
-            items={[
-              {
-                n: '01',
-                kicker: t('dashboard.sceneTalkKicker'),
-                title: t('dashboard.sceneTalk'),
-                body: t('dashboard.cardTalkBody'),
-                href: '/schedule',
-                image: '/media/hero-session.jpg',
-                action: t('dashboard.cardExplore'),
-              },
-              {
-                n: '02',
-                kicker: t('dashboard.sceneCircleKicker'),
-                title: t('dashboard.sceneCircle'),
-                body: t('dashboard.cardCircleBody'),
-                href: '/groups',
-                image: '/media/circle-session.jpg',
-                action: t('dashboard.cardExplore'),
-              },
-              {
-                n: '03',
-                kicker: t('dashboard.sceneQuietKicker'),
-                title: t('dashboard.sceneQuiet'),
-                body: t('dashboard.cardQuietBody'),
-                href: isOps ? '/insights' : '/mentors',
-                image: '/media/quiet-table.jpg',
-                action: t('dashboard.cardExplore'),
-              },
-            ]}
-          />
-          <EditorialSplit
-            image="/media/auth-tea.jpg"
-            light={{
-              n: '04',
-              kicker: t('nav.schedule'),
-              title: t('dashboard.splitTitle'),
-              body: t('dashboard.splitBody'),
-              href: '/schedule',
-              action: t('dashboard.cardExplore'),
-            }}
-            forest={{
-              n: '05',
-              kicker: isOps ? t('nav.insights') : t('nav.mentors'),
-              title: t('dashboard.forestTitle'),
-              body: t('dashboard.forestBody'),
-              href: isOps ? '/insights' : '/mentors',
-              action: t('dashboard.cardExplore'),
-            }}
-          />
-        </div>
-      </div>
 
       {error && (
         <Alert variant="error" title={t('common.loadError')} className="mt-4">

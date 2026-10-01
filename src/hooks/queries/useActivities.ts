@@ -12,6 +12,8 @@ export function useActivities(limit = 6) {
         type?: string;
         message?: string;
         description?: string;
+        target?: string;
+        actor?: { name?: string };
         createdAt?: string;
         timestamp?: string | Date;
       }>(await activitiesApi.getAll(limit)),

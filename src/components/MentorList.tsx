@@ -222,12 +222,17 @@ const MentorList = () => {
                     <h3 className="people-card__name">{mentor.name}</h3>
                     {mentor.track && <TrackBadge track={mentor.track} size="small" />}
                   </div>
-                  <p className="people-card__meta">{mentor.email}</p>
+                  <div className="mt-2">{getStatusBadge(mentor)}</div>
+                  <p className="people-card__meta mt-2">
+                    {t('lists.seatsOpen', {
+                      open: Math.max(0, (mentor.maxMentees || 10) - (mentor.mentees?.length || 0)),
+                      max: mentor.maxMentees || 10,
+                    })}
+                  </p>
+                  <p className="people-card__submeta">{mentor.email}</p>
                   {mentor.phone && <p className="people-card__submeta">{mentor.phone}</p>}
                 </div>
               </div>
-
-              <div className="mb-4">{getStatusBadge(mentor)}</div>
 
               <div className="people-metrics">
                 <div className="people-metrics__item">

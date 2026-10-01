@@ -1,0 +1,42 @@
+const VI_SKILLS: Record<string, string> = {
+  'UX Research': 'Nghiên cứu trải nghiệm',
+  'Design System': 'Hệ thống thiết kế',
+  Prototyping: 'Làm mẫu',
+  'Product Management': 'Quản lý sản phẩm',
+  Agile: 'Agile',
+  'User Research': 'Nghiên cứu người dùng',
+  Analytics: 'Phân tích',
+  'Marketing Strategy': 'Chiến lược marketing',
+  'Growth Hacking': 'Tăng trưởng',
+  'Brand Building': 'Xây dựng thương hiệu',
+  'Data Science': 'Khoa học dữ liệu',
+  'Machine Learning': 'Học máy',
+  'HR Strategy': 'Chiến lược nhân sự',
+  'Team Building': 'Gắn kết nhóm',
+  'Talent Development': 'Phát triển nhân tài',
+  Recruitment: 'Tuyển dụng',
+  'Business Strategy': 'Chiến lược kinh doanh',
+  Fundraising: 'Gọi vốn',
+  Startup: 'Khởi nghiệp',
+  'Venture Capital': 'Vốn đầu tư',
+  Microeconomics: 'Kinh tế vi mô',
+  'Market Analysis': 'Phân tích thị trường',
+  'Financial Strategy': 'Chiến lược tài chính',
+  'Data Modeling': 'Mô hình dữ liệu',
+  'B2B Sales': 'Bán hàng B2B',
+  'Sales Strategy': 'Chiến lược bán hàng',
+  'Account Management': 'Chăm sóc khách hàng',
+  'Curriculum Design': 'Thiết kế chương trình',
+  'Teaching Methods': 'Phương pháp giảng dạy',
+  'Student Development': 'Phát triển học viên',
+  'Program Management': 'Quản lý chương trình',
+  'Social Research': 'Nghiên cứu xã hội',
+  'Education Policy': 'Chính sách giáo dục',
+  'Community Development': 'Phát triển cộng đồng',
+  Statistics: 'Thống kê',
+};
+
+export function skillLabel(skill: string, lang: string) {
+  if (!lang.startsWith('vi')) return skill;
+  return VI_SKILLS[skill] || skill;
+}

@@ -5,15 +5,22 @@ import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useMatchSuggestions, useMatchExplain } from '../../hooks/queries/useMatching';
 import type { MatchSuggestion } from '../../services/api';
 import { getApiErrorMessage } from '../../lib/apiHelpers';
+import { skillLabel } from '../../lib/skillLabel';
 import { Alert } from '../ui/Alert';
 import { LaunchBadge } from '../ui/LaunchBadge';
 import Skeleton from '../Skeleton';
 
-function formatMatchReason(match: MatchSuggestion, t: (key: string, options?: Record<string, unknown>) => string) {
+function formatMatchReason(
+  match: MatchSuggestion,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  lang: string
+) {
   const reason = match.reasonCodes?.[0];
   if (!reason) return match.reasons[0];
   if (reason.code === 'skills') {
-    return t('dashboard.matchReasonSkills', { skills: (reason.skills || []).join(', ') });
+    return t('dashboard.matchReasonSkills', {
+      skills: (reason.skills || []).map((skill) => skillLabel(skill, lang)).join(', '),
+    });
   }
   if (reason.code === 'track') return t('dashboard.matchReasonTrack');
   if (reason.code === 'capacity') return t('dashboard.matchReasonCapacity');
@@ -27,7 +34,7 @@ interface SmartMatchPanelProps {
 }
 
 export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanelProps) {
-  const { t } = useAppTranslation();
+  const { t, lang } = useAppTranslation();
   const [explainPair, setExplainPair] = useState<{ mentorId: string; menteeId: string } | null>(
     null
   );
@@ -110,12 +117,12 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
                 <p className="text-sm font-medium text-primary truncate">
                   {menteeId ? m.mentorName : mentorId ? m.menteeName : `${m.mentorName} ↔ ${m.menteeName}`}
                 </p>
-                <p className="text-xs text-muted mt-0.5 line-clamp-1">{formatMatchReason(m, t)}</p>
+                <p className="text-xs text-muted mt-0.5 line-clamp-1">{formatMatchReason(m, t, lang)}</p>
                 {m.matchedSkills.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {m.matchedSkills.slice(0, 3).map((s: string) => (
                       <span key={s} className="badge-pill badge-accent text-[10px]">
-                        {s}
+                        {skillLabel(s, lang)}
                       </span>
                     ))}
                   </div>
@@ -125,6 +132,7 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
                 <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--accent)' }}>
                   {m.score}%
                 </span>
+                <p className="text-[10px] text-muted">{t('dashboard.matchScore')}</p>
                 <p className="text-[10px] text-muted">
                   {t('dashboard.smartMatchCapacity', {
                     active: m.capacity.active,
