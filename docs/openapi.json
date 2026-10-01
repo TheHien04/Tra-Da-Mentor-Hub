@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Trà Đá Mentor Hub API",
-    "description": "REST API for mentoring program operations. Authenticated routes require `Authorization: Bearer <accessToken>`.",
-    "version": "1.0.0",
+    "description": "REST API for mentoring program operations. Authenticated routes require `Authorization: Bearer <accessToken>`. List endpoints return a raw array unless `page` is set, in which case the body is `{ data, page, limit, total }`. Errors use `{ success: false, code, message }`.",
+    "version": "1.1.0",
     "contact": {
       "name": "Trà Đá Mentor",
       "url": "https://github.com/TheHien04/Tra-Da-Mentor-Hub"
@@ -19,9 +19,16 @@
     { "name": "Mentors", "description": "Mentor profiles" },
     { "name": "Mentees", "description": "Mentee profiles and applications" },
     { "name": "Groups", "description": "Mentoring cohorts" },
-    { "name": "Slots", "description": "Interview / session availability" },
+    { "name": "Activities", "description": "Activity feed" },
+    { "name": "Slots", "description": "Session availability" },
     { "name": "SessionLogs", "description": "Post-session CRM records" },
-    { "name": "Admin", "description": "Broadcasts, integrations, exports" },
+    { "name": "Notifications", "description": "In-app notifications" },
+    { "name": "Matching", "description": "Mentor and mentee suggestions" },
+    { "name": "Calendar", "description": "Google Calendar" },
+    { "name": "Payments", "description": "Checkout" },
+    { "name": "Testimonials", "description": "Published stories" },
+    { "name": "Uploads", "description": "Avatar uploads" },
+    { "name": "Admin", "description": "Broadcasts and integrations" },
     { "name": "Invites", "description": "Registration invites" },
     { "name": "Analytics", "description": "Program KPIs and trends" }
   ],
@@ -33,11 +40,55 @@
         "bearerFormat": "JWT"
       }
     },
+    "parameters": {
+      "Id": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      },
+      "Q": { "name": "q", "in": "query", "schema": { "type": "string" } },
+      "Page": { "name": "page", "in": "query", "schema": { "type": "integer", "minimum": 1 } },
+      "Limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+      "Track": { "name": "track", "in": "query", "schema": { "type": "string" } },
+      "MentorshipType": {
+        "name": "mentorshipType",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["GROUP", "ONE_ON_ONE"] }
+      },
+      "Duration": {
+        "name": "duration",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["SHORT_TERM", "MEDIUM_TERM", "LONG_TERM"] }
+      },
+      "Capacity": {
+        "name": "capacity",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["active", "full", "none"] }
+      },
+      "Expertise": { "name": "expertise", "in": "query", "schema": { "type": "string" } },
+      "ApplicationStatus": { "name": "applicationStatus", "in": "query", "schema": { "type": "string" } }
+    },
     "schemas": {
       "Error": {
         "type": "object",
+        "required": ["success", "code", "message"],
         "properties": {
           "success": { "type": "boolean", "example": false },
+          "code": {
+            "type": "string",
+            "enum": [
+              "UNAUTHORIZED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "VALIDATION",
+              "CONFLICT",
+              "EMAIL_TAKEN",
+              "SLOT_TAKEN",
+              "SLOT_CONFLICT",
+              "INTERNAL"
+            ]
+          },
           "message": { "type": "string" }
         }
       },
@@ -47,6 +98,17 @@
           "status": { "type": "string", "enum": ["ok", "degraded"] },
           "timestamp": { "type": "string", "format": "date-time" },
           "storage": { "type": "string", "enum": ["mongodb", "memory"] }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["user", "mentor", "mentee", "admin"] },
+          "mentorId": { "type": "string", "nullable": true },
+          "menteeId": { "type": "string", "nullable": true }
         }
       },
       "LoginRequest": {
@@ -59,7 +121,7 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": ["email", "password", "confirmPassword", "name", "role"],
+        "required": ["email", "password", "confirmPassword", "name"],
         "properties": {
           "email": { "type": "string", "format": "email" },
           "password": { "type": "string", "minLength": 8 },
@@ -69,17 +131,488 @@
           "inviteToken": { "type": "string" }
         }
       },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": { "refreshToken": { "type": "string" } }
+      },
+      "EmailRequest": {
+        "type": "object",
+        "required": ["email"],
+        "properties": { "email": { "type": "string", "format": "email" } }
+      },
+      "ResetPasswordRequest": {
+        "type": "object",
+        "required": ["password", "confirmPassword"],
+        "properties": {
+          "password": { "type": "string", "minLength": 8 },
+          "confirmPassword": { "type": "string" }
+        }
+      },
       "AuthTokens": {
         "type": "object",
         "properties": {
           "success": { "type": "boolean" },
+          "message": { "type": "string" },
           "data": {
             "type": "object",
             "properties": {
               "accessToken": { "type": "string" },
               "refreshToken": { "type": "string" },
               "expiresIn": { "type": "integer" },
-              "user": { "type": "object" }
+              "user": { "$ref": "#/components/schemas/User" }
+            }
+          }
+        }
+      },
+      "ProfileResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "Mentor": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "userId": { "type": "string", "nullable": true },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "track": { "type": "string" },
+          "bio": { "type": "string" },
+          "expertise": { "type": "array", "items": { "type": "string" } },
+          "maxMentees": { "type": "number" },
+          "mentees": { "type": "array", "items": { "type": "string" } },
+          "groups": { "type": "array", "items": { "type": "string" } },
+          "mentorshipType": { "type": "string", "enum": ["GROUP", "ONE_ON_ONE"] },
+          "duration": { "type": "string", "enum": ["SHORT_TERM", "MEDIUM_TERM", "LONG_TERM"] },
+          "avatarUrl": { "type": "string" }
+        }
+      },
+      "MentorWrite": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "track": { "type": "string" },
+          "bio": { "type": "string" },
+          "expertise": { "type": "array", "items": { "type": "string" } },
+          "maxMentees": { "type": "number" },
+          "mentorshipType": { "type": "string" },
+          "duration": { "type": "string" },
+          "avatarUrl": { "type": "string" }
+        }
+      },
+      "PagedMentors": {
+        "type": "object",
+        "required": ["data", "page", "limit", "total"],
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Mentor" } },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total": { "type": "integer" }
+        }
+      },
+      "Mentee": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "userId": { "type": "string", "nullable": true },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "track": { "type": "string" },
+          "school": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "goals": { "type": "array", "items": { "type": "string" } },
+          "progress": { "type": "number" },
+          "mentorId": { "type": "string", "nullable": true },
+          "groupId": { "type": "string", "nullable": true },
+          "mentorshipType": { "type": "string", "enum": ["GROUP", "ONE_ON_ONE"] },
+          "applicationStatus": { "type": "string" },
+          "avatarUrl": { "type": "string" },
+          "mentor": { "type": "string" },
+          "group": { "type": "string" }
+        }
+      },
+      "MenteeWrite": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "track": { "type": "string" },
+          "school": { "type": "string" },
+          "interests": { "type": "array", "items": { "type": "string" } },
+          "goals": { "type": "array", "items": { "type": "string" } },
+          "progress": { "type": "number" },
+          "mentorId": { "type": "string" },
+          "groupId": { "type": "string" },
+          "mentorshipType": { "type": "string" },
+          "applicationStatus": { "type": "string" },
+          "avatarUrl": { "type": "string" }
+        }
+      },
+      "ApplicationStatusWrite": {
+        "type": "object",
+        "required": ["applicationStatus"],
+        "properties": { "applicationStatus": { "type": "string" } }
+      },
+      "PagedMentees": {
+        "type": "object",
+        "required": ["data", "page", "limit", "total"],
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Mentee" } },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total": { "type": "integer" }
+        }
+      },
+      "MeetingSchedule": {
+        "type": "object",
+        "properties": {
+          "frequency": { "type": "string" },
+          "dayOfWeek": { "type": "string" },
+          "time": { "type": "string" }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "topic": { "type": "string" },
+          "mentorId": { "type": "string" },
+          "mentor": {
+            "type": "object",
+            "properties": {
+              "_id": { "type": "string" },
+              "name": { "type": "string" },
+              "email": { "type": "string" }
+            }
+          },
+          "mentees": { "type": "array", "items": { "type": "string" } },
+          "maxSize": { "type": "number" },
+          "meetingSchedule": { "$ref": "#/components/schemas/MeetingSchedule" },
+          "frequency": { "type": "string" },
+          "dayOfWeek": { "type": "string" },
+          "time": { "type": "string" }
+        }
+      },
+      "GroupWrite": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "topic": { "type": "string" },
+          "mentorId": { "type": "string" },
+          "mentees": { "type": "array", "items": { "type": "string" } },
+          "maxSize": { "type": "number" },
+          "meetingSchedule": { "$ref": "#/components/schemas/MeetingSchedule" }
+        }
+      },
+      "PagedGroups": {
+        "type": "object",
+        "required": ["data", "page", "limit", "total"],
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Group" } },
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total": { "type": "integer" }
+        }
+      },
+      "Activity": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "type": { "type": "string" },
+          "message": { "type": "string" },
+          "description": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "timestamp": { "type": "string" }
+        }
+      },
+      "Slot": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "mentorId": { "type": "string" },
+          "menteeId": { "type": "string", "nullable": true },
+          "date": { "type": "string" },
+          "time": { "type": "string" },
+          "duration": { "type": "number" },
+          "meetingLink": { "type": "string" },
+          "bookedBy": { "type": "string", "nullable": true },
+          "googleCalendarEventId": { "type": "string", "nullable": true }
+        }
+      },
+      "SlotWrite": {
+        "type": "object",
+        "required": ["mentorId", "date", "time", "duration"],
+        "properties": {
+          "mentorId": { "type": "string" },
+          "date": { "type": "string" },
+          "time": { "type": "string" },
+          "duration": { "type": "number" },
+          "meetingLink": { "type": "string" }
+        }
+      },
+      "SlotPatch": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string" },
+          "time": { "type": "string" },
+          "duration": { "type": "number" },
+          "meetingLink": { "type": "string" }
+        }
+      },
+      "BookSlotRequest": {
+        "type": "object",
+        "properties": { "menteeId": { "type": "string" } }
+      },
+      "SessionLog": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "mentorId": { "type": "string" },
+          "menteeId": { "type": "string" },
+          "sessionDate": { "type": "string" },
+          "topic": { "type": "string" },
+          "mentorScore": { "type": "number", "nullable": true },
+          "menteeScore": { "type": "number", "nullable": true },
+          "mentorNeedsSupport": { "type": "boolean" },
+          "mentorSupportReason": { "type": "string", "nullable": true },
+          "menteeNeedsSupport": { "type": "boolean" },
+          "menteeSupportReason": { "type": "string", "nullable": true },
+          "completedByMentor": { "type": "boolean" },
+          "completedByMentee": { "type": "boolean" }
+        }
+      },
+      "SessionLogWrite": {
+        "type": "object",
+        "required": ["mentorId", "menteeId", "sessionDate", "topic"],
+        "properties": {
+          "mentorId": { "type": "string" },
+          "menteeId": { "type": "string" },
+          "sessionDate": { "type": "string" },
+          "topic": { "type": "string" },
+          "mentorScore": { "type": "number" },
+          "menteeScore": { "type": "number" },
+          "mentorNeedsSupport": { "type": "boolean" },
+          "mentorSupportReason": { "type": "string" },
+          "menteeNeedsSupport": { "type": "boolean" },
+          "menteeSupportReason": { "type": "string" },
+          "completedByMentor": { "type": "boolean" },
+          "completedByMentee": { "type": "boolean" }
+        }
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "userId": { "type": "string" },
+          "title": { "type": "string" },
+          "message": { "type": "string" },
+          "type": { "type": "string", "enum": ["info", "success", "warning", "error"] },
+          "href": { "type": "string", "nullable": true },
+          "read": { "type": "boolean" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "NotificationList": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Notification" } }
+        }
+      },
+      "Invite": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "expiresAt": { "type": "string" },
+          "usedAt": { "type": "string", "nullable": true },
+          "status": { "type": "string", "enum": ["active", "expired", "used"] },
+          "link": { "type": "string" },
+          "success": { "type": "boolean" }
+        }
+      },
+      "InviteWrite": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string" },
+          "role": { "type": "string", "enum": ["mentor", "mentee", "admin"] }
+        }
+      },
+      "InviteList": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Invite" } }
+        }
+      },
+      "MatchCapacity": {
+        "type": "object",
+        "properties": {
+          "active": { "type": "number" },
+          "max": { "type": "number" }
+        }
+      },
+      "MatchSuggestion": {
+        "type": "object",
+        "properties": {
+          "mentorId": { "type": "string" },
+          "mentorName": { "type": "string" },
+          "menteeId": { "type": "string" },
+          "menteeName": { "type": "string" },
+          "score": { "type": "number" },
+          "matchedSkills": { "type": "array", "items": { "type": "string" } },
+          "reasons": { "type": "array", "items": { "type": "string" } },
+          "capacity": { "$ref": "#/components/schemas/MatchCapacity" }
+        }
+      },
+      "MatchSuggestionList": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/MatchSuggestion" } }
+        }
+      },
+      "MatchExplain": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {
+            "type": "object",
+            "properties": {
+              "explanation": { "type": "string" },
+              "source": { "type": "string", "enum": ["openai", "rules"] },
+              "match": { "$ref": "#/components/schemas/MatchSuggestion" }
+            }
+          }
+        }
+      },
+      "Testimonial": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string" },
+          "menteeName": { "type": "string" },
+          "mentorName": { "type": "string" },
+          "content": { "type": "string" },
+          "rating": { "type": "number" },
+          "track": { "type": "string", "enum": ["career", "personal", "soft_skills"] },
+          "date": { "type": "string" },
+          "status": { "type": "string", "enum": ["PUBLISHED", "PENDING", "REJECTED"] }
+        }
+      },
+      "TestimonialWrite": {
+        "type": "object",
+        "required": ["menteeName", "mentorName", "content", "rating", "track"],
+        "properties": {
+          "menteeName": { "type": "string" },
+          "mentorName": { "type": "string" },
+          "content": { "type": "string" },
+          "rating": { "type": "number" },
+          "track": { "type": "string", "enum": ["career", "personal", "soft_skills"] },
+          "status": { "type": "string", "enum": ["PUBLISHED", "PENDING", "REJECTED"] }
+        }
+      },
+      "TestimonialPatch": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["PUBLISHED", "PENDING", "REJECTED"] },
+          "rating": { "type": "number" },
+          "content": { "type": "string" },
+          "track": { "type": "string", "enum": ["career", "personal", "soft_skills"] }
+        }
+      },
+      "AvatarUpload": {
+        "type": "object",
+        "required": ["entityType", "entityId", "dataUrl"],
+        "properties": {
+          "entityType": { "type": "string", "enum": ["mentor", "mentee"] },
+          "entityId": { "type": "string" },
+          "dataUrl": { "type": "string" }
+        }
+      },
+        "AvatarUploadResult": {
+        "type": "object",
+        "required": ["success", "data"],
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": {
+            "type": "object",
+            "required": ["avatarUrl"],
+            "properties": { "avatarUrl": { "type": "string" } }
+          }
+        }
+      },
+      "CheckoutRequest": {
+        "type": "object",
+        "required": ["plan"],
+        "properties": { "plan": { "type": "string" } }
+      },
+      "CalendarConnect": {
+        "type": "object",
+        "properties": { "authUrl": { "type": "string" } }
+      },
+      "CalendarStatus": {
+        "type": "object",
+        "properties": { "connected": { "type": "boolean" } }
+      },
+      "CalendarEventWrite": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "summary": { "type": "string" },
+          "description": { "type": "string" },
+          "start": { "type": "string" },
+          "end": { "type": "string" }
+        }
+      },
+      "CalendarSyncResult": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "meetLink": { "type": "string" },
+          "htmlLink": { "type": "string" },
+          "alreadySynced": { "type": "boolean" },
+          "slot": { "$ref": "#/components/schemas/Slot" }
+        }
+      },
+      "IntegrationChannelStatus": {
+        "type": "object",
+        "properties": {
+          "ready": { "type": "boolean" },
+          "envVars": { "type": "array", "items": { "type": "string" } },
+          "needsRecipients": { "type": "boolean" }
+        }
+      },
+      "AdminIntegrations": {
+        "type": "object",
+        "properties": {
+          "inApp": { "type": "boolean" },
+          "email": { "type": "boolean" },
+          "zalo": { "type": "boolean" },
+          "zaloToken": { "type": "boolean" },
+          "zaloRecipients": { "type": "number" },
+          "googleCalendar": { "type": "boolean" },
+          "openai": { "type": "boolean" },
+          "stripe": { "type": "boolean" },
+          "channels": {
+            "type": "object",
+            "properties": {
+              "inApp": { "$ref": "#/components/schemas/IntegrationChannelStatus" },
+              "email": { "$ref": "#/components/schemas/IntegrationChannelStatus" },
+              "zalo": { "$ref": "#/components/schemas/IntegrationChannelStatus" }
             }
           }
         }
@@ -93,9 +626,47 @@
           "message": { "type": "string" },
           "channel": {
             "type": "string",
-            "enum": ["in_app", "email", "zalo", "email_zalo"],
+            "enum": ["in_app", "email", "zalo", "email_zalo", "both"],
             "default": "in_app"
           }
+        }
+      },
+      "BroadcastDelivery": {
+        "type": "object",
+        "properties": {
+          "inApp": { "type": "boolean" },
+          "email": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "success": { "type": "boolean" },
+              "sent": { "type": "number" },
+              "message": { "type": "string" }
+            }
+          },
+          "zalo": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "success": { "type": "boolean" },
+              "sent": { "type": "number" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      },
+      "AnalyticsSummary": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "data": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" }
         }
       }
     }
@@ -108,13 +679,12 @@
         "responses": {
           "200": {
             "description": "Service healthy",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Health" }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
           },
-          "503": { "description": "Degraded (e.g. MongoDB down in production)" }
+          "503": {
+            "description": "Degraded",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
         }
       }
     },
@@ -124,18 +694,17 @@
         "summary": "Sign in",
         "requestBody": {
           "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } }
-          }
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginRequest" } } }
         },
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokens" } }
-            }
+            "description": "Tokens",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokens" } } }
           },
-          "401": { "description": "Invalid credentials" }
+          "401": {
+            "description": "Invalid credentials",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
         }
       }
     },
@@ -145,32 +714,51 @@
         "summary": "Create account",
         "requestBody": {
           "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } }
-          }
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RegisterRequest" } } }
         },
         "responses": {
-          "201": { "description": "Created" },
-          "409": { "description": "Email already exists" }
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokens" } } }
+          },
+          "409": {
+            "description": "Email already exists",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
         }
       }
     },
     "/api/auth/refresh": {
       "post": {
         "tags": ["Auth"],
-        "summary": "Refresh access token",
+        "summary": "Rotate refresh token and issue a new access token",
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["refreshToken"],
-                "properties": { "refreshToken": { "type": "string" } }
-              }
-            }
-          }
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RefreshRequest" } } }
         },
-        "responses": { "200": { "description": "New tokens" }, "401": { "description": "Invalid refresh token" } }
+        "responses": {
+          "200": {
+            "description": "New token pair",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthTokens" } } }
+          },
+          "401": {
+            "description": "Invalid refresh token",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Revoke the current session",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Logged out",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } }
+          }
+        }
       }
     },
     "/api/auth/profile": {
@@ -178,18 +766,59 @@
         "tags": ["Auth"],
         "summary": "Current user profile",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Profile" }, "401": { "description": "Unauthorized" } }
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProfileResponse" } } }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Send a password reset email",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EmailRequest" } } }
+        },
+        "responses": { "200": { "description": "Accepted" } }
+      }
+    },
+    "/api/auth/reset-password/{token}": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Reset password with a token",
+        "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" } } }
+        },
+        "responses": { "200": { "description": "Password updated" }, "400": { "description": "Invalid token" } }
+      }
+    },
+    "/api/auth/verify-email/{token}": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Verify an email address",
+        "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Verified" }, "400": { "description": "Invalid token" } }
       }
     },
     "/api/invites/validate/{token}": {
       "get": {
         "tags": ["Invites"],
         "summary": "Validate invite token (public)",
-        "parameters": [
-          { "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }],
         "responses": {
-          "200": { "description": "Valid invite" },
+          "200": {
+            "description": "Valid invite",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Invite" } } }
+          },
           "400": { "description": "Invalid or expired" }
         }
       }
@@ -200,40 +829,83 @@
         "summary": "Create invite (admin)",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["email", "role"],
-                "properties": {
-                  "email": { "type": "string" },
-                  "role": { "type": "string", "enum": ["mentor", "mentee", "admin"] }
-                }
-              }
-            }
-          }
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InviteWrite" } } }
         },
-        "responses": { "201": { "description": "Invite created" } }
+        "responses": {
+          "201": {
+            "description": "Invite created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Invite" } } }
+          }
+        }
       },
       "get": {
         "tags": ["Invites"],
         "summary": "List invites (admin)",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Invite list" } }
+        "responses": {
+          "200": {
+            "description": "Invite list",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InviteList" } } }
+          }
+        }
+      }
+    },
+    "/api/invites/{token}": {
+      "delete": {
+        "tags": ["Invites"],
+        "summary": "Revoke an invite (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "token", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Revoked" } }
       }
     },
     "/api/mentors": {
       "get": {
         "tags": ["Mentors"],
         "summary": "List mentors",
+        "description": "Returns Mentor[] unless page is provided.",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Array of mentors" } }
+        "parameters": [
+          { "$ref": "#/components/parameters/Q" },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Track" },
+          { "$ref": "#/components/parameters/MentorshipType" },
+          { "$ref": "#/components/parameters/Duration" },
+          { "$ref": "#/components/parameters/Capacity" },
+          { "$ref": "#/components/parameters/Expertise" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mentors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "type": "array", "items": { "$ref": "#/components/schemas/Mentor" } },
+                    { "$ref": "#/components/schemas/PagedMentors" }
+                  ]
+                }
+              }
+            }
+          }
+        }
       },
       "post": {
         "tags": ["Mentors"],
         "summary": "Create mentor",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "201": { "description": "Created" } }
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MentorWrite" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Mentor" } } }
+          }
+        }
       }
     },
     "/api/mentors/{id}": {
@@ -241,22 +913,63 @@
         "tags": ["Mentors"],
         "summary": "Get mentor by ID",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Mentor" }, "404": { "description": "Not found" } }
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": {
+            "description": "Mentor",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Mentor" } } }
+          },
+          "404": { "description": "Not found" }
+        }
       },
       "patch": {
         "tags": ["Mentors"],
         "summary": "Update mentor",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MentorWrite" } } }
+        },
         "responses": { "200": { "description": "Updated" } }
       },
       "delete": {
         "tags": ["Mentors"],
-        "summary": "Delete mentor",
+        "summary": "Delete mentor (admin)",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Deleted" } }
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Deleted" }, "403": { "description": "Forbidden" } }
+      }
+    },
+    "/api/mentors/{id}/mentees": {
+      "get": {
+        "tags": ["Mentors"],
+        "summary": "Mentees assigned to a mentor",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": {
+            "description": "Mentees",
+            "content": {
+              "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Mentee" } } }
+            }
+          }
+        }
+      }
+    },
+    "/api/mentors/{id}/groups": {
+      "get": {
+        "tags": ["Mentors"],
+        "summary": "Groups led by a mentor",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": {
+            "description": "Groups",
+            "content": {
+              "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Group" } } }
+            }
+          }
+        }
       }
     },
     "/api/mentees": {
@@ -264,13 +977,74 @@
         "tags": ["Mentees"],
         "summary": "List mentees",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Array of mentees" } }
+        "parameters": [
+          { "$ref": "#/components/parameters/Q" },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Track" },
+          { "$ref": "#/components/parameters/ApplicationStatus" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Mentees",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "type": "array", "items": { "$ref": "#/components/schemas/Mentee" } },
+                    { "$ref": "#/components/schemas/PagedMentees" }
+                  ]
+                }
+              }
+            }
+          }
+        }
       },
       "post": {
         "tags": ["Mentees"],
         "summary": "Create mentee",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "201": { "description": "Created" } }
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MenteeWrite" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Mentee" } } }
+          }
+        }
+      }
+    },
+    "/api/mentees/{id}": {
+      "get": {
+        "tags": ["Mentees"],
+        "summary": "Get mentee",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": {
+            "description": "Mentee",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Mentee" } } }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Mentees"],
+        "summary": "Update mentee",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MenteeWrite" } } }
+        },
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "tags": ["Mentees"],
+        "summary": "Delete mentee (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Deleted" }, "403": { "description": "Forbidden" } }
       }
     },
     "/api/mentees/{id}/application-status": {
@@ -278,7 +1052,11 @@
         "tags": ["Mentees"],
         "summary": "Update application status",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationStatusWrite" } } }
+        },
         "responses": { "200": { "description": "Updated" } }
       }
     },
@@ -287,13 +1065,132 @@
         "tags": ["Groups"],
         "summary": "List groups",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Groups" } }
+        "parameters": [
+          { "$ref": "#/components/parameters/Q" },
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/Limit" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Groups",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "type": "array", "items": { "$ref": "#/components/schemas/Group" } },
+                    { "$ref": "#/components/schemas/PagedGroups" }
+                  ]
+                }
+              }
+            }
+          }
+        }
       },
       "post": {
         "tags": ["Groups"],
         "summary": "Create group",
         "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GroupWrite" } } }
+        },
         "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/groups/{id}": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Get group",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": {
+          "200": {
+            "description": "Group",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Group" } } }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Groups"],
+        "summary": "Update group",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GroupWrite" } } }
+        },
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "tags": ["Groups"],
+        "summary": "Delete group (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Deleted" }, "403": { "description": "Forbidden" } }
+      }
+    },
+    "/api/groups/{id}/full": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Group with member profiles",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Group detail" } }
+      }
+    },
+    "/api/groups/{id}/mentees": {
+      "get": {
+        "tags": ["Groups"],
+        "summary": "Mentees in a group",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Mentees" } }
+      }
+    },
+    "/api/groups/{groupId}/mentees/{menteeId}": {
+      "post": {
+        "tags": ["Groups"],
+        "summary": "Add a mentee to a group",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "menteeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Added" } }
+      },
+      "delete": {
+        "tags": ["Groups"],
+        "summary": "Remove a mentee from a group",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "groupId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "menteeId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Removed" } }
+      }
+    },
+    "/api/activities": {
+      "get": {
+        "tags": ["Activities"],
+        "summary": "List activities",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "limit", "in": "query", "schema": { "type": "integer" } }],
+        "responses": {
+          "200": {
+            "description": "Activities",
+            "content": {
+              "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Activity" } } }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Activities"],
+        "summary": "Create an activity (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Activity" } } }
+        },
+        "responses": { "201": { "description": "Created" }, "403": { "description": "Forbidden" } }
       }
     },
     "/api/slots": {
@@ -301,32 +1198,54 @@
         "tags": ["Slots"],
         "summary": "List slots",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Slots" } }
+        "parameters": [
+          { "name": "mentorId", "in": "query", "schema": { "type": "string" } },
+          { "name": "menteeId", "in": "query", "schema": { "type": "string" } },
+          { "name": "availableOnly", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Slots",
+            "content": {
+              "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Slot" } } }
+            }
+          }
+        }
       },
       "post": {
         "tags": ["Slots"],
         "summary": "Create slot",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "201": { "description": "Created" } }
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SlotWrite" } } }
+        },
+        "responses": {
+          "201": { "description": "Created" },
+          "409": {
+            "description": "Time conflict",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
       }
     },
     "/api/slots/{id}/book": {
       "patch": {
         "tags": ["Slots"],
-        "summary": "Book slot for mentee",
+        "summary": "Book slot for the signed-in mentee",
+        "description": "Non-admin callers ignore menteeId. Admin may pass menteeId.",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": { "menteeId": { "type": "string" } }
-              }
-            }
-          }
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BookSlotRequest" } } }
         },
-        "responses": { "200": { "description": "Booked as the signed-in mentee. Admin may pass menteeId." } }
+        "responses": {
+          "200": { "description": "Booked" },
+          "409": {
+            "description": "Already booked",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
       }
     },
     "/api/slots/{id}/booking": {
@@ -334,7 +1253,7 @@
         "tags": ["Slots"],
         "summary": "Cancel a booking",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
         "responses": { "200": { "description": "Booking cleared" }, "403": { "description": "Forbidden" } }
       }
     },
@@ -343,43 +1262,285 @@
         "tags": ["Slots"],
         "summary": "Reschedule a slot owned by the mentor",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Updated" }, "409": { "description": "Time conflict" } }
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SlotPatch" } } }
+        },
+        "responses": {
+          "200": { "description": "Updated" },
+          "409": {
+            "description": "Time conflict",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
       },
       "delete": {
         "tags": ["Slots"],
         "summary": "Delete an unbooked slot",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Deleted" } }
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Deleted" }, "409": { "description": "Slot is booked" } }
       }
     },
     "/api/session-logs": {
       "get": {
         "tags": ["SessionLogs"],
-        "summary": "List session logs",
+        "summary": "List session logs scoped to the caller",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Logs" } }
+        "parameters": [
+          { "name": "mentorId", "in": "query", "schema": { "type": "string" } },
+          { "name": "menteeId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/SessionLog" } }
+              }
+            }
+          }
+        }
       },
       "post": {
         "tags": ["SessionLogs"],
-        "summary": "Create or update session log",
+        "summary": "Create or update a session log",
         "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionLogWrite" } } }
+        },
         "responses": { "200": { "description": "Saved" } }
+      }
+    },
+    "/api/session-logs/needs-support": {
+      "get": {
+        "tags": ["SessionLogs"],
+        "summary": "Logs flagged for support (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Logs" }, "403": { "description": "Forbidden" } }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "Notifications for the signed-in user",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Notifications",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NotificationList" } } }
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "patch": {
+        "tags": ["Notifications"],
+        "summary": "Mark one notification read",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/api/notifications/read-all": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "Mark every visible notification read",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ok" } } }
+          }
+        }
+      }
+    },
+    "/api/matching/suggestions": {
+      "get": {
+        "tags": ["Matching"],
+        "summary": "Ranked mentor and mentee suggestions",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "menteeId", "in": "query", "schema": { "type": "string" } },
+          { "name": "mentorId", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suggestions",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchSuggestionList" } } }
+          }
+        }
+      }
+    },
+    "/api/matching/explain": {
+      "get": {
+        "tags": ["Matching"],
+        "summary": "Explain one mentor and mentee pair",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "mentorId", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "menteeId", "in": "query", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Explanation",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MatchExplain" } } }
+          }
+        }
+      }
+    },
+    "/api/calendar/connect": {
+      "get": {
+        "tags": ["Calendar"],
+        "summary": "Google Calendar OAuth URL",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Auth URL",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalendarConnect" } } }
+          }
+        }
+      }
+    },
+    "/api/calendar/status": {
+      "get": {
+        "tags": ["Calendar"],
+        "summary": "Whether Google Calendar is connected",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Status",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalendarStatus" } } }
+          }
+        }
+      }
+    },
+    "/api/calendar/create-event": {
+      "post": {
+        "tags": ["Calendar"],
+        "summary": "Create a calendar event",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalendarEventWrite" } } }
+        },
+        "responses": { "200": { "description": "Created" } }
+      }
+    },
+    "/api/calendar/sync-slot/{slotId}": {
+      "post": {
+        "tags": ["Calendar"],
+        "summary": "Sync a slot to Google Calendar",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "slotId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": {
+            "description": "Synced",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CalendarSyncResult" } } }
+          }
+        }
+      }
+    },
+    "/api/payments/create-checkout": {
+      "post": {
+        "tags": ["Payments"],
+        "summary": "Start a Stripe checkout session",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CheckoutRequest" } } }
+        },
+        "responses": { "200": { "description": "Checkout session" } }
+      }
+    },
+    "/api/testimonials": {
+      "get": {
+        "tags": ["Testimonials"],
+        "summary": "List testimonials",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "status", "in": "query", "schema": { "type": "string" } },
+          { "name": "track", "in": "query", "schema": { "type": "string" } },
+          { "name": "q", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Testimonials",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Testimonial" } }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Testimonials"],
+        "summary": "Create a testimonial",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TestimonialWrite" } } }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/api/testimonials/{id}": {
+      "patch": {
+        "tags": ["Testimonials"],
+        "summary": "Update a testimonial (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TestimonialPatch" } } }
+        },
+        "responses": { "200": { "description": "Updated" }, "403": { "description": "Forbidden" } }
+      },
+      "delete": {
+        "tags": ["Testimonials"],
+        "summary": "Delete a testimonial (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "responses": { "200": { "description": "Deleted" }, "403": { "description": "Forbidden" } }
+      }
+    },
+    "/api/uploads/avatar": {
+      "post": {
+        "tags": ["Uploads"],
+        "summary": "Upload an avatar for the caller's own profile",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AvatarUpload" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AvatarUploadResult" } } }
+          },
+          "403": { "description": "Forbidden" }
+        }
       }
     },
     "/api/admin/broadcast": {
       "post": {
         "tags": ["Admin"],
-        "summary": "Send broadcast notification",
+        "summary": "Send a broadcast notification",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
-          "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/BroadcastRequest" } }
-          }
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BroadcastRequest" } } }
         },
-        "responses": { "200": { "description": "Queued / delivered summary" } }
+        "responses": { "200": { "description": "Delivery summary" } }
+      }
+    },
+    "/api/admin/broadcasts": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Recent broadcasts",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Broadcasts" } }
       }
     },
     "/api/admin/integrations": {
@@ -387,7 +1548,22 @@
         "tags": ["Admin"],
         "summary": "Integration status flags (no secrets)",
         "security": [{ "bearerAuth": [] }],
-        "responses": { "200": { "description": "Channel readiness" } }
+        "responses": {
+          "200": {
+            "description": "Channel readiness",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/AdminIntegrations" }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/analytics/summary": {
@@ -400,9 +1576,16 @@
             "name": "period",
             "in": "query",
             "schema": { "type": "string", "enum": ["7d", "30d", "90d", "all"] }
-          }
+          },
+          { "name": "locale", "in": "query", "schema": { "type": "string" } }
         ],
-        "responses": { "200": { "description": "Analytics data" } }
+        "responses": {
+          "200": {
+            "description": "Analytics data",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AnalyticsSummary" } } }
+          },
+          "403": { "description": "Forbidden" }
+        }
       }
     }
   }

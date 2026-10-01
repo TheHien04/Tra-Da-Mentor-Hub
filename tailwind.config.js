@@ -4,9 +4,12 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
+        canvas: 'var(--bg-app)',
+        sidebar: 'var(--bg-sidebar)',
         brand: {
           50: '#f0fdf9',
           100: '#ccfbf1',
@@ -21,10 +24,24 @@ export default {
           950: '#042f2e',
         },
         surface: {
-          DEFAULT: '#ffffff',
-          muted: '#fafafa',
-          subtle: '#f4f4f5',
-          border: '#e4e4e7',
+          DEFAULT: 'var(--bg-surface)',
+          muted: 'var(--bg-surface-muted)',
+          subtle: 'var(--bg-inset)',
+          hover: 'var(--bg-surface-hover)',
+          border: 'var(--border-default)',
+        },
+        primary: 'var(--text-primary)',
+        secondary: 'var(--text-secondary)',
+        muted: 'var(--text-muted)',
+        accent: {
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          subtle: 'var(--accent-subtle)',
+          fg: 'var(--accent-subtle-fg)',
+        },
+        danger: {
+          DEFAULT: 'var(--danger)',
+          hover: 'var(--danger-hover)',
         },
         mentor: {
           50: '#fff7ed',
