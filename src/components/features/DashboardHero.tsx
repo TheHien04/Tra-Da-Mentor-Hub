@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useGreeting } from '../../hooks/useGreeting';
-import { SceneFrame } from '../motion/SceneFrame';
+import { StudioObject } from '../motion/StudioObject';
 
 export function DashboardHero() {
   const { t } = useAppTranslation();
@@ -63,8 +63,8 @@ export function DashboardHero() {
             <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
           </Link>
         </div>
-        <div className="dashboard-hero__scene" data-parallax>
-          <SceneFrame images={['/media/hero-session.jpg', '/media/circle-session.jpg']} priority />
+        <div className="dashboard-hero__scene">
+          <StudioObject src="/media/glass-3d.jpg" priority />
         </div>
       </div>
     </section>

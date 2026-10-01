@@ -10,7 +10,7 @@ import {
 } from 'react-icons/hi2';
 import { toast } from 'react-toastify';
 import { PageShell, PageHeader, Alert } from './ui';
-import { PageScene } from './motion/PageScene';
+import { StudioBand } from './motion/StudioBand';
 import { FormField, FormActions } from './ui/FormShell';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
@@ -194,9 +194,10 @@ const TestimonialsPage = () => {
           </button>
         </div>
       </PageHeader>
-      <PageScene
-        images={['/media/quiet-table.jpg', '/media/hero-session.jpg']}
-        caption={t('dashboard.sceneTalk')}
+      <StudioBand
+        kicker={t('dashboard.sceneTalkKicker')}
+        title={t('dashboard.sceneTalk')}
+        src="/media/glass-3d.jpg"
       />
 
       <div className="insights-stat-grid mb-6">

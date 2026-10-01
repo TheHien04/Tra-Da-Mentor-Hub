@@ -68,6 +68,17 @@ export function ScrollMotion() {
     root.classList.add('motion-on');
     const observer = new MutationObserver(requestTick);
     observer.observe(main, { childList: true, subtree: true });
+    const onPointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const card = target.closest<HTMLElement>('.people-card');
+      if (!card) return;
+      const box = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${event.clientX - box.left}px`);
+      card.style.setProperty('--my', `${event.clientY - box.top}px`);
+    };
+
+    main.addEventListener('pointermove', onPointer, { passive: true });
     main.addEventListener('scroll', requestTick, { passive: true });
     window.addEventListener('scroll', requestTick, { passive: true });
     window.addEventListener('resize', requestTick);
@@ -76,6 +87,7 @@ export function ScrollMotion() {
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      main.removeEventListener('pointermove', onPointer);
       main.removeEventListener('scroll', requestTick);
       window.removeEventListener('scroll', requestTick);
       window.removeEventListener('resize', requestTick);

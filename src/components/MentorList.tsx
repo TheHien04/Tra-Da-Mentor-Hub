@@ -20,7 +20,7 @@ import SearchFilter from './SearchFilter';
 import EmptyState from './EmptyState';
 import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass, SkillTags } from './ui';
-import { PageScene } from './motion/PageScene';
+import { StudioBand } from './motion/StudioBand';
 
 const MentorList = () => {
   const { t } = useAppTranslation();
@@ -105,9 +105,10 @@ const MentorList = () => {
         icon={<HiOutlineAcademicCap className="h-7 w-7" />}
         action={isAdmin ? { label: `+ ${t('mentor.addMentor')}`, href: '/mentors/add' } : undefined}
       />
-      <PageScene
-        images={['/media/circle-session.jpg', '/media/hero-session.jpg']}
-        caption={t('dashboard.sceneCircle')}
+      <StudioBand
+        kicker={t('dashboard.sceneCircleKicker')}
+        title={t('dashboard.sceneCircle')}
+        src="/media/circle-3d.jpg"
       />
 
       <SearchFilter
