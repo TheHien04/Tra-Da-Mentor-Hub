@@ -4,6 +4,7 @@ import { slotsApi, menteeApi } from '../services/api';
 import { useSlots } from '../hooks/queries/useSlots';
 import { useMentors } from '../hooks/queries/useMentors';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import { HiOutlineCalendar, HiOutlinePlus, HiOutlineLink, HiOutlineClock } from 'react-icons/hi2';
 import Avatar from '../components/Avatar';
 import { toast } from 'react-toastify';
@@ -17,7 +18,7 @@ import { unwrapList } from '../lib/apiHelpers';
 import { useCalendarStatus, useSyncSlotToCalendar } from '../hooks/queries/useCalendar';
 
 const SlotsPage = () => {
-  const { t } = useAppTranslation();
+  const { t, formatDate } = useAppTranslation();
   const { state } = useAuth();
   const role = state.user?.role || 'user';
   const queryClient = useQueryClient();
@@ -275,28 +276,32 @@ const SlotsPage = () => {
                     </div>
                     <p className="schedule-meta-item mt-1">
                       <HiOutlineClock className="h-4 w-4 text-muted shrink-0" />
-                      {s.date} · {s.time} · {s.duration} {t('common.min')}
+                      {s.date ? formatDate(`${s.date}T12:00:00`) : ''} · {s.time} · {s.duration} {t('common.min')}
                     </p>
                   </div>
                 </div>
-                {s.meetingLink && (
-                  <a
-                    href={s.meetingLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm mb-4 font-medium"
-                    style={{ color: 'var(--accent)' }}
-                  >
-                    <HiOutlineLink className="h-4 w-4" /> {t('pages.slots.joinMeeting')}
-                  </a>
-                )}
                 {isOpen && (role === 'mentee' || role === 'admin') && (
                   <button type="button" className="btn btn-primary w-full mt-auto" onClick={() => handleBook(s._id)}>
                     {t('pages.slots.book')}
                   </button>
                 )}
+                {!isOpen && s.meetingLink && (
+                  <a
+                    href={s.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary w-full mt-auto"
+                  >
+                    <HiOutlineLink className="h-4 w-4" /> {t('pages.slots.joinMeeting')}
+                  </a>
+                )}
+                {!isOpen && !s.meetingLink && (
+                  <Link to="/schedule" className="btn btn-primary w-full mt-auto">
+                    {t('pages.slots.openSchedule')}
+                  </Link>
+                )}
                 {!isOpen && (role === 'mentee' || role === 'mentor' || role === 'admin') && (
-                  <button type="button" className="btn btn-secondary w-full mt-auto" onClick={() => handleCancel(s._id)}>
+                  <button type="button" className="mt-3 text-sm font-medium text-muted" onClick={() => handleCancel(s._id)}>
                     {t('pages.slots.cancelBooking')}
                   </button>
                 )}

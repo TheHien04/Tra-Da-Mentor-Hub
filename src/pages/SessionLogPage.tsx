@@ -3,6 +3,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionLogsApi } from '../services/api';
 import { useMentors } from '../hooks/queries/useMentors';
@@ -53,8 +54,10 @@ const SessionLogPage = () => {
     menteeSupportReason: '',
   });
 
-  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) =>
-    list.find((x) => x._id === id)?.name || list.find((x) => x._id === id)?.email || id;
+  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) => {
+    const hit = list.find((x) => x._id === id);
+    return hit?.name || hit?.email || t('pages.sessionLog.unknownPerson');
+  };
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -453,14 +456,25 @@ const SessionLogPage = () => {
                       <p className="text-xs text-muted mb-1">
                         {log.sessionDate ? formatDate(log.sessionDate) : '—'}
                       </p>
-                      <h3 className="text-sm font-semibold text-primary line-clamp-2">{log.topic}</h3>
+                      <h3 className="text-sm font-semibold text-primary">{log.topic}</h3>
                       <p className="text-sm text-secondary mt-2">
-                        {mentorName} → {menteeName}
+                        {mentorName}
+                        <span className="text-muted"> → </span>
+                        {menteeName}
                       </p>
                       {needsSupport && (
-                        <p className="schedule-meta-item mt-2 text-amber-700 dark:text-amber-400">
-                          <HiOutlineExclamationTriangle className="h-4 w-4 shrink-0" />
-                          {t('pages.sessionLog.needsSupportBadge')}
+                        <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+                          <span className="inline-flex items-center gap-1.5">
+                            <HiOutlineExclamationTriangle className="h-4 w-4 shrink-0" />
+                            {t('pages.sessionLog.needsSupportBadge')}
+                          </span>
+                          <Link
+                            to={mentees.some((m) => m._id === log.menteeId) ? `/mentees/${log.menteeId}` : '/applications'}
+                            className="mt-1 block font-medium"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            {t('pages.sessionLog.supportAction')}
+                          </Link>
                         </p>
                       )}
                     </div>

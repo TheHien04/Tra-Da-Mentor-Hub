@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 interface FilterPanelProps {
   children: ReactNode;
@@ -6,7 +7,9 @@ interface FilterPanelProps {
   clearLabel?: string;
 }
 
-export function FilterPanel({ children, onClear, clearLabel = 'Clear filters' }: FilterPanelProps) {
+export function FilterPanel({ children, onClear, clearLabel }: FilterPanelProps) {
+  const { t } = useAppTranslation();
+  const label = clearLabel || t('lists.clearFilters');
   return (
     <div className="card p-4 sm:p-5 mb-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
@@ -15,7 +18,7 @@ export function FilterPanel({ children, onClear, clearLabel = 'Clear filters' }:
       {onClear && (
         <div className="mt-4 pt-4 border-t" style={{ borderColor: 'var(--border-default)' }}>
           <button type="button" onClick={onClear} className="btn btn-secondary text-sm">
-            {clearLabel}
+            {label}
           </button>
         </div>
       )}
