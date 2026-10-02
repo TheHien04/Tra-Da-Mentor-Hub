@@ -120,7 +120,7 @@ const MobileNav = () => {
             <div className="mobile-nav-sheet-tools">
               <NotificationBell />
               <ThemeToggle />
-              <LanguageSwitcher />
+              <LanguageSwitcher placement="down" />
             </div>
             <div className="mobile-nav-sheet-links">
               {moreLinks.map((link) => (

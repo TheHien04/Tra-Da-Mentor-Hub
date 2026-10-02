@@ -10,9 +10,11 @@ const languages = [
 
 interface LanguageSwitcherProps {
   compact?: boolean;
+  /** Sidebar footer opens upward. Top bars and sheets open downward so the menu stays on screen. */
+  placement?: 'up' | 'down';
 }
 
-export const LanguageSwitcher = ({ compact }: LanguageSwitcherProps) => {
+export const LanguageSwitcher = ({ compact, placement = 'up' }: LanguageSwitcherProps) => {
   const { t, i18n } = useAppTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -49,6 +51,8 @@ export const LanguageSwitcher = ({ compact }: LanguageSwitcherProps) => {
         className={`icon-btn gap-2 text-sm font-medium ${compact ? 'px-3 py-2' : 'px-3 py-2 w-full'}`}
         title={t('language.change')}
         aria-label={t('language.change')}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
       >
         <span className="text-lg leading-none">{currentLanguage.flag}</span>
         <span className="text-xs font-semibold uppercase tracking-wide">{currentLanguage.code}</span>
@@ -56,8 +60,14 @@ export const LanguageSwitcher = ({ compact }: LanguageSwitcherProps) => {
 
       {isOpen && (
         <div
-          className={`absolute mb-2 modal-panel rounded-lg overflow-hidden z-50 animate-scale-in ${
-            compact ? 'right-0 bottom-full w-48' : 'bottom-full left-0 right-0'
+          role="listbox"
+          aria-label={t('language.change')}
+          className={`absolute modal-panel rounded-lg overflow-hidden z-50 animate-scale-in ${
+            placement === 'down'
+              ? compact
+                ? 'right-0 top-full mt-2 w-48'
+                : 'left-0 right-0 top-full mt-2 min-w-48'
+              : 'right-0 bottom-full mb-2 w-48'
           }`}
         >
           <div className="py-1">
@@ -68,6 +78,8 @@ export const LanguageSwitcher = ({ compact }: LanguageSwitcherProps) => {
                   key={lang.code}
                   type="button"
                   onClick={() => handleLanguageChange(lang.code)}
+                  role="option"
+                  aria-selected={active}
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:opacity-90 ${
                     active ? 'font-semibold' : 'text-secondary'
                   }`}
