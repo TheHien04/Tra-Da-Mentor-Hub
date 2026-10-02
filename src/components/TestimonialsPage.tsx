@@ -30,8 +30,13 @@ const STATUS_BADGE: Record<TestimonialStatus, string> = {
   REJECTED: 'badge-full',
 };
 
+function quoteFor(item: Testimonial, lang: string) {
+  if (lang === 'en') return item.contentEn || item.content;
+  return item.contentVi || item.content;
+}
+
 const TestimonialsPage = () => {
-  const { t } = useAppTranslation();
+  const { t, lang } = useAppTranslation();
   const { confirm } = useConfirm();
   const trackLabel = (track: Track) => {
     const map: Record<Track, string> = {
@@ -84,16 +89,18 @@ const TestimonialsPage = () => {
 
   const filtered = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return testimonials.filter((t) => {
+    return testimonials.filter((item) => {
+      const quote = quoteFor(item, lang).toLowerCase();
       const matchQ =
-        t.menteeName.toLowerCase().includes(q) ||
-        t.mentorName.toLowerCase().includes(q) ||
-        t.content.toLowerCase().includes(q);
-      const matchStatus = filterStatus === 'ALL' || t.status === filterStatus;
-      const matchTrack = filterTrack === 'ALL' || t.track === filterTrack;
+        item.menteeName.toLowerCase().includes(q) ||
+        item.mentorName.toLowerCase().includes(q) ||
+        quote.includes(q) ||
+        item.content.toLowerCase().includes(q);
+      const matchStatus = filterStatus === 'ALL' || item.status === filterStatus;
+      const matchTrack = filterTrack === 'ALL' || item.track === filterTrack;
       return matchQ && matchStatus && matchTrack;
     });
-  }, [testimonials, searchQuery, filterStatus, filterTrack]);
+  }, [testimonials, searchQuery, filterStatus, filterTrack, lang]);
 
   const stats = useMemo(
     () => ({
@@ -325,7 +332,7 @@ const TestimonialsPage = () => {
                       <span className="badge-pill badge-success shrink-0">{statusLabel(item.status)}</span>
                     </div>
                     <Stars n={item.rating} />
-                    <p className="testimonial-card__quote mt-3 line-clamp-4">&ldquo;{item.content}&rdquo;</p>
+                    <p className="testimonial-card__quote mt-3 line-clamp-4">&ldquo;{quoteFor(item, lang)}&rdquo;</p>
                     <div
                       className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t"
                       style={{ borderColor: 'var(--border-subtle)' }}
@@ -353,7 +360,7 @@ const TestimonialsPage = () => {
                 </span>
               </div>
               <Stars n={item.rating} />
-              <p className="testimonial-card__quote mt-3">&ldquo;{item.content}&rdquo;</p>
+              <p className="testimonial-card__quote mt-3">&ldquo;{quoteFor(item, lang)}&rdquo;</p>
               <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t relative z-[1]" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span className="badge-pill badge-neutral">{trackLabel(item.track)}</span>
                 <span className="text-xs text-muted">{item.date}</span>
@@ -391,7 +398,7 @@ const TestimonialsPage = () => {
                     {item.menteeName} · {item.mentorName}
                   </p>
                   <Stars n={item.rating} />
-                  <p className="text-sm text-secondary mt-2">{item.content}</p>
+                  <p className="text-sm text-secondary mt-2">{quoteFor(item, lang)}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <span className={`badge-pill ${STATUS_BADGE[item.status]}`}>{statusLabel(item.status)}</span>

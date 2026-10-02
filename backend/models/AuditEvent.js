@@ -8,6 +8,7 @@ const AuditEventSchema = new mongoose.Schema(
     action: { type: String, required: true },
     entity: { type: String, required: true },
     entityId: { type: String, default: null },
+    summary: { type: String, default: null },
     ip: { type: String, default: null },
   },
   { versionKey: false }
