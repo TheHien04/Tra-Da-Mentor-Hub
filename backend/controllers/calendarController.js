@@ -12,6 +12,11 @@ import { getSlotById, updateSlot } from '../services/slotStore.js';
 import { getMentorById } from '../services/mentorStore.js';
 import { getMenteeById } from '../services/menteeStore.js';
 import { slotToDateTimes } from '../lib/slotDateTime.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
+
+function calendarDemo() {
+  return demoIntegrationsEnabled() && !(env.googleClientId && env.googleClientSecret);
+}
 
 /**
  * Initiate Google Calendar OAuth flow
@@ -19,6 +24,9 @@ import { slotToDateTimes } from '../lib/slotDateTime.js';
  */
 export const connectCalendar = async (req, res) => {
   try {
+    if (calendarDemo()) {
+      return res.json({ authUrl: `${env.frontendUrl}/schedule?calendar=connected`, demo: true });
+    }
     const userId = req.user._id;
     const authUrl = getAuthUrl(userId);
     
@@ -139,10 +147,11 @@ export const deleteEvent = async (req, res) => {
  */
 export const syncSlot = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const user = await User.findById(userId);
+    const demo = calendarDemo();
+    const userId = req.user._id || req.user.userId;
+    const user = demo ? null : await User.findById(userId);
 
-    if (!user?.googleCalendarTokens) {
+    if (!demo && !user?.googleCalendarTokens) {
       return res.status(400).json({
         message: 'Google Calendar not connected. Please connect first.',
         reconnect: true,
@@ -177,14 +186,20 @@ export const syncSlot = async (req, res) => {
 
     const attendees = [mentor?.email, mentee?.email].filter(Boolean).map((email) => ({ email }));
 
-    const result = await createCalendarEvent(user.googleCalendarTokens, {
-      summary,
-      description: 'Created via Trà Đá Mentor Hub',
-      startDateTime,
-      endDateTime,
-      attendees,
-      timeZone,
-    });
+    const result = demo
+      ? {
+          eventId: `demo_cal_${slot._id}`,
+          meetLink: slot.meetingLink || `https://meet.google.com/trada-${String(slot._id).slice(-6)}`,
+          htmlLink: `${env.frontendUrl}/schedule`,
+        }
+      : await createCalendarEvent(user.googleCalendarTokens, {
+          summary,
+          description: 'Created via Trà Đá Mentor Hub',
+          startDateTime,
+          endDateTime,
+          attendees,
+          timeZone,
+        });
 
     const updated = await updateSlot(slot._id, {
       meetingLink: result.meetLink || slot.meetingLink,
@@ -212,7 +227,10 @@ export const syncSlot = async (req, res) => {
 
 export const getStatus = async (req, res) => {
   try {
-    const userId = req.user._id;
+    if (calendarDemo()) {
+      return res.json({ connected: true, demo: true });
+    }
+    const userId = req.user._id || req.user.userId;
     const user = await User.findById(userId);
 
     const isConnected = !!(user && user.googleCalendarTokens);

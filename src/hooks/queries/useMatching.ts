@@ -25,7 +25,7 @@ export function useMatchExplain(mentorId?: string, menteeId?: string, enabled = 
       const res = await matchingApi.explain({ mentorId: mentorId!, menteeId: menteeId!, lang });
       return res.data.data as {
         explanation: string;
-        source: 'openai' | 'rules';
+        source: 'openai' | 'rules' | 'demo';
         match: MatchSuggestion;
       };
     },

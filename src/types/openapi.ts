@@ -2827,6 +2827,7 @@ export interface components {
         };
         AdminIntegrations: {
             inApp?: boolean;
+            demo?: boolean;
             email?: boolean;
             zalo?: boolean;
             zaloToken?: boolean;

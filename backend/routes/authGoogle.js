@@ -1,16 +1,30 @@
 import express from 'express';
 import env from '../config/env.js';
 import { createOAuthState } from '../lib/oauthState.js';
-import { handleGoogleCallback } from '../controllers/googleAuthController.js';
+import { handleGoogleCallback, oauthCallbackUrl } from '../controllers/googleAuthController.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
+import { DEMO_USER, isDemoAuthEnabled } from '../config/demoAuth.js';
+import { generateAccessToken, generateRefreshToken, accessTtlSeconds } from '../utils/jwt.js';
+import { setSessionCookies } from '../lib/sessionCookie.js';
 
 const router = express.Router();
 
 router.get('/google', (req, res) => {
   if (!env.googleClientId || !env.googleClientSecret) {
-    return res.status(501).json({
-      success: false,
-      message: 'Google SSO is not configured.',
+    if (!(demoIntegrationsEnabled() && isDemoAuthEnabled())) {
+      return res.status(501).json({
+        success: false,
+        message: 'Google SSO is not configured.',
+      });
+    }
+    const accessToken = generateAccessToken(DEMO_USER._id, DEMO_USER.email, DEMO_USER.role);
+    const refreshToken = generateRefreshToken(DEMO_USER._id);
+    setSessionCookies(res, {
+      accessToken,
+      refreshToken,
+      accessMaxAgeMs: accessTtlSeconds() * 1000,
     });
+    return res.redirect(oauthCallbackUrl());
   }
 
   const baseUrl = env.baseUrl;

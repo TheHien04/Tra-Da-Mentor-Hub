@@ -96,6 +96,9 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
             {explainQuery.data?.source === 'openai' && (
               <span className="badge-pill badge-accent text-[10px]">AI</span>
             )}
+            {explainQuery.data?.source === 'demo' && (
+              <span className="badge-pill badge-accent text-[10px]">{t('dashboard.matchDemo')}</span>
+            )}
           </p>
           {explained?.factors && (
             <div className="grid gap-2 mb-3">

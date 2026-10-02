@@ -1,5 +1,6 @@
 import env from '../config/env.js';
 import logger from '../config/logger.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
 import { scoreMentorForMentee } from './matchingEngine.js';
 
 function buildFallbackExplanation(match, lang) {
@@ -31,7 +32,7 @@ export async function explainMatch(mentor, mentee, lang = 'vi') {
   if (!env.openaiApiKey) {
     return {
       explanation: buildFallbackExplanation(match, language),
-      source: 'rules',
+      source: demoIntegrationsEnabled() ? 'demo' : 'rules',
       match,
     };
   }

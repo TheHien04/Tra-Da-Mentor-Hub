@@ -201,6 +201,9 @@ const AdminNotificationPage = () => {
       <h2 className="text-sm font-semibold text-primary mb-3">
         {t('pages.admin.notifications.integrationsTitle')}
       </h2>
+      {integrations?.demo && (
+        <p className="text-sm text-secondary mb-4">{t('pages.admin.notifications.demoNote')}</p>
+      )}
       {integrationsLoading ? (
         <div className="mb-6">
           <Skeleton count={3} />
