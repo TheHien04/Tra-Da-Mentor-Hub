@@ -18,14 +18,14 @@ export function useMatchSuggestions(params?: {
   });
 }
 
-export function useMatchExplain(mentorId?: string, menteeId?: string, enabled = false) {
+export function useMatchExplain(mentorId?: string, menteeId?: string, enabled = false, lang?: string) {
   return useQuery({
-    queryKey: ['matching', 'explain', mentorId, menteeId],
+    queryKey: ['matching', 'explain', mentorId, menteeId, lang],
     queryFn: async () => {
-      const res = await matchingApi.explain({ mentorId: mentorId!, menteeId: menteeId! });
+      const res = await matchingApi.explain({ mentorId: mentorId!, menteeId: menteeId!, lang });
       return res.data.data as {
         explanation: string;
-        source: 'openai' | 'rules';
+        source: 'openai' | 'rules' | 'demo';
         match: MatchSuggestion;
       };
     },

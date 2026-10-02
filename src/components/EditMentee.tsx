@@ -13,9 +13,12 @@ import { AvatarUploadField } from './ui/AvatarUploadField';
 import { Alert } from './ui/Alert';
 import Skeleton from './Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useAuth } from '../context/AuthContext';
 
 const EditMentee = () => {
   const { t } = useAppTranslation();
+  const { state } = useAuth();
+  const isAdmin = state.user?.role === 'admin';
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const trackOptions = getTrackOptions(t);
@@ -100,10 +103,14 @@ const EditMentee = () => {
           .split(',')
           .map((s) => s.trim())
           .filter(Boolean),
-        progress: formData.progress,
-        mentorId: formData.mentorId || undefined,
-        groupId: formData.groupId || undefined,
         avatarUrl: formData.avatarUrl || undefined,
+        ...(isAdmin
+          ? {
+              progress: formData.progress,
+              mentorId: formData.mentorId || undefined,
+              groupId: formData.groupId || undefined,
+            }
+          : {}),
       });
       toast.success(t('detail.menteeUpdated'));
       navigate(`/mentees/${id}`);
@@ -161,14 +168,17 @@ const EditMentee = () => {
             ))}
           </select>
         </FormField>
-        <FormField label={t('detail.progress')}>
-          <input type="number" min={0} max={100} className="input" name="progress" value={formData.progress} onChange={handleChange} />
-          {errors.progress && <p className="text-xs text-red-600 mt-1">{errors.progress}</p>}
-        </FormField>
+        {isAdmin && (
+          <FormField label={t('detail.progress')}>
+            <input type="number" min={0} max={100} className="input" name="progress" value={formData.progress} onChange={handleChange} />
+            {errors.progress && <p className="text-xs text-red-600 mt-1">{errors.progress}</p>}
+          </FormField>
+        )}
       </div>
       <FormField label={t('form.skills')}>
         <input className="input" name="interests" value={formData.interests} onChange={handleChange} placeholder={t('lists.interestsPlaceholder')} />
       </FormField>
+      {isAdmin && (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label={t('mentor.title')}>
           <select className="input" name="mentorId" value={formData.mentorId} onChange={handleChange}>
@@ -191,6 +201,7 @@ const EditMentee = () => {
           </select>
         </FormField>
       </div>
+      )}
       <FormActions>
         <button type="button" className="btn btn-secondary flex-1" onClick={() => navigate(`/mentees/${id}`)}>
           {t('common.cancel')}

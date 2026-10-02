@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { HiOutlineMagnifyingGlass, HiOutlineFunnel, HiOutlineXMark } from 'react-icons/hi2';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 
-interface FilterState {
+export interface FilterState {
   [key: string]: boolean | string;
 }
 
@@ -30,6 +31,7 @@ const SearchFilter = ({
   filterOptions = [],
   placeholder = 'Search...',
 }: SearchFilterProps) => {
+  const { t } = useAppTranslation();
   const [internalSearchQuery, setInternalSearchQuery] = useState(externalSearchQuery);
   const [showFilter, setShowFilter] = useState(false);
   const [internalFilters, setInternalFilters] = useState<FilterState>(
@@ -88,7 +90,7 @@ const SearchFilter = ({
             className={`btn ${showFilter ? 'btn-primary' : 'btn-secondary'} gap-2`}
           >
             <HiOutlineFunnel className="h-4 w-4" />
-            Filter
+            {t('common.filter')}
           </button>
           {showFilter && (
             <div className="absolute right-0 top-full mt-2 z-50 min-w-[200px] card p-3 shadow-elevated">

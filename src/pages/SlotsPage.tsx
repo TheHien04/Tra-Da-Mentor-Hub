@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { slotsApi, menteeApi } from '../services/api';
 import { useSlots } from '../hooks/queries/useSlots';
 import { useMentors } from '../hooks/queries/useMentors';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 import { HiOutlineCalendar, HiOutlinePlus, HiOutlineLink, HiOutlineClock } from 'react-icons/hi2';
 import Avatar from '../components/Avatar';
 import { toast } from 'react-toastify';
@@ -17,11 +18,13 @@ import { unwrapList } from '../lib/apiHelpers';
 import { useCalendarStatus, useSyncSlotToCalendar } from '../hooks/queries/useCalendar';
 
 const SlotsPage = () => {
-  const { t } = useAppTranslation();
+  const { t, formatDate } = useAppTranslation();
   const { state } = useAuth();
   const role = state.user?.role || 'user';
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const bookingKeys = useRef(new Map<string, string>());
   const [filterMentorId, setFilterMentorId] = useState('');
   const slotParams = filterMentorId ? { mentorId: filterMentorId } : undefined;
   const {
@@ -31,12 +34,13 @@ const SlotsPage = () => {
     refetch: refetchSlots,
   } = useSlots(slotParams);
   const { data: mentors = [] } = useMentors();
-  const [menteeProfileId, setMenteeProfileId] = useState<string | null>(null);
+  const [menteeProfileId, setMenteeProfileId] = useState<string | null>(state.user?.menteeId || null);
+  const ownMentorId = state.user?.mentorId || '';
   const { data: calendarStatus } = useCalendarStatus();
   const syncSlot = useSyncSlotToCalendar();
 
   const [form, setForm] = useState({
-    mentorId: '',
+    mentorId: state.user?.mentorId || '',
     date: new Date().toISOString().split('T')[0],
     time: '14:00',
     duration: 60,
@@ -46,6 +50,12 @@ const SlotsPage = () => {
   const invalidateSlots = () => {
     void queryClient.invalidateQueries({ queryKey: ['slots'] });
   };
+
+  useEffect(() => {
+    if (ownMentorId) {
+      setForm((current) => ({ ...current, mentorId: ownMentorId }));
+    }
+  }, [ownMentorId]);
 
   useEffect(() => {
     const fromProfile = getMenteeProfileId(state.user);
@@ -87,14 +97,33 @@ const SlotsPage = () => {
     }
   };
 
+  const handleCancel = async (slotId: string) => {
+    try {
+      await slotsApi.cancelBooking(slotId);
+      toast.success(t('pages.slots.cancelSuccess'));
+      invalidateSlots();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      toast.error(e.response?.data?.message || t('pages.slots.cancelFailed'));
+    }
+  };
+
   const handleBook = async (slotId: string) => {
+    if (bookingId) return;
     const menteeId = menteeProfileId;
     if (!menteeId) {
       toast.warning(t('pages.slots.noMenteeProfile'));
       return;
     }
+    let key = bookingKeys.current.get(slotId);
+    if (!key) {
+      key = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${slotId}`;
+      bookingKeys.current.set(slotId, key);
+    }
+    setBookingId(slotId);
     try {
-      await slotsApi.book(slotId, menteeId);
+      await slotsApi.book(slotId, menteeId, key);
+      bookingKeys.current.delete(slotId);
       toast.success(t('pages.slots.bookSuccess'));
       if (calendarStatus?.connected) {
         try {
@@ -110,6 +139,8 @@ const SlotsPage = () => {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       toast.error(e.response?.data?.message || t('pages.slots.bookFailed'));
+    } finally {
+      setBookingId(null);
     }
   };
 
@@ -134,6 +165,7 @@ const SlotsPage = () => {
       {showForm && (
         <form onSubmit={handleAddSlot} className="card p-6 mb-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {role === 'admin' ? (
             <FormField label={t('pages.sessionLog.mentor')} required>
               <select
                 className="input"
@@ -149,6 +181,11 @@ const SlotsPage = () => {
                 ))}
               </select>
             </FormField>
+            ) : (
+              <FormField label={t('pages.sessionLog.mentor')}>
+                <input className="input" value={mentors.find((m) => m._id === ownMentorId)?.name || ownMentorId} readOnly />
+              </FormField>
+            )}
             <FormField label={t('common.date')} required>
               <input
                 type="date"
@@ -222,7 +259,7 @@ const SlotsPage = () => {
       ) : !loadError && slots.length === 0 ? (
         <EmptyState
           title={t('pages.slots.emptyTitle')}
-          description={t('pages.slots.emptyDesc')}
+          description={role === 'mentee' ? t('pages.slots.emptyMentee') : t('pages.slots.emptyDesc')}
           actionLabel={
             role === 'mentor' || role === 'admin' ? t('pages.slots.addFreeSlot') : undefined
           }
@@ -231,9 +268,16 @@ const SlotsPage = () => {
           }
         />
       ) : !loadError ? (
+        <>
+        <p className="text-sm text-secondary mb-4">
+          {t('pages.slots.onlyOpen')}{' '}
+          <Link to="/schedule" className="font-medium" style={{ color: 'var(--accent)' }}>
+            {t('nav.schedule')}
+          </Link>
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {slots.map((s) => {
-            const mentorName = getMentorName(s.mentorId);
+          {slots.filter((s) => !s.bookedBy).map((s) => {
+            const mentorName = s.mentorName || getMentorName(s.mentorId);
             const isOpen = !s.bookedBy;
             return (
               <article
@@ -251,30 +295,45 @@ const SlotsPage = () => {
                     </div>
                     <p className="schedule-meta-item mt-1">
                       <HiOutlineClock className="h-4 w-4 text-muted shrink-0" />
-                      {s.date} · {s.time} · {s.duration} {t('common.min')}
+                      {s.date ? formatDate(`${s.date}T12:00:00`) : ''} · {s.time} · {s.duration} {t('common.min')}
                     </p>
                   </div>
                 </div>
-                {s.meetingLink && (
+                {isOpen && (role === 'mentee' || role === 'admin') && (
+                  <button
+                    type="button"
+                    className="btn btn-primary w-full mt-auto"
+                    disabled={bookingId === s._id}
+                    onClick={() => void handleBook(s._id)}
+                  >
+                    {t('pages.slots.book')}
+                  </button>
+                )}
+                {!isOpen && s.meetingLink && (
                   <a
                     href={s.meetingLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm mb-4 font-medium"
-                    style={{ color: 'var(--accent)' }}
+                    className="btn btn-primary w-full mt-auto"
                   >
                     <HiOutlineLink className="h-4 w-4" /> {t('pages.slots.joinMeeting')}
                   </a>
                 )}
-                {isOpen && (role === 'mentee' || role === 'admin') && (
-                  <button type="button" className="btn btn-primary w-full mt-auto" onClick={() => handleBook(s._id)}>
-                    {t('pages.slots.book')}
+                {!isOpen && !s.meetingLink && (
+                  <Link to="/schedule" className="btn btn-primary w-full mt-auto">
+                    {t('pages.slots.openSchedule')}
+                  </Link>
+                )}
+                {!isOpen && (role === 'mentee' || role === 'mentor' || role === 'admin') && (
+                  <button type="button" className="mt-3 text-sm font-medium text-muted" onClick={() => handleCancel(s._id)}>
+                    {t('pages.slots.cancelBooking')}
                   </button>
                 )}
               </article>
             );
           })}
         </div>
+        </>
       ) : null}
     </PageShell>
   );

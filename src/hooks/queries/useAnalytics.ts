@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { analyticsApi, type AnalyticsPeriod } from '../../services/api';
 import { queryKeys } from './keys';
 
-export function useAnalyticsSummary(period: AnalyticsPeriod, locale: string) {
+export function useAnalyticsSummary(period: AnalyticsPeriod, locale: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.analytics(period, locale),
     queryFn: async () => {
@@ -10,5 +10,6 @@ export function useAnalyticsSummary(period: AnalyticsPeriod, locale: string) {
       return res.data.data;
     },
     staleTime: 60_000,
+    enabled,
   });
 }

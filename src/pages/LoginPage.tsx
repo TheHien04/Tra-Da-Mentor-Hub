@@ -12,6 +12,7 @@ import { ZodError } from 'zod';
 import env from '../config/env';
 import { FaEye, FaEyeSlash, FaGoogle, FaGraduationCap, FaCopy, FaCheck } from 'react-icons/fa';
 import { AuthPageFooter } from '../components/AuthPageFooter';
+import { AuthScene } from '../components/motion/AuthScene';
 import './AuthPage.css';
 
 export default function LoginPage() {
@@ -98,8 +99,9 @@ export default function LoginPage() {
   const googleAuthUrl = `${env.apiUrl.replace(/\/api\/?$/, '')}/api/auth/google`;
 
   return (
-    <div className="auth-page">
-      <div className="max-w-md w-full space-y-8">
+    <div className="auth-page auth-page--scene">
+      <AuthScene />
+      <div className="auth-form-column max-w-md w-full space-y-8">
         <div className="auth-card">
           <div className="text-center mb-8">
             <div className="auth-icon">

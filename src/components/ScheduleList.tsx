@@ -15,9 +15,10 @@ import Avatar from './Avatar';
 import Skeleton from './Skeleton';
 import { CalendarConnectBar } from './features/CalendarConnectBar';
 import { useAppTranslation } from '../hooks/useAppTranslation';
-import { useMentors } from '../hooks/queries/useMentors';
 import { useSlots } from '../hooks/queries/useSlots';
 import { useCalendarStatus, useSyncSlotToCalendar } from '../hooks/queries/useCalendar';
+import { slotsApi } from '../services/api';
+import { slotInstant } from '../lib/slotClock';
 import { queryClient } from '../lib/queryClient';
 import { queryKeys } from '../hooks/queries/keys';
 
@@ -66,13 +67,7 @@ const ScheduleList = () => {
     isError: slotsError,
     refetch: refetchSlots,
   } = useSlots();
-  const {
-    data: mentors = [],
-    isLoading: mentorsLoading,
-    isError: mentorsError,
-    refetch: refetchMentors,
-  } = useMentors();
-  const loadError = slotsError || mentorsError;
+  const loadError = slotsError;
   const { data: calendarStatus } = useCalendarStatus();
   const syncSlot = useSyncSlotToCalendar();
 
@@ -91,21 +86,18 @@ const ScheduleList = () => {
   }, [searchParams, setSearchParams, t]);
 
   const sessions = useMemo<Session[]>(() => {
-    const mentorName = (id: string) =>
-      mentors.find((m) => m._id === id)?.name ||
-      mentors.find((m) => m._id === id)?.email ||
-      id;
+    const mentorName = (slot: (typeof slots)[number]) => slot.mentorName || t('dashboard.unnamedMentor');
 
     return slots.map((s) => {
       const booked = Boolean(s.bookedBy || s.menteeId);
       const slotDate = String(s.date || '');
-      const isPast = slotDate && new Date(`${slotDate}T${s.time || '00:00'}`) < new Date();
+      const isPast = slotDate && slotInstant(slotDate, s.time) < new Date();
       return {
         _id: String(s._id),
-        title: t('pages.schedule.slotTitle', { mentor: mentorName(String(s.mentorId)) }),
-        mentor: { id: String(s.mentorId), name: mentorName(String(s.mentorId)) },
+        title: t('pages.schedule.slotTitle', { mentor: mentorName(s) }),
+        mentor: { id: String(s.mentorId), name: mentorName(s) },
         mentees: booked
-          ? [{ id: String(s.menteeId || s.bookedBy), name: t('pages.schedule.bookedMentee') }]
+          ? [{ id: String(s.menteeId || s.bookedBy), name: s.menteeName || t('pages.schedule.bookedMentee') }]
           : [],
         date: slotDate,
         time: String(s.time || ''),
@@ -118,9 +110,9 @@ const ScheduleList = () => {
         googleCalendarEventId: s.googleCalendarEventId,
       };
     });
-  }, [slots, mentors, t]);
+  }, [slots, t]);
 
-  const loading = slotsLoading || mentorsLoading;
+  const loading = slotsLoading;
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -132,13 +124,25 @@ const ScheduleList = () => {
           s.location.toLowerCase().includes(q);
         const matchStatus = statusFilter === 'ALL' || s.status === statusFilter;
         const matchType = typeFilter === 'ALL' || s.type === typeFilter;
-        return matchQ && matchStatus && matchType;
+        return matchQ && matchStatus && matchType && !s.isOpen;
       })
       .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
   }, [sessions, search, statusFilter, typeFilter]);
 
   const upcoming = filtered.filter((s) => s.status === 'SCHEDULED' && !s.isOpen).length;
   const openSlots = filtered.filter((s) => s.isOpen).length;
+
+  const openCount = sessions.filter((s) => s.isOpen).length;
+
+  const handleCancel = async (slotId: string) => {
+    try {
+      await slotsApi.cancelBooking(slotId);
+      toast.success(t('pages.slots.cancelSuccess'));
+      await refetchSlots();
+    } catch {
+      toast.error(t('pages.slots.cancelFailed'));
+    }
+  };
 
   const handleSyncCalendar = async (slotId: string) => {
     if (!calendarStatus?.connected) {
@@ -198,6 +202,14 @@ const ScheduleList = () => {
         </div>
       </div>
 
+      <p className="text-sm text-secondary mb-4">
+        {t('pages.schedule.onlyBooked')}{' '}
+        <Link to="/slots" className="font-medium" style={{ color: 'var(--accent)' }}>
+          {t('nav.slots')}
+        </Link>
+        {openCount > 0 ? ` (${openCount})` : ''}
+      </p>
+
       <div className="card p-4 mb-6 space-y-4">
         <input
           className="input"
@@ -227,7 +239,6 @@ const ScheduleList = () => {
             className="btn btn-secondary text-sm mt-3"
             onClick={() => {
               void refetchSlots();
-              void refetchMentors();
             }}
           >
             {t('common.retry')}
@@ -302,11 +313,21 @@ const ScheduleList = () => {
                         {t('pages.schedule.menteesCount', { count: s.mentees.length })}
                       </span>
                     </div>
-                    <div className="mt-4 pt-3 border-t flex flex-wrap gap-2" style={{ borderColor: 'var(--border-subtle)' }}>
-                      <Link to="/slots" className="btn btn-primary text-sm inline-flex items-center gap-1">
-                        {t('pages.schedule.manageSlots')}
-                        <HiOutlineArrowRight className="h-3.5 w-3.5" />
-                      </Link>
+                    <div className="mt-4 pt-3 border-t flex flex-wrap items-center gap-3" style={{ borderColor: 'var(--border-subtle)' }}>
+                      {s.location.startsWith('http') && (
+                        <a
+                          href={s.location}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary text-sm inline-flex items-center gap-1"
+                        >
+                          {t('pages.slots.joinMeeting')}
+                          <HiOutlineArrowRight className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      <button type="button" className="text-sm font-medium text-muted" onClick={() => void handleCancel(s._id)}>
+                        {t('pages.slots.cancelBooking')}
+                      </button>
                       {!s.isOpen && !synced && (
                         <button
                           type="button"

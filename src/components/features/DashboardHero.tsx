@@ -1,9 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  HiOutlineSparkles,
-  HiOutlineCalendarDays,
-  HiOutlineArrowRight,
-} from 'react-icons/hi2';
+import { HiOutlineSparkles, HiOutlineArrowRight } from 'react-icons/hi2';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useGreeting } from '../../hooks/useGreeting';
@@ -32,9 +28,10 @@ export function DashboardHero() {
         : role === 'admin'
           ? t('dashboard.adminSubtitle')
           : t('dashboard.defaultSubtitle');
+  const canReviewMatches = role === 'admin' || role === 'mentor';
 
   return (
-    <section className="dashboard-hero" aria-labelledby="dashboard-hero-title">
+    <section className="dashboard-hero dashboard-hero--work" aria-labelledby="dashboard-hero-title">
       <div className="dashboard-hero__mesh" aria-hidden />
       <div className="dashboard-hero__inner">
         <div className="dashboard-hero__copy">
@@ -45,22 +42,21 @@ export function DashboardHero() {
           <p className="dashboard-hero__subtitle">{subtitle}</p>
           <div className="dashboard-hero__badges">
             <span className="badge-pill badge-accent">{roleLabel}</span>
-            <span className="dashboard-hero__live">
-              <span className="dashboard-hero__live-dot" />
-              {t('dashboard.livePlatform')}
-            </span>
           </div>
         </div>
         <div className="dashboard-hero__actions">
-          <Link to="/schedule" className="btn btn-primary dashboard-hero__cta">
-            <HiOutlineCalendarDays className="h-4 w-4" />
-            {t('nav.schedule')}
-          </Link>
-          <Link to="/insights" className="btn btn-secondary dashboard-hero__cta">
-            <HiOutlineSparkles className="h-4 w-4" />
-            {t('nav.insights')}
-            <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
-          </Link>
+          {canReviewMatches ? (
+            <Link to="/insights" className="btn btn-primary dashboard-hero__cta">
+              <HiOutlineSparkles className="h-4 w-4" />
+              {t('nav.insights')}
+              <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
+            </Link>
+          ) : (
+            <Link to="/slots" className="btn btn-primary dashboard-hero__cta">
+              {t('dashboard.bookSession')}
+              <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
+            </Link>
+          )}
         </div>
       </div>
     </section>

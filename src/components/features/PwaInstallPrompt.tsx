@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { HiOutlineArrowDownTray, HiOutlineXMark } from 'react-icons/hi2';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
+import { useFocusTrap } from '../../lib/useFocusTrap';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,6 +14,7 @@ export function PwaInstallPrompt() {
   const { t } = useAppTranslation();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
+  const trapRef = useFocusTrap(visible && deferred !== null);
 
   useEffect(() => {
     if (localStorage.getItem(DISMISS_KEY) === '1') return;
@@ -27,11 +29,20 @@ export function PwaInstallPrompt() {
     return () => window.removeEventListener('beforeinstallprompt', onBip);
   }, []);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     localStorage.setItem(DISMISS_KEY, '1');
     setVisible(false);
     setDeferred(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismiss();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [visible, dismiss]);
 
   const install = async () => {
     if (!deferred) return;
@@ -43,7 +54,13 @@ export function PwaInstallPrompt() {
   if (!visible || !deferred) return null;
 
   return (
-    <div className="pwa-install-prompt" role="dialog" aria-labelledby="pwa-install-title">
+    <div
+      ref={trapRef}
+      className="pwa-install-prompt"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pwa-install-title"
+    >
       <div className="pwa-install-prompt__inner">
         <span className="icon-chip shrink-0">
           <HiOutlineArrowDownTray className="h-5 w-5" />

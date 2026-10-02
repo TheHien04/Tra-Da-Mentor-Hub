@@ -125,43 +125,6 @@ export const bodySizeLimiter = (req, res, next) => {
   next();
 };
 
-const XSS_PATTERNS = [
-  /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
-  /javascript:/gi,
-  /on\w+\s*=/gi,
-  /<iframe[\s\S]*?>/gi,
-];
-
-function hasXssPayload(value) {
-  if (typeof value !== 'string') return false;
-  return XSS_PATTERNS.some((pattern) => {
-    pattern.lastIndex = 0;
-    return pattern.test(value);
-  });
-}
-
-function scanForXss(obj) {
-  if (!obj || typeof obj !== 'object') return false;
-  for (const key of Object.keys(obj)) {
-    if (hasXssPayload(key)) return true;
-    const val = obj[key];
-    if (typeof val === 'string' && hasXssPayload(val)) return true;
-    if (typeof val === 'object' && val !== null && scanForXss(val)) return true;
-  }
-  return false;
-}
-
-export const xssProtection = (req, res, next) => {
-  if ((req.body && scanForXss(req.body)) || (req.query && scanForXss(req.query))) {
-    logger.warn(`XSS attempt blocked from IP: ${req.ip}`);
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid input detected.',
-    });
-  }
-  next();
-};
-
 export default {
   helmetConfig,
   generalLimiter,
@@ -170,5 +133,4 @@ export default {
   adminLimiter,
   sanitizeInputs,
   bodySizeLimiter,
-  xssProtection,
 };

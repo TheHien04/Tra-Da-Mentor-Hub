@@ -8,10 +8,23 @@ import { sendBroadcastEmail } from '../utils/emailService.js';
 import { sendZaloBroadcast, getZaloRecipientIdsForAudience } from '../utils/zaloService.js';
 import logger from '../config/logger.js';
 import env from '../config/env.js';
+import { fail } from '../lib/httpError.js';
+import { listAudit, seedAuditIfEmpty } from '../services/auditStore.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
 
 const router = express.Router();
 
 router.use(authenticate, authorize('admin'), adminLimiter);
+
+router.get('/audit', async (req, res, next) => {
+  try {
+    await seedAuditIfEmpty();
+    const data = await listAudit(req.query.limit);
+    res.json({ success: true, data });
+  } catch (e) {
+    next(e);
+  }
+});
 
 /** GET /api/admin/broadcasts — recent admin broadcast notifications */
 router.get('/broadcasts', async (_req, res, next) => {
@@ -25,28 +38,32 @@ router.get('/broadcasts', async (_req, res, next) => {
 
 /** GET /api/admin/integrations — feature flags for admin UI (no secrets) */
 router.get('/integrations', (_req, res) => {
+  const demo = demoIntegrationsEnabled();
   const zaloRecipients = getZaloRecipientIdsForAudience('all').length;
   const emailConfigured = Boolean(env.sendgridApiKey);
   const zaloToken = Boolean(env.zaloOaAccessToken);
+  const emailReady = emailConfigured || demo;
+  const zaloReady = (zaloToken && zaloRecipients > 0) || demo;
   res.json({
     success: true,
     data: {
       inApp: true,
-      email: emailConfigured,
-      zalo: zaloToken && zaloRecipients > 0,
-      zaloToken,
+      demo,
+      email: emailReady,
+      zalo: zaloReady,
+      zaloToken: zaloToken || demo,
       zaloRecipients,
-      googleCalendar: Boolean(env.googleClientId && env.googleClientSecret),
-      openai: Boolean(env.openaiApiKey),
-      stripe: Boolean(env.stripeSecretKey),
+      googleCalendar: Boolean(env.googleClientId && env.googleClientSecret) || demo,
+      openai: Boolean(env.openaiApiKey) || demo,
+      stripe: Boolean(env.stripeSecretKey) || demo,
       channels: {
         inApp: { ready: true, envVars: [] },
         email: {
-          ready: emailConfigured,
+          ready: emailReady,
           envVars: ['SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL'],
         },
         zalo: {
-          ready: zaloToken && zaloRecipients > 0,
+          ready: zaloReady,
           envVars: ['ZALO_OA_ACCESS_TOKEN', 'ZALO_BROADCAST_USER_IDS'],
           needsRecipients: zaloToken && zaloRecipients === 0,
         },
@@ -72,7 +89,7 @@ router.post('/broadcast', async (req, res, next) => {
   try {
     const { audience = 'all', subject, message, channel = 'in_app' } = req.body;
     if (!message?.trim()) {
-      return res.status(400).json({ success: false, message: 'message is required' });
+      return fail(res, 400, 'VALIDATION', 'message is required');
     }
 
     const normalizedChannel =

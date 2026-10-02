@@ -1,12 +1,8 @@
 import MentorProfile from '../models/MentorProfile.js';
 import MenteeProfile from '../models/MenteeProfile.js';
-import { createMentor, listMentors } from './mentorStore.js';
-import { createMentee, listMentees } from './menteeStore.js';
-import mongoose from 'mongoose';
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
+import { createMentor, listMentors, updateMentor } from './mentorStore.js';
+import { createMentee, listMentees, updateMentee } from './menteeStore.js';
+import { useDb } from '../lib/dataMode.js';
 
 async function findMentorByEmail(email) {
   const normalized = email.toLowerCase().trim();
@@ -39,6 +35,7 @@ export async function ensureCrmProfileForUser({ email, name, role, userId }) {
     if (!mentor) {
       mentor = await createMentor({
         _id: `u_${userId}`,
+        userId,
         name: name || normalizedEmail,
         email: normalizedEmail,
         track: 'tech',
@@ -48,6 +45,8 @@ export async function ensureCrmProfileForUser({ email, name, role, userId }) {
         mentorshipType: 'GROUP',
         duration: 'LONG_TERM',
       });
+    } else if (userId && mentor.userId !== userId) {
+      mentor = await updateMentor(mentor._id, { userId });
     }
     profileIds.mentorId = mentor._id;
   }
@@ -57,6 +56,7 @@ export async function ensureCrmProfileForUser({ email, name, role, userId }) {
     if (!mentee) {
       mentee = await createMentee({
         _id: `u_${userId}`,
+        userId,
         name: name || normalizedEmail,
         email: normalizedEmail,
         track: 'tech',
@@ -65,6 +65,8 @@ export async function ensureCrmProfileForUser({ email, name, role, userId }) {
         mentorshipType: 'GROUP',
         applicationStatus: 'pending',
       });
+    } else if (userId && mentee.userId !== userId) {
+      mentee = await updateMentee(mentee._id, { userId });
     }
     profileIds.menteeId = mentee._id;
   }

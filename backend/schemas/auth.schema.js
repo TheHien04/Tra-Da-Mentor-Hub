@@ -49,11 +49,31 @@ export const registerSchema = z
 
 // ============ REFRESH TOKEN ============
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, "Refresh token is required"),
+  refreshToken: z.string().min(1, "Refresh token is required").optional(),
 });
 
 export const emailOnlySchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email format").toLowerCase(),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain uppercase letter")
+      .regex(/[a-z]/, "Password must contain lowercase letter")
+      .regex(/[0-9]/, "Password must contain number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, "Password is required"),
 });
 
 export const resetPasswordBodySchema = z

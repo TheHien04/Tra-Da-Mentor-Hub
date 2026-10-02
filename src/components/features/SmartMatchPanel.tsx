@@ -5,9 +5,27 @@ import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useMatchSuggestions, useMatchExplain } from '../../hooks/queries/useMatching';
 import type { MatchSuggestion } from '../../services/api';
 import { getApiErrorMessage } from '../../lib/apiHelpers';
+import { skillLabel } from '../../lib/skillLabel';
 import { Alert } from '../ui/Alert';
 import { LaunchBadge } from '../ui/LaunchBadge';
 import Skeleton from '../Skeleton';
+
+function formatMatchReason(
+  match: MatchSuggestion,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  lang: string
+) {
+  const reason = match.reasonCodes?.[0];
+  if (!reason) return match.reasons[0];
+  if (reason.code === 'skills') {
+    return t('dashboard.matchReasonSkills', {
+      skills: (reason.skills || []).map((skill) => skillLabel(skill, lang)).join(', '),
+    });
+  }
+  if (reason.code === 'track') return t('dashboard.matchReasonTrack');
+  if (reason.code === 'capacity') return t('dashboard.matchReasonCapacity');
+  return t('dashboard.matchReasonProfile');
+}
 
 interface SmartMatchPanelProps {
   menteeId?: string;
@@ -16,7 +34,7 @@ interface SmartMatchPanelProps {
 }
 
 export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanelProps) {
-  const { t } = useAppTranslation();
+  const { t, lang } = useAppTranslation();
   const [explainPair, setExplainPair] = useState<{ mentorId: string; menteeId: string } | null>(
     null
   );
@@ -24,17 +42,21 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
   const { data: matches = [], isLoading, error } = useMatchSuggestions({
     menteeId,
     mentorId,
-    limit: compact ? 4 : 8,
+    limit: compact ? 2 : 8,
   });
 
   const explainQuery = useMatchExplain(
     explainPair?.mentorId,
     explainPair?.menteeId,
-    Boolean(explainPair)
+    Boolean(explainPair),
+    lang
   );
+  const explained = explainPair
+    ? matches.find((item) => item.mentorId === explainPair.mentorId && item.menteeId === explainPair.menteeId)
+    : undefined;
 
   return (
-    <section className="card p-6">
+    <section className={`card p-6${compact ? ' h-full' : ''}`}>
       <div className="flex items-start justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
           <span className="icon-chip">
@@ -74,7 +96,34 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
             {explainQuery.data?.source === 'openai' && (
               <span className="badge-pill badge-accent text-[10px]">AI</span>
             )}
+            {explainQuery.data?.source === 'demo' && (
+              <span className="badge-pill badge-accent text-[10px]">{t('dashboard.matchDemo')}</span>
+            )}
           </p>
+          {explained?.factors && (
+            <div className="grid gap-2 mb-3">
+              {(
+                [
+                  ['skills', explained.factors.skills, 'dashboard.matchFactorSkills'],
+                  ['track', explained.factors.track, 'dashboard.matchFactorTrack'],
+                  ['capacity', explained.factors.capacity, 'dashboard.matchFactorCapacity'],
+                ] as const
+              ).map(([key, value, label]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-xs text-muted mb-1">
+                    <span>{t(label)}</span>
+                    <span className="tabular-nums">{value}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full" style={{ background: 'var(--bg-surface-muted)' }}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: 'var(--accent)' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {explainQuery.isLoading ? (
             <p className="text-muted">{t('common.loading')}</p>
           ) : (
@@ -99,12 +148,12 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
                 <p className="text-sm font-medium text-primary truncate">
                   {menteeId ? m.mentorName : mentorId ? m.menteeName : `${m.mentorName} ↔ ${m.menteeName}`}
                 </p>
-                <p className="text-xs text-muted mt-0.5 line-clamp-1">{m.reasons[0]}</p>
+                <p className="text-xs text-muted mt-0.5 line-clamp-1">{formatMatchReason(m, t, lang)}</p>
                 {m.matchedSkills.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {m.matchedSkills.slice(0, 3).map((s: string) => (
                       <span key={s} className="badge-pill badge-accent text-[10px]">
-                        {s}
+                        {skillLabel(s, lang)}
                       </span>
                     ))}
                   </div>
@@ -114,6 +163,7 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
                 <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--accent)' }}>
                   {m.score}%
                 </span>
+                <p className="text-[10px] text-muted">{t('dashboard.matchScore')}</p>
                 <p className="text-[10px] text-muted">
                   {t('dashboard.smartMatchCapacity', {
                     active: m.capacity.active,

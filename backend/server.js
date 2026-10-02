@@ -1,7 +1,9 @@
 import 'dotenv/config.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import mongoose from 'mongoose';
 import { connectDatabase } from './config/database.js';
+import { lockDataMode } from './lib/dataMode.js';
 import env from './config/env.js';
 import logger from './config/logger.js';
 import { initSentry } from './lib/sentry.js';
@@ -32,13 +34,21 @@ attachSocketAuth(io);
 async function bootstrapStores() {
   try {
     await connectDatabase();
+    lockDataMode('mongo');
   } catch (err) {
     if (env.isProduction) {
       logger.error('MongoDB is required in production. Set DATABASE_URL and ensure MongoDB is reachable.');
       logger.error(err?.message || err);
       process.exit(1);
     }
-    logger.warn('MongoDB unavailable — using in-memory store fallback (development only)');
+    lockDataMode('memory');
+    logger.warn('MongoDB unavailable — this process is using the in-memory store only');
+  }
+  logger.info(`Data store: ${mongoose.connection.readyState === 1 ? 'mongodb' : 'memory'}`);
+  const seedOnBoot = !env.isProduction && process.env.SEED_ON_BOOT !== 'false';
+  if (!seedOnBoot) {
+    logger.info('Skipping demo seed on boot');
+    return;
   }
   await Promise.all([
     seedMentorsIfEmpty(),

@@ -11,11 +11,13 @@ import { AvatarUploadField } from './ui/AvatarUploadField';
 import { Alert } from './ui/Alert';
 import Skeleton from './Skeleton';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useAuth } from '../context/AuthContext';
 
 const EditMentor = () => {
   const { t } = useAppTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { state } = useAuth();
   const trackOptions = getTrackOptions(t);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +37,10 @@ const EditMentor = () => {
 
   useEffect(() => {
     if (!id) return;
+    if (state.user?.role === 'mentor' && state.user.mentorId && id !== state.user.mentorId) {
+      navigate('/unauthorized', { replace: true });
+      return;
+    }
     mentorApi
       .getById(id)
       .then((res) => {
@@ -54,7 +60,7 @@ const EditMentor = () => {
       })
       .catch((err) => setErrors({ submit: getApiErrorMessage(err) }))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, navigate, state.user]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

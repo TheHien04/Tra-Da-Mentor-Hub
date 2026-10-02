@@ -8,6 +8,7 @@ import { ProfileHero } from './ui';
 import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShell';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useConfirm } from '../context/ConfirmContext';
+import { useAuth } from '../context/AuthContext';
 
 interface Mentee {
   _id: string;
@@ -20,15 +21,57 @@ interface Group {
   _id: string;
   name: string;
   description?: string;
+  mentorId?: string;
   mentor?: { _id?: string; name: string; email?: string };
   mentees?: Mentee[];
   maxSize?: number;
   meetingSchedule?: { frequency: string; dayOfWeek: string; time: string };
 }
 
+function readGroupDetail(data: unknown): Group | null {
+  if (!data || typeof data !== 'object') return null;
+  const row = data as Record<string, unknown>;
+  if (typeof row._id !== 'string' || typeof row.name !== 'string') return null;
+  const mentor = row.mentor && typeof row.mentor === 'object'
+    ? {
+        _id: typeof (row.mentor as { _id?: unknown })._id === 'string' ? (row.mentor as { _id: string })._id : undefined,
+        name: typeof (row.mentor as { name?: unknown }).name === 'string' ? (row.mentor as { name: string }).name : '',
+        email: typeof (row.mentor as { email?: unknown }).email === 'string' ? (row.mentor as { email: string }).email : undefined,
+      }
+    : undefined;
+  const mentees = Array.isArray(row.mentees)
+    ? row.mentees.flatMap((item) => {
+        if (!item || typeof item !== 'object') return [];
+        const mentee = item as Record<string, unknown>;
+        if (typeof mentee._id !== 'string' || typeof mentee.name !== 'string') return [];
+        return [{
+          _id: mentee._id,
+          name: mentee.name,
+          email: typeof mentee.email === 'string' ? mentee.email : undefined,
+          progress: typeof mentee.progress === 'number' ? mentee.progress : undefined,
+        }];
+      })
+    : [];
+  const schedule = row.meetingSchedule && typeof row.meetingSchedule === 'object'
+    ? row.meetingSchedule as Group['meetingSchedule']
+    : undefined;
+  return {
+    _id: row._id,
+    name: row.name,
+    description: typeof row.description === 'string' ? row.description : undefined,
+    mentorId: typeof row.mentorId === 'string' ? row.mentorId : mentor?._id,
+    mentor,
+    mentees,
+    maxSize: typeof row.maxSize === 'number' ? row.maxSize : undefined,
+    meetingSchedule: schedule,
+  };
+}
+
 const GroupDetail = () => {
   const { t } = useAppTranslation();
   const { confirm } = useConfirm();
+  const { state } = useAuth();
+  const role = state.user?.role;
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [group, setGroup] = useState<Group | null>(null);
@@ -39,7 +82,7 @@ const GroupDetail = () => {
     if (!id) return;
     groupApi
       .getByIdFull(id)
-      .then((res) => setGroup(res.data))
+      .then((res) => setGroup(readGroupDetail(res.data)))
       .catch((err) => setError(getApiErrorMessage(err)))
       .finally(() => setLoading(false));
   }, [id]);
@@ -97,16 +140,18 @@ const GroupDetail = () => {
       error={error}
       notFound={!loading && !group}
       actions={
-        group && (
+        group && (role === 'admin' || (role === 'mentor' && state.user?.mentorId === group.mentorId)) ? (
           <>
             <Link to={`/groups/${id}/edit`} className="btn btn-primary">
               {t('common.edit')}
             </Link>
-            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
-              <HiOutlineTrash className="h-4 w-4" />
-            </button>
+            {role === 'admin' && (
+              <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+                <HiOutlineTrash className="h-4 w-4" />
+              </button>
+            )}
           </>
-        )
+        ) : null
       }
     >
       {group && (

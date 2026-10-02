@@ -13,9 +13,11 @@ export interface SlotRow {
   bookedBy: string | null;
   menteeId?: string | null;
   googleCalendarEventId?: string | null;
+  mentorName?: string | null;
+  menteeName?: string | null;
 }
 
-export function useSlots(params?: { mentorId?: string }) {
+export function useSlots(params?: { mentorId?: string; menteeId?: string; availableOnly?: string }) {
   return useQuery({
     queryKey: queryKeys.slots(params),
     queryFn: async () => {

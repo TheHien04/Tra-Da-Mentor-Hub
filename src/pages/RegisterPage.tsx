@@ -11,6 +11,7 @@ import { useAppTranslation } from '../hooks/useAppTranslation';
 import { registerFormSchema } from '../schemas/forms';
 import { ZodError } from 'zod';
 import { AuthPageFooter } from '../components/AuthPageFooter';
+import { AuthScene } from '../components/motion/AuthScene';
 import './AuthPage.css';
 
 interface FormData {
@@ -36,6 +37,7 @@ export default function RegisterPage() {
   const [inviteLoading, setInviteLoading] = useState(Boolean(inviteToken));
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLocked, setInviteLocked] = useState(false);
+  const [awaitingEmail, setAwaitingEmail] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -137,10 +139,11 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!validateForm()) return;
     try {
-      await register({
+      const result = await register({
         ...formData,
         inviteToken: inviteToken || formData.inviteToken,
       });
+      if (result?.needsVerification) setAwaitingEmail(true);
     } catch (error: unknown) {
       console.error('Register error:', error);
     }
@@ -157,8 +160,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-shell auth-shell-wide">
+    <div className="auth-page auth-page--scene">
+      <AuthScene />
+      <div className="auth-shell auth-shell-wide auth-form-column">
         <div className="auth-card">
           <div className="text-center mb-8">
             <div className="auth-icon">
@@ -167,6 +171,11 @@ export default function RegisterPage() {
             <h1 className="auth-title">{t('registerPage.brand')}</h1>
             <p className="auth-subtitle">{t('registerPage.subtitle')}</p>
           </div>
+          {awaitingEmail && (
+            <div className="auth-error mb-4" role="status">
+              {t('registerPage.checkEmail')}
+            </div>
+          )}
 
           {inviteLoading && (
             <p className="text-sm text-muted text-center mb-4">{t('registerPage.inviteLoading')}</p>

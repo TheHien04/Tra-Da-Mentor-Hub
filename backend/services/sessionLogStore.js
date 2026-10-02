@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
 import SessionLog from '../models/SessionLog.js';
 import { SESSION_LOG_DEMO } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 let memSeq = 1;
@@ -10,10 +10,6 @@ const DEMO_TARGET_MIN = 12;
 
 function sessionLogKey(s) {
   return `${s.mentorId}:${s.menteeId}:${s.topic}`;
-}
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
 }
 
 function toClient(doc) {
@@ -44,7 +40,38 @@ function toClient(doc) {
 }
 
 function dayKey(date) {
-  return new Date(date).toISOString().split('T')[0];
+  const value = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(value.getTime())) return '';
+  return value.toISOString().split('T')[0];
+}
+
+function clampScore(value) {
+  if (value == null || value === '') return null;
+  const score = Math.round(Number(value));
+  if (!Number.isFinite(score)) return null;
+  return Math.min(5, Math.max(1, score));
+}
+
+const SCORE_KEYS = ['mentorScore', 'menteeScore'];
+const BOOL_KEYS = ['mentorNeedsSupport', 'menteeNeedsSupport', 'completedByMentor', 'completedByMentee'];
+const TEXT_KEYS = ['mentorSupportReason', 'menteeSupportReason'];
+
+/** Apply only keys the caller sent. A create fills the missing side with empty defaults. */
+export function sessionLogPatch(body, { create }) {
+  const patch = {};
+  for (const key of SCORE_KEYS) {
+    if (body[key] !== undefined) patch[key] = clampScore(body[key]);
+    else if (create) patch[key] = null;
+  }
+  for (const key of BOOL_KEYS) {
+    if (body[key] !== undefined) patch[key] = Boolean(body[key]);
+    else if (create) patch[key] = false;
+  }
+  for (const key of TEXT_KEYS) {
+    if (body[key] !== undefined) patch[key] = body[key] ? String(body[key]).slice(0, 500) : null;
+    else if (create) patch[key] = null;
+  }
+  return patch;
 }
 
 export async function listSessionLogs({ mentorId, menteeId } = {}) {
@@ -67,35 +94,13 @@ export async function listSessionLogs({ mentorId, menteeId } = {}) {
 }
 
 export async function upsertSessionLog(body) {
-  const {
-    mentorId,
-    menteeId,
-    sessionDate,
-    topic,
-    mentorScore,
-    menteeScore,
-    mentorNeedsSupport,
-    mentorSupportReason,
-    menteeNeedsSupport,
-    menteeSupportReason,
-    completedByMentor,
-    completedByMentee,
-  } = body;
-
+  const { mentorId, menteeId, sessionDate } = body;
   const sessionDay = dayKey(sessionDate);
-  const payload = {
+  const identity = {
     mentorId,
     menteeId,
     sessionDate: new Date(sessionDate),
-    topic: topic || '',
-    mentorScore: mentorScore != null ? Number(mentorScore) : null,
-    menteeScore: menteeScore != null ? Number(menteeScore) : null,
-    mentorNeedsSupport: Boolean(mentorNeedsSupport),
-    mentorSupportReason: mentorSupportReason || null,
-    menteeNeedsSupport: Boolean(menteeNeedsSupport),
-    menteeSupportReason: menteeSupportReason || null,
-    completedByMentor: Boolean(completedByMentor),
-    completedByMentee: Boolean(completedByMentee),
+    topic: String(body.topic || '').trim().slice(0, 200),
   };
 
   if (useDb()) {
@@ -110,12 +115,12 @@ export async function upsertSessionLog(body) {
     });
 
     if (existing) {
-      Object.assign(existing, payload);
+      Object.assign(existing, identity, sessionLogPatch(body, { create: false }));
       await existing.save();
       return { log: toClient(existing), created: false };
     }
 
-    const doc = await SessionLog.create(payload);
+    const doc = await SessionLog.create({ ...identity, ...sessionLogPatch(body, { create: true }) });
     return { log: toClient(doc), created: true };
   }
 
@@ -127,8 +132,8 @@ export async function upsertSessionLog(body) {
   );
 
   if (existing) {
-    Object.assign(existing, payload, {
-      sessionDate: payload.sessionDate.toISOString(),
+    Object.assign(existing, identity, sessionLogPatch(body, { create: false }), {
+      sessionDate: identity.sessionDate.toISOString(),
       updatedAt: new Date().toISOString(),
     });
     return { log: existing, created: false };
@@ -136,8 +141,9 @@ export async function upsertSessionLog(body) {
 
   const newLog = {
     _id: `sl${memSeq++}`,
-    ...payload,
-    sessionDate: payload.sessionDate.toISOString(),
+    ...identity,
+    ...sessionLogPatch(body, { create: true }),
+    sessionDate: identity.sessionDate.toISOString(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

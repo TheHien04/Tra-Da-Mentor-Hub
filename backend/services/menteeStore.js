@@ -1,13 +1,10 @@
-import mongoose from 'mongoose';
 import MenteeProfile, { APPLICATION_STATUSES } from '../models/MenteeProfile.js';
 import { MENTEE_SEED } from '../data/crmSeed.js';
 import { logMenteeCreated } from './activityLogger.js';
+import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;
@@ -40,10 +37,24 @@ export async function getMenteeById(id) {
 }
 
 export async function createMentee(body) {
+  const email = String(body.email || '').toLowerCase().trim();
+  if (email) {
+    const duplicate = useDb()
+      ? await MenteeProfile.findOne({ email }).lean()
+      : memory.find((m) => String(m.email || '').toLowerCase() === email);
+    if (duplicate) {
+      const error = new Error('EMAIL_TAKEN');
+      error.code = 'EMAIL_TAKEN';
+      throw error;
+    }
+  }
+
   const _id = body._id || String(Date.now());
   const data = {
     _id,
     ...body,
+    email,
+    userId: body.userId || null,
     applicationStatus: body.applicationStatus || 'pending',
     interests: body.interests || [],
   };
@@ -132,4 +143,19 @@ export async function seedMenteesIfEmpty() {
   if (memory.length === 0) {
     MENTEE_SEED.forEach((s) => memory.push({ ...s }));
   }
+}
+
+const MENTEE_TEXT = ['name', 'email', 'school', 'track', 'interests'];
+
+export async function queryMenteeDirectory(query, baseFilter) {
+  if (!useDb()) {
+    const rows = memory.map((row) => ({ ...row, applicationStatus: row.applicationStatus || 'pending' }));
+    return queryMemoryDirectory(rows, query, MENTEE_TEXT, baseFilter);
+  }
+  return queryMongoDirectory(MenteeProfile, query, {
+    textFields: MENTEE_TEXT,
+    skillFields: ['interests'],
+    baseFilter,
+    map: toClient,
+  });
 }

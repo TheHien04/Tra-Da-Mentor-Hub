@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   HiOutlineHome,
@@ -13,6 +13,8 @@ import { useAuth } from '../context/AuthContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './features/ThemeToggle';
 import { NotificationBell } from './features/NotificationBell';
+import { canAccessPath } from '../lib/navAccess';
+import { useFocusTrap } from '../lib/useFocusTrap';
 
 const MobileNav = () => {
   const { t } = useAppTranslation();
@@ -20,36 +22,48 @@ const MobileNav = () => {
   const navigate = useNavigate();
   const { state, logout } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
+  const sheetRef = useFocusTrap(moreOpen);
   const role = state.user?.role || 'user';
-  const isAdmin = role === 'admin';
-  const isMentorOrAdmin = role === 'mentor' || role === 'admin';
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [moreOpen]);
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path);
 
   const primary = [
     { to: '/', label: t('nav.dashboard'), icon: HiOutlineHome },
-    { to: '/schedule', label: t('nav.schedule'), icon: HiOutlineClock },
-    { to: '/mentors', label: t('nav.mentors'), icon: HiOutlineAcademicCap },
-  ];
+    role === 'mentee'
+      ? { to: '/slots', label: t('nav.slots'), icon: HiOutlineClock }
+      : { to: '/schedule', label: t('nav.schedule'), icon: HiOutlineClock },
+    role === 'mentor'
+      ? { to: '/mentees', label: t('nav.mentees'), icon: HiOutlineAcademicCap }
+      : { to: '/mentors', label: t('nav.mentors'), icon: HiOutlineAcademicCap },
+  ].filter((item) => canAccessPath(role, item.to));
 
   const moreLinks = [
     { to: '/mentees', label: t('nav.mentees') },
+    { to: '/mentors', label: t('nav.mentors') },
     { to: '/groups', label: t('nav.groups') },
+    { to: '/slots', label: t('nav.slots') },
     { to: '/schedule', label: t('nav.schedule') },
     { to: '/session-logs', label: t('nav.sessions') },
-    ...(isMentorOrAdmin ? [{ to: '/applications', label: t('nav.applications') }] : []),
+    { to: '/applications', label: t('nav.applications') },
     { to: '/analytics', label: t('nav.analytics') },
     { to: '/insights', label: t('nav.insights') },
     { to: '/testimonials', label: t('nav.testimonials') },
-    ...(isAdmin
-      ? [
-          { to: '/admin/export', label: t('nav.export') },
-          { to: '/admin/invite', label: t('nav.invites') },
-          { to: '/admin/notifications', label: t('nav.notifications') },
-        ]
-      : []),
-  ];
+    { to: '/account', label: t('nav.account') },
+    { to: '/admin/audit', label: t('nav.audit') },
+    { to: '/admin/export', label: t('nav.export') },
+    { to: '/admin/invite', label: t('nav.invites') },
+    { to: '/admin/notifications', label: t('nav.notifications') },
+  ].filter((item) => canAccessPath(role, item.to) && !primary.some((p) => p.to === item.to));
 
   const handleLogout = async () => {
     setMoreOpen(false);
@@ -83,7 +97,13 @@ const MobileNav = () => {
       </nav>
 
       {moreOpen && (
-        <div className="mobile-nav-sheet" role="dialog" aria-modal="true">
+        <div
+          ref={sheetRef}
+          className="mobile-nav-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('nav.more', 'More')}
+        >
           <div className="mobile-nav-sheet-backdrop" onClick={() => setMoreOpen(false)} aria-hidden />
           <div className="mobile-nav-sheet-panel">
             <div className="mobile-nav-sheet-header">
@@ -100,7 +120,7 @@ const MobileNav = () => {
             <div className="mobile-nav-sheet-tools">
               <NotificationBell />
               <ThemeToggle />
-              <LanguageSwitcher />
+              <LanguageSwitcher placement="down" />
             </div>
             <div className="mobile-nav-sheet-links">
               {moreLinks.map((link) => (

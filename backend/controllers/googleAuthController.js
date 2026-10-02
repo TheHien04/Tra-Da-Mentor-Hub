@@ -1,12 +1,18 @@
 import crypto from 'crypto';
 import User from '../models/User.js';
 import env from '../config/env.js';
-import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, accessTtlSeconds } from '../utils/jwt.js';
 import { ensureCrmProfileForUser } from '../services/crmProfileSync.js';
 import { verifyOAuthState } from '../lib/oauthState.js';
+import { setSessionCookies } from '../lib/sessionCookie.js';
 import logger from '../config/logger.js';
 
 const FRONTEND_URL = env.frontendUrl;
+
+/** Success redirect carries cookies only. The URL never includes a token or a hash. */
+export function oauthCallbackUrl(frontendUrl = FRONTEND_URL) {
+  return `${frontendUrl}/auth/callback`;
+}
 
 function getRedirectUri() {
   return `${env.baseUrl}/api/auth/google/callback`;
@@ -80,31 +86,29 @@ export async function handleGoogleCallback(req, res) {
       await user.save();
     }
 
-    const crmIds = await ensureCrmProfileForUser({
+    await ensureCrmProfileForUser({
       email: user.email,
       name: user.name,
       role: user.role,
       userId: user._id.toString(),
     });
 
+    if (!user.isActive) {
+      return res.redirect(`${FRONTEND_URL}/login?error=inactive`);
+    }
+
     const accessToken = generateAccessToken(user._id, user.email, user.role);
     const refreshToken = generateRefreshToken(user._id);
     await user.addRefreshToken(refreshToken);
     await user.updateLastLogin();
-
-    const userPayload = {
-      ...user.toJSON(),
-      ...crmIds,
-    };
-
-    const params = new URLSearchParams({
+    setSessionCookies(res, {
       accessToken,
       refreshToken,
-      user: JSON.stringify(userPayload),
+      accessMaxAgeMs: accessTtlSeconds() * 1000,
     });
 
     logger.info(`Google SSO login: ${email}`);
-    return res.redirect(`${FRONTEND_URL}/auth/callback?${params.toString()}`);
+    return res.redirect(oauthCallbackUrl());
   } catch (error) {
     logger.error('Google callback error:', error);
     return res.redirect(`${FRONTEND_URL}/login?error=google_failed`);

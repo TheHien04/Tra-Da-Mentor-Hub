@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { HiOutlineUsers, HiOutlineTrash, HiOutlineCalendarDays, HiOutlineAcademicCap } from 'react-icons/hi2';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useConfirm } from '../context/ConfirmContext';
 import { groupApi } from '../services/api';
-import { useGroups } from '../hooks/queries/useGroups';
+import { useGroupDirectory } from '../hooks/queries/useGroups';
 import { queryKeys } from '../hooks/queries/keys';
 import { toast } from 'react-toastify';
 import SearchFilter from './SearchFilter';
@@ -14,48 +14,29 @@ import Skeleton from './Skeleton';
 import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass } from './ui';
 import { Alert } from './ui/Alert';
 import { getApiErrorMessage } from '../lib/apiHelpers';
-
-interface Group {
-  _id: string;
-  name: string;
-  description?: string;
-  mentor?: { name: string };
-  mentees?: string[];
-  maxSize?: number;
-  frequency?: string;
-  dayOfWeek?: string;
-  time?: string;
-  meetingSchedule?: { frequency: string; dayOfWeek: string; time: string };
-}
+import { useAuth } from '../context/AuthContext';
+import { EditorialBanner } from './motion/EditorialBanner';
 
 const GroupList = () => {
   const { t } = useAppTranslation();
+  const { state } = useAuth();
+  const isAdmin = state.user?.role === 'admin';
+  const canAdd = state.user?.role === 'admin' || state.user?.role === 'mentor';
   const { confirm } = useConfirm();
   const queryClient = useQueryClient();
-  const { data: groups = [], isLoading: loading, isError, error: queryError } = useGroups();
-  const error = isError ? getApiErrorMessage(queryError) : null;
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [advancedFilters, setAdvancedFilters] = useState({ frequency: '', mentorName: '' });
-
-  const filteredGroups = useMemo(() => {
-    return (groups as Group[]).filter((group) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        group.name.toLowerCase().includes(q) ||
-        group.description?.toLowerCase().includes(q) ||
-        group.mentor?.name.toLowerCase().includes(q);
-      if (advancedFilters.frequency) {
-        const freq = group.frequency || group.meetingSchedule?.frequency;
-        if (freq !== advancedFilters.frequency) return false;
-      }
-      if (
-        advancedFilters.mentorName &&
-        !group.mentor?.name.toLowerCase().includes(advancedFilters.mentorName.toLowerCase())
-      )
-        return false;
-      return matchesSearch;
-    });
-  }, [groups, searchQuery, advancedFilters]);
+  const { data, isLoading: loading, isError, error: queryError } = useGroupDirectory({
+    q: searchQuery || undefined,
+    page,
+    limit: 12,
+    frequency: advancedFilters.frequency || undefined,
+    mentorName: advancedFilters.mentorName || undefined,
+  });
+  const filteredGroups = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const error = isError ? getApiErrorMessage(queryError) : null;
 
   const handleDelete = async (id: string, name: string) => {
     const ok = await confirm({
@@ -79,10 +60,16 @@ const GroupList = () => {
         title={t('group.title')}
         description={t('lists.groupsShown', {
           shown: filteredGroups.length,
-          total: groups.length,
+          total,
         })}
         icon={<HiOutlineUsers className="h-7 w-7" />}
-        action={{ label: `+ ${t('group.addGroup')}`, href: '/groups/add' }}
+        action={canAdd ? { label: `+ ${t('group.addGroup')}`, href: '/groups/add' } : undefined}
+      />
+      <EditorialBanner
+        image="/media/quiet-table.jpg"
+        kicker={t('lists.groupLeadKicker')}
+        title={t('lists.groupLead')}
+        body={t('lists.groupLeadBody')}
       />
 
       {error && (
@@ -91,14 +78,28 @@ const GroupList = () => {
         </Alert>
       )}
 
-      <SearchFilter onSearch={setSearchQuery} placeholder={t('lists.searchGroups')} />
+      <SearchFilter
+        onSearch={(value) => {
+          setSearchQuery(value);
+          setPage(1);
+        }}
+        placeholder={t('lists.searchGroups')}
+      />
 
-      <FilterPanel onClear={() => setAdvancedFilters({ frequency: '', mentorName: '' })}>
+      <FilterPanel
+        onClear={() => {
+          setAdvancedFilters({ frequency: '', mentorName: '' });
+          setPage(1);
+        }}
+      >
         <FilterField label={t('lists.filterFrequency')}>
           <select
             className={filterSelectClass}
             value={advancedFilters.frequency}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, frequency: e.target.value })}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, frequency: e.target.value });
+              setPage(1);
+            }}
           >
             <option value="">{t('lists.allFrequencies')}</option>
             <option value="Weekly">{t('lists.freqWeekly')}</option>
@@ -111,7 +112,10 @@ const GroupList = () => {
             className={filterSelectClass}
             placeholder={t('lists.mentorNamePlaceholder')}
             value={advancedFilters.mentorName}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, mentorName: e.target.value })}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, mentorName: e.target.value });
+              setPage(1);
+            }}
           />
         </FilterField>
       </FilterPanel>
@@ -180,6 +184,7 @@ const GroupList = () => {
                   <Link to={`/groups/${group._id}`} className="btn btn-primary flex-1">
                     {t('group.viewDetails')}
                   </Link>
+                  {isAdmin && (
                   <button
                     type="button"
                     className="btn btn-ghost-danger px-3"
@@ -188,10 +193,29 @@ const GroupList = () => {
                   >
                     <HiOutlineTrash className="h-4 w-4" />
                   </button>
+                  )}
                 </div>
               </article>
             );
           })}
+        </div>
+      )}
+      {total > 12 && (
+        <div className="flex items-center justify-between mt-6">
+          <button type="button" className="btn btn-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            {t('common.previous')}
+          </button>
+          <span className="text-sm text-muted">
+            {page} / {Math.ceil(total / 12)}
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={page >= Math.ceil(total / 12)}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            {t('common.next')}
+          </button>
         </div>
       )}
     </PageShell>

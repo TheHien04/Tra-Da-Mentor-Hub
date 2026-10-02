@@ -1,116 +1,20 @@
 import axios from 'axios';
 import env from '../config/env';
-import { getAccessToken } from '../lib/secureStorage';
+import { clearAuthTokens, readCsrfToken } from '../lib/secureStorage';
 import { handleError } from '../utils/errorHandler';
 import type { AnalyticsSnapshot } from '../lib/analyticsCompute';
+import type { components } from '../types/openapi';
 
-const API_URL = env.apiUrl;
+type Schemas = components['schemas'];
 
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000,
-});
+export type Mentor = Schemas['Mentor'];
+export type Mentee = Schemas['Mentee'];
+export type Group = Schemas['Group'];
+export type Slot = Schemas['Slot'];
+export type SessionLog = Schemas['SessionLog'];
+export type Activity = Schemas['Activity'];
 
-// Add auth token to requests
-api.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Add error interceptor for better error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    // Use centralized error handler
-    handleError(error, false); // Don't show toast here, let components decide
-    return Promise.reject(error);
-  }
-);
-
-// Mentor API
-export const mentorApi = {
-  getAll: () => api.get('/mentors'),
-  getById: (id: string) => api.get(`/mentors/${id}`),
-  getMenteesByMentorId: (id: string) => api.get(`/mentors/${id}/mentees`),
-  getGroupsByMentorId: (id: string) => api.get(`/mentors/${id}/groups`),
-  create: (data: Record<string, unknown>) => api.post('/mentors', data),
-  update: (id: string, data: Record<string, unknown>) => api.patch(`/mentors/${id}`, data),
-  delete: (id: string) => api.delete(`/mentors/${id}`)
-};
-
-// Mentee API
-export const menteeApi = {
-  getAll: () => api.get('/mentees'),
-  getById: (id: string) => api.get(`/mentees/${id}`),
-  create: (data: Record<string, unknown>) => api.post('/mentees', data),
-  update: (id: string, data: Record<string, unknown>) => api.patch(`/mentees/${id}`, data),
-  updateApplicationStatus: (id: string, applicationStatus: string) =>
-    api.patch(`/mentees/${id}/application-status`, { applicationStatus }),
-  delete: (id: string) => api.delete(`/mentees/${id}`)
-};
-
-// Group API
-export const groupApi = {
-  getAll: () => api.get('/groups'),
-  getById: (id: string) => api.get(`/groups/${id}`),
-  getByIdFull: (id: string) => api.get(`/groups/${id}/full`),
-  getMenteesByGroupId: (id: string) => api.get(`/groups/${id}/mentees`),
-  create: (data: Record<string, unknown>) => api.post('/groups', data),
-  update: (id: string, data: Record<string, unknown>) => api.patch(`/groups/${id}`, data),
-  delete: (id: string) => api.delete(`/groups/${id}`),
-  addMenteeToGroup: (groupId: string, menteeId: string) => api.post(`/groups/${groupId}/mentees/${menteeId}`),
-  removeMenteeFromGroup: (groupId: string, menteeId: string) => api.delete(`/groups/${groupId}/mentees/${menteeId}`)
-};
-
-// Activities API
-export const activitiesApi = {
-  getAll: (limit?: number) => api.get(`/activities${limit ? `?limit=${limit}` : ''}`),
-  create: (data: Record<string, unknown>) => api.post('/activities', data)
-};
-
-// Slots API (mentor thêm slot rảnh, mentee chọn – meetingLink: paste Google Meet)
-export const slotsApi = {
-  getAll: (params?: { mentorId?: string; menteeId?: string; availableOnly?: string }) =>
-    api.get('/slots', { params }),
-  create: (data: { mentorId: string; date: string; time: string; duration: number; meetingLink?: string }) =>
-    api.post('/slots', data),
-  book: (slotId: string, menteeId: string) =>
-    api.patch(`/slots/${slotId}/book`, { menteeId }),
-  update: (slotId: string, data: { date?: string; time?: string; duration?: number; meetingLink?: string }) =>
-    api.patch(`/slots/${slotId}`, data),
-};
-
-// Session Logs API (CRM sau buổi mentoring)
-export const sessionLogsApi = {
-  getAll: (params?: { mentorId?: string; menteeId?: string }) =>
-    api.get('/session-logs', { params }),
-  getNeedsSupport: () => api.get('/session-logs/needs-support'),
-  createOrUpdate: (data: {
-    mentorId: string;
-    menteeId: string;
-    sessionDate: string;
-    topic: string;
-    mentorScore?: number;
-    menteeScore?: number;
-    mentorNeedsSupport?: boolean;
-    mentorSupportReason?: string;
-    menteeNeedsSupport?: boolean;
-    menteeSupportReason?: string;
-    completedByMentor?: boolean;
-    completedByMentee?: boolean;
-  }) => api.post('/session-logs', data)
-};
-
-// Invites API (admin mời user – trả link; gửi email thật cần SMTP)
+/** UI contracts. Fields match the OpenAPI schemas and stay required for callers. */
 export interface InviteRecord {
   token: string;
   email: string;
@@ -121,14 +25,6 @@ export interface InviteRecord {
   status: 'active' | 'expired' | 'used';
   link: string;
 }
-
-export const invitesApi = {
-  create: (data: { email: string; role?: string }) =>
-    api.post<{ success: boolean; link: string; token: string } & InviteRecord>('/invites', data),
-  list: () => api.get<{ success: boolean; data: InviteRecord[] }>('/invites'),
-  revoke: (token: string) => api.delete(`/invites/${token}`),
-  validate: (token: string) => api.get(`/invites/validate/${token}`),
-};
 
 export interface AppNotification {
   _id: string;
@@ -149,111 +45,264 @@ export interface MatchSuggestion {
   score: number;
   matchedSkills: string[];
   reasons: string[];
+  factors?: { skills: number; track: number; capacity: number };
+  reasonCodes?: { code: 'skills' | 'track' | 'capacity' | 'profile'; skills?: string[] }[];
   capacity: { active: number; max: number };
 }
-
-export const notificationsApi = {
-  list: (userId?: string) => api.get('/notifications', { params: { userId } }),
-  markRead: (id: string, userId?: string) =>
-    api.patch(`/notifications/${id}/read`, { userId }),
-  markAllRead: (userId?: string) => api.post('/notifications/read-all', { userId }),
-};
-
-export const matchingApi = {
-  suggestions: (params?: { menteeId?: string; mentorId?: string; limit?: number }) =>
-    api.get('/matching/suggestions', { params }),
-  explain: (params: { mentorId: string; menteeId: string }) =>
-    api.get('/matching/explain', { params }),
-};
-
-export const calendarApi = {
-  connect: () => api.get<{ authUrl: string }>('/calendar/connect'),
-  getStatus: () => api.get<{ connected: boolean }>('/calendar/status'),
-  createEvent: (data: Record<string, unknown>) => api.post('/calendar/create-event', data),
-  syncSlot: (slotId: string) =>
-    api.post<{
-      success?: boolean;
-      meetLink?: string;
-      htmlLink?: string;
-      alreadySynced?: boolean;
-      slot?: Record<string, unknown>;
-    }>(`/calendar/sync-slot/${slotId}`),
-};
-
-// Auth API
-export const authApi = {
-  login: (credentials: { email: string; password: string }) =>
-    api.post('/auth/login', credentials),
-  register: (userData: { name: string; email: string; password: string; role?: string }) =>
-    api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
-  getProfile: () => api.get('/auth/profile'),
-  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, data: { password: string; confirmPassword: string }) =>
-    api.post(`/auth/reset-password/${token}`, data),
-  verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
-};
-
-export const paymentsApi = {
-  createCheckout: (plan: string) => api.post('/payments/create-checkout', { plan }),
-};
 
 export interface Testimonial {
   _id: string;
   menteeName: string;
   mentorName: string;
   content: string;
+  contentEn?: string | null;
+  contentVi?: string | null;
   rating: number;
   track: 'career' | 'personal' | 'soft_skills';
   date: string;
   status: 'PUBLISHED' | 'PENDING' | 'REJECTED';
 }
+export type AdminIntegrations = Schemas['AdminIntegrations'];
+export type IntegrationChannelStatus = Schemas['IntegrationChannelStatus'];
+export type BroadcastDelivery = Schemas['BroadcastDelivery'];
+
+type MentorList = Mentor[] | Schemas['PagedMentors'];
+type MenteeList = Mentee[] | Schemas['PagedMentees'];
+type GroupList = Group[] | Schemas['PagedGroups'];
+
+const API_URL = env.apiUrl;
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 10000,
+  withCredentials: true,
+});
+
+// Add auth token to requests
+api.interceptors.request.use(
+  (config) => {
+    const method = (config.method || 'get').toUpperCase();
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      const csrf = readCsrfToken();
+      if (csrf) config.headers['X-CSRF-Token'] = csrf;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+let refreshPromise: Promise<void> | null = null;
+
+async function refreshSession(): Promise<void> {
+  const csrf = readCsrfToken();
+  const response = await axios.post(
+    `${env.apiUrl}/auth/refresh`,
+    {},
+    {
+      withCredentials: true,
+      headers: csrf ? { 'X-CSRF-Token': csrf } : {},
+    }
+  );
+  if (!response.data?.success) throw new Error('Refresh failed');
+}
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config as (typeof error.config & { _retry?: boolean }) | undefined;
+    const url = String(original?.url || '');
+    const isCredentialCall = /\/auth\/(login|refresh|register)/.test(url);
+    if (error.response?.status === 401 && original && !original._retry && !isCredentialCall) {
+      original._retry = true;
+      try {
+        if (!refreshPromise) {
+          refreshPromise = refreshSession().finally(() => {
+            refreshPromise = null;
+          });
+        }
+        await refreshPromise;
+        return api(original);
+      } catch (refreshError) {
+        clearAuthTokens();
+        const skipRedirect = Boolean((original as { skipAuthRedirect?: boolean }).skipAuthRedirect);
+        if (
+          !skipRedirect &&
+          typeof window !== 'undefined' &&
+          !window.location.pathname.startsWith('/login')
+        ) {
+          window.location.assign('/login');
+        }
+        return Promise.reject(refreshError);
+      }
+    }
+    handleError(error, false);
+    return Promise.reject(error);
+  }
+);
+
+// Mentor API
+export interface ListParams {
+  q?: string;
+  page?: number;
+  limit?: number;
+  track?: string;
+  mentorshipType?: string;
+  duration?: string;
+  capacity?: 'active' | 'full' | 'none';
+  expertise?: string;
+  applicationStatus?: string;
+  school?: string;
+  progress?: string;
+  progressMin?: string;
+  progressMax?: string;
+  frequency?: string;
+  mentorName?: string;
+}
+
+export interface Paged<T> {
+  data: T[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export const mentorApi = {
+  getAll: (params?: ListParams) => api.get<MentorList>('/mentors', { params }),
+  getById: (id: string) => api.get<Mentor>(`/mentors/${id}`),
+  getMenteesByMentorId: (id: string) => api.get<Mentee[]>(`/mentors/${id}/mentees`),
+  getGroupsByMentorId: (id: string) => api.get<Group[]>(`/mentors/${id}/groups`),
+  create: (data: Schemas['MentorWrite']) => api.post<Mentor>('/mentors', data),
+  update: (id: string, data: Schemas['MentorWrite']) => api.patch<Mentor>(`/mentors/${id}`, data),
+  delete: (id: string) => api.delete(`/mentors/${id}`),
+};
+
+// Mentee API
+export const menteeApi = {
+  getAll: (params?: ListParams) => api.get<MenteeList>('/mentees', { params }),
+  getById: (id: string) => api.get<Mentee>(`/mentees/${id}`),
+  create: (data: Schemas['MenteeWrite']) => api.post<Mentee>('/mentees', data),
+  update: (id: string, data: Schemas['MenteeWrite']) => api.patch<Mentee>(`/mentees/${id}`, data),
+  updateApplicationStatus: (id: string, applicationStatus: string) =>
+    api.patch<Mentee>(`/mentees/${id}/application-status`, { applicationStatus } satisfies Schemas['ApplicationStatusWrite']),
+  delete: (id: string) => api.delete(`/mentees/${id}`),
+};
+
+// Group API
+export const groupApi = {
+  getAll: (params?: ListParams) => api.get<GroupList>('/groups', { params }),
+  getById: (id: string) => api.get<Group>(`/groups/${id}`),
+  getByIdFull: (id: string) => api.get<Group>(`/groups/${id}/full`),
+  getMenteesByGroupId: (id: string) => api.get<Mentee[]>(`/groups/${id}/mentees`),
+  create: (data: Schemas['GroupWrite']) => api.post<Group>('/groups', data),
+  update: (id: string, data: Schemas['GroupWrite']) => api.patch<Group>(`/groups/${id}`, data),
+  delete: (id: string) => api.delete(`/groups/${id}`),
+  addMenteeToGroup: (groupId: string, menteeId: string) => api.post(`/groups/${groupId}/mentees/${menteeId}`),
+  removeMenteeFromGroup: (groupId: string, menteeId: string) => api.delete(`/groups/${groupId}/mentees/${menteeId}`),
+};
+
+// Activities API
+export const activitiesApi = {
+  getAll: (limit?: number) => api.get<Activity[]>(`/activities${limit ? `?limit=${limit}` : ''}`),
+  create: (data: Activity) => api.post<Activity>('/activities', data),
+};
+
+// Slots API (mentor thêm slot rảnh, mentee chọn – meetingLink: paste Google Meet)
+export const slotsApi = {
+  getAll: (params?: { mentorId?: string; menteeId?: string; availableOnly?: string }) =>
+    api.get<Slot[]>('/slots', { params }),
+  create: (data: Schemas['SlotWrite']) => api.post<Slot>('/slots', data),
+  book: (slotId: string, menteeId?: string, idempotencyKey?: string) =>
+    api.patch<Slot>(`/slots/${slotId}/book`, menteeId ? { menteeId } : {}, {
+      headers: {
+        'Idempotency-Key':
+          idempotencyKey || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${slotId}`,
+      },
+    }),
+  cancelBooking: (slotId: string) => api.delete<Slot>(`/slots/${slotId}/booking`),
+  remove: (slotId: string) => api.delete(`/slots/${slotId}`),
+  update: (slotId: string, data: Schemas['SlotPatch']) => api.patch<Slot>(`/slots/${slotId}`, data),
+};
+
+// Session Logs API (CRM sau buổi mentoring)
+export const sessionLogsApi = {
+  getAll: (params?: { mentorId?: string; menteeId?: string }) =>
+    api.get<SessionLog[]>('/session-logs', { params }),
+  getNeedsSupport: () => api.get<SessionLog[]>('/session-logs/needs-support'),
+  createOrUpdate: (data: Schemas['SessionLogWrite']) => api.post<SessionLog>('/session-logs', data),
+};
+
+export const invitesApi = {
+  create: (data: Schemas['InviteWrite'], idempotencyKey?: string) =>
+    api.post<InviteRecord>('/invites', data, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    }),
+  list: () => api.get<{ success: boolean; data: InviteRecord[] }>('/invites'),
+  revoke: (token: string) => api.delete(`/invites/${token}`),
+  validate: (token: string) => api.get<InviteRecord>(`/invites/validate/${token}`),
+};
+
+export const notificationsApi = {
+  list: () => api.get<{ success: boolean; data: AppNotification[] }>('/notifications'),
+  markRead: (id: string) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.post<Schemas['Ok']>('/notifications/read-all'),
+};
+
+export const matchingApi = {
+  suggestions: (params?: { menteeId?: string; mentorId?: string; limit?: number }) =>
+    api.get<{ success: boolean; data: MatchSuggestion[] }>('/matching/suggestions', { params }),
+  explain: (params: { mentorId: string; menteeId: string; lang?: string }) =>
+    api.get<Schemas['MatchExplain']>('/matching/explain', { params }),
+};
+
+export const calendarApi = {
+  connect: () => api.get<Schemas['CalendarConnect']>('/calendar/connect'),
+  getStatus: () => api.get<Schemas['CalendarStatus']>('/calendar/status'),
+  createEvent: (data: Schemas['CalendarEventWrite']) => api.post('/calendar/create-event', data),
+  syncSlot: (slotId: string) => api.post<Schemas['CalendarSyncResult']>(`/calendar/sync-slot/${slotId}`),
+};
+
+// Auth API
+export const authApi = {
+  login: (credentials: Schemas['LoginRequest']) => api.post<Schemas['AuthTokens']>('/auth/login', credentials),
+  register: (userData: Schemas['RegisterRequest']) => api.post<Schemas['AuthTokens']>('/auth/register', userData),
+  logout: () => api.post<Schemas['Ok']>('/auth/logout'),
+  getProfile: () => api.get<Schemas['ProfileResponse']>('/auth/profile'),
+  forgotPassword: (email: string) =>
+    api.post<Schemas['Ok']>('/auth/forgot-password', { email } satisfies Schemas['EmailRequest']),
+  resetPassword: (token: string, data: Schemas['ResetPasswordRequest']) =>
+    api.post(`/auth/reset-password/${token}`, data),
+  verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
+  changePassword: (data: { currentPassword: string; password: string; confirmPassword: string }) =>
+    api.post<{ success: boolean }>('/auth/change-password', data),
+  exportAccount: () =>
+    api.get<{ success: boolean; data: Record<string, unknown> }>('/auth/export'),
+  deleteAccount: (password: string) =>
+    api.delete<{ success: boolean }>('/auth/account', { data: { password } }),
+};
+
+export const paymentsApi = {
+  availability: () => api.get<{ success: boolean; data: { checkout: boolean } }>('/payments/availability'),
+  createCheckout: (plan: string) =>
+    api.post('/payments/create-checkout', { plan } satisfies Schemas['CheckoutRequest']),
+};
 
 export const testimonialsApi = {
   getAll: (params?: { status?: string; track?: string; q?: string }) =>
-    api.get('/testimonials', { params }),
-  create: (data: Omit<Testimonial, '_id' | 'status' | 'date'> & { status?: Testimonial['status'] }) =>
-    api.post('/testimonials', data),
-  update: (id: string, data: Partial<Pick<Testimonial, 'status' | 'rating' | 'content' | 'track'>>) =>
-    api.patch(`/testimonials/${id}`, data),
+    api.get<Testimonial[]>('/testimonials', { params }),
+  create: (data: Schemas['TestimonialWrite']) => api.post<Testimonial>('/testimonials', data),
+  update: (id: string, data: Schemas['TestimonialPatch']) => api.patch<Testimonial>(`/testimonials/${id}`, data),
   delete: (id: string) => api.delete(`/testimonials/${id}`),
 };
 
-export type IntegrationChannelStatus = {
-  ready: boolean;
-  envVars: string[];
-  needsRecipients?: boolean;
-};
-
-export interface AdminIntegrations {
-  inApp: boolean;
-  email: boolean;
-  zalo: boolean;
-  zaloToken?: boolean;
-  zaloRecipients: number;
-  googleCalendar: boolean;
-  openai: boolean;
-  stripe: boolean;
-  channels?: {
-    inApp: IntegrationChannelStatus;
-    email: IntegrationChannelStatus;
-    zalo: IntegrationChannelStatus;
-  };
-}
-
-export type BroadcastChannel = 'in_app' | 'email' | 'zalo' | 'email_zalo' | 'both';
-
-export interface BroadcastDelivery {
-  inApp: boolean;
-  email?: { success: boolean; sent?: number; message?: string } | null;
-  zalo?: { success: boolean; sent?: number; message?: string } | null;
-}
+export type BroadcastChannel = NonNullable<Schemas['BroadcastRequest']['channel']>;
 
 export type AnalyticsPeriod = '7d' | '30d' | '90d' | 'all';
 
 export const uploadsApi = {
-  avatar: (payload: { entityType: 'mentor' | 'mentee'; entityId: string; dataUrl: string }) =>
-    api.post<{ success: boolean; data: { avatarUrl: string } }>('/uploads/avatar', payload),
+  avatar: (payload: Schemas['AvatarUpload']) => api.post<Schemas['AvatarUploadResult']>('/uploads/avatar', payload),
 };
 
 export const analyticsApi = {
@@ -264,18 +313,29 @@ export const analyticsApi = {
 };
 
 export const adminApi = {
-  integrations: () => api.get<{ success: boolean; data: AdminIntegrations }>('/admin/integrations'),
+  integrations: () =>
+    api.get<{ success: boolean; data: AdminIntegrations }>('/admin/integrations'),
   broadcasts: () => api.get<{ success: boolean; data: AppNotification[] }>('/admin/broadcasts'),
-  broadcast: (data: {
-    audience: 'all' | 'mentors' | 'mentees';
-    subject?: string;
-    message: string;
-    channel?: BroadcastChannel;
-  }) =>
+  broadcast: (data: Schemas['BroadcastRequest'], idempotencyKey?: string) =>
     api.post<{
       success: boolean;
       data: { delivery: BroadcastDelivery; channel: string };
-    }>('/admin/broadcast', data),
+    }>('/admin/broadcast', data, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    }),
+  audit: () =>
+    api.get<{
+      success: boolean;
+      data: {
+        _id: string;
+        at: string;
+        action: string;
+        entity: string;
+        entityId: string | null;
+        actorRole: string | null;
+        summary?: string | null;
+      }[];
+    }>('/admin/audit'),
 };
 
 /** Axios instance — use named APIs when possible */

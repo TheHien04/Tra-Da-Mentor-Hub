@@ -5,6 +5,8 @@ import * as paymentsController from '../controllers/paymentsController.js';
 
 const router = express.Router();
 
+router.get('/availability', paymentsController.getCheckoutAvailability);
+
 /**
  * @route   POST /api/payments/create-checkout
  * @desc    Create Stripe checkout session

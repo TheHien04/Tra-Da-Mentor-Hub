@@ -1,17 +1,13 @@
 import crypto from 'crypto';
-import mongoose from 'mongoose';
 import Invite from '../models/Invite.js';
 import env from '../config/env.js';
 import { buildInviteDemo } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const INVITE_EXPIRY_DAYS = 7;
 const INVITE_EXPIRY_MS = INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
 const memory = new Map();
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');

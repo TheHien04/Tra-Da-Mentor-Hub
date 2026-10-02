@@ -1,13 +1,10 @@
-import mongoose from 'mongoose';
 import MentorProfile from '../models/MentorProfile.js';
 import { MENTOR_SEED } from '../data/crmSeed.js';
 import { logMentorCreated } from './activityLogger.js';
+import { queryMemoryDirectory, queryMongoDirectory } from '../lib/directoryQuery.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;
@@ -38,10 +35,24 @@ export async function getMentorById(id) {
 }
 
 export async function createMentor(body) {
+  const email = String(body.email || '').toLowerCase().trim();
+  if (email) {
+    const duplicate = useDb()
+      ? await MentorProfile.findOne({ email }).lean()
+      : memory.find((m) => String(m.email || '').toLowerCase() === email);
+    if (duplicate) {
+      const error = new Error('EMAIL_TAKEN');
+      error.code = 'EMAIL_TAKEN';
+      throw error;
+    }
+  }
+
   const _id = body._id || `m${Date.now()}`;
   const data = {
     _id,
     ...body,
+    email,
+    userId: body.userId || null,
     mentees: body.mentees || [],
     groups: body.groups || [],
     expertise: body.expertise || [],
@@ -127,4 +138,16 @@ export async function seedMentorsIfEmpty() {
   if (memory.length === 0) {
     MENTOR_SEED.forEach((s) => memory.push({ ...s }));
   }
+}
+
+const MENTOR_TEXT = ['name', 'email', 'track', 'bio', 'expertise'];
+
+export async function queryMentorDirectory(query, baseFilter) {
+  if (!useDb()) return queryMemoryDirectory(memory, query, MENTOR_TEXT, baseFilter);
+  return queryMongoDirectory(MentorProfile, query, {
+    textFields: MENTOR_TEXT,
+    skillFields: ['expertise'],
+    baseFilter,
+    map: toClient,
+  });
 }

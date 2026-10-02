@@ -17,11 +17,14 @@ import {
   HiOutlineArrowUpTray,
   HiOutlineUserPlus,
   HiOutlineBell,
+  HiOutlineClipboardDocumentCheck,
+  HiOutlineUserCircle,
   HiOutlineChatBubbleLeftRight,
   HiOutlineArrowRightOnRectangle,
 } from 'react-icons/hi2';
 import logoImg from '../assets/logo.png';
 import { resolveAssetUrl } from '../lib/assetUrl';
+import { canAccessPath } from '../lib/navAccess';
 import { ThemeToggle } from './features/ThemeToggle';
 import { NotificationBell } from './features/NotificationBell';
 
@@ -69,23 +72,26 @@ const Navbar = () => {
     return location.pathname === to;
   };
 
-  const navLink = (to: string, label: string, icon: React.ReactNode, matchPrefix = false) => (
-    <Link to={to} className={`nav-item ${isActive(to, matchPrefix) ? 'active' : ''}`}>
-      {icon}
-      <span>{label}</span>
-    </Link>
-  );
+  const navLink = (to: string, label: string, icon: React.ReactNode, matchPrefix = false) => {
+    if (!canAccessPath(role, to)) return null;
+    return (
+      <Link to={to} className={`nav-item ${isActive(to, matchPrefix) ? 'active' : ''}`}>
+        {icon}
+        <span>{label}</span>
+      </Link>
+    );
+  };
 
   const iconClass = 'h-[18px] w-[18px]';
 
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
-        <img src={logoImg} alt="Tea Mentor" />
-        <h1>Tea Mentor</h1>
+        <img src={logoImg} alt={t('app.brand')} />
+        <h1>{t('app.brand')}</h1>
       </Link>
 
-      <div className="flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">
+      <div className="navbar-links flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">
         {navLink('/', t('nav.dashboard'), <HiOutlineHome className={iconClass} />)}
         {navLink('/mentors', t('nav.mentors'), <HiOutlineAcademicCap className={iconClass} />, true)}
         {navLink('/mentees', t('nav.mentees'), <HiOutlineUserGroup className={iconClass} />, true)}
@@ -102,6 +108,7 @@ const Navbar = () => {
 
         {isAdmin && (
           <>
+            {navLink('/admin/audit', t('nav.audit'), <HiOutlineClipboardDocumentCheck className={iconClass} />, true)}
             {navLink('/admin/export', t('nav.export'), <HiOutlineArrowUpTray className={iconClass} />, true)}
             {navLink('/admin/invite', t('nav.invites'), <HiOutlineUserPlus className={iconClass} />, true)}
             {navLink('/admin/notifications', t('nav.notifications'), <HiOutlineBell className={iconClass} />, true)}
@@ -161,6 +168,14 @@ const Navbar = () => {
                   {t('common.role')}: {state.user?.role}
                 </div>
               </div>
+              <Link
+                to="/account"
+                className="profile-dropdown-logout flex items-center gap-2"
+                onClick={() => setShowDropdown(false)}
+              >
+                <HiOutlineUserCircle className="h-4 w-4 shrink-0" />
+                {t('nav.account')}
+              </Link>
               <button type="button" className="profile-dropdown-logout flex items-center gap-2" onClick={handleLogout}>
                 <HiOutlineArrowRightOnRectangle className="h-4 w-4 shrink-0" />
                 {t('nav.logout')}

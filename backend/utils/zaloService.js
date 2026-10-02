@@ -1,4 +1,6 @@
 import logger from '../config/logger.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
+import { recordDemoZalo } from '../services/demoOutbox.js';
 
 const ZALO_OA_ACCESS_TOKEN = process.env.ZALO_OA_ACCESS_TOKEN || '';
 const ZALO_API_BASE = process.env.ZALO_API_BASE || 'https://openapi.zalo.me/v3.0';
@@ -9,12 +11,18 @@ const ZALO_API_BASE = process.env.ZALO_API_BASE || 'https://openapi.zalo.me/v3.0
  */
 export async function sendZaloBroadcast({ message, recipientIds = [] }) {
   if (!ZALO_OA_ACCESS_TOKEN) {
-    logger.warn('Zalo OA not configured (ZALO_OA_ACCESS_TOKEN missing)');
-    return {
-      success: false,
-      sent: 0,
-      message: 'Zalo OA not configured. Set ZALO_OA_ACCESS_TOKEN in .env',
-    };
+    if (!demoIntegrationsEnabled()) {
+      logger.warn('Zalo OA not configured (ZALO_OA_ACCESS_TOKEN missing)');
+      return {
+        success: false,
+        sent: 0,
+        message: 'Zalo OA not configured. Set ZALO_OA_ACCESS_TOKEN in .env',
+      };
+    }
+    const ids = recipientIds.length ? recipientIds : ['demo-follower'];
+    ids.forEach((recipientId) => recordDemoZalo({ recipientId, message }));
+    logger.info(`Demo Zalo message stored for ${ids.length} recipient(s)`);
+    return { success: true, sent: ids.length, total: ids.length, demo: true };
   }
 
   if (!recipientIds.length) {
@@ -57,10 +65,14 @@ export async function sendZaloBroadcast({ message, recipientIds = [] }) {
 }
 
 /** Placeholder: load follower IDs from env or future DB collection */
-export function getZaloRecipientIdsForAudience(_audience) {
+export function getZaloRecipientIdsForAudience(audience) {
   const raw = process.env.ZALO_BROADCAST_USER_IDS || '';
-  return raw
+  const ids = raw
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+  if (ids.length || !demoIntegrationsEnabled()) return ids;
+  if (audience === 'mentors') return ['demo-mentor'];
+  if (audience === 'mentees') return ['demo-mentee'];
+  return ['demo-mentor', 'demo-mentee'];
 }

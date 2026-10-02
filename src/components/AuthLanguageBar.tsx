@@ -7,7 +7,7 @@ export function AuthLanguageBar() {
     <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
       <ThemeToggle />
       <div className="w-36">
-        <LanguageSwitcher compact />
+        <LanguageSwitcher compact placement="down" />
       </div>
     </div>
   );

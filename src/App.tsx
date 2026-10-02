@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation, Navigate } from 'react-router-dom';
-import './App.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
@@ -11,6 +10,7 @@ import { CommandPalette, useCommandPalette } from './components/features/Command
 import { OnboardingTour } from './components/features/OnboardingTour';
 import { RouteProgress } from './components/features/RouteProgress';
 import { ScrollToTop } from './components/features/ScrollToTop';
+import { ScrollMotion } from './components/motion/ScrollMotion';
 import { PwaInstallPrompt } from './components/features/PwaInstallPrompt';
 import { SkipToContent } from './components/features/SkipToContent';
 import { NotificationProvider } from './context/NotificationContext';
@@ -41,6 +41,8 @@ const NotFound = lazy(() => import('./components/NotFound'));
 const SessionLogPage = lazy(() => import('./pages/SessionLogPage'));
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 const AdminExportPage = lazy(() => import('./pages/AdminExportPage'));
+const AdminAuditPage = lazy(() => import('./pages/AdminAuditPage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
 const AdminNotificationPage = lazy(() => import('./pages/AdminNotificationPage'));
 const SlotsPage = lazy(() => import('./pages/SlotsPage'));
 const AdminInvitePage = lazy(() => import('./pages/AdminInvitePage'));
@@ -103,6 +105,7 @@ function AppContent() {
       <ScrollToTop />
       {isAuthPage ? <AuthLanguageBar /> : <Navbar />}
       <main id="main-content" className="content" tabIndex={-1}>
+        <ScrollMotion />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -129,7 +132,7 @@ function AppContent() {
             <Route
               path="/mentors"
               element={
-                <ProtectedRoute requiredRole={['mentor', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <MentorList />
                 </ProtectedRoute>
               }
@@ -137,7 +140,7 @@ function AppContent() {
             <Route
               path="/mentors/add"
               element={
-                <ProtectedRoute requiredRole={['mentor', 'admin']}>
+                <ProtectedRoute requiredRole={['admin']}>
                   <AddMentor />
                 </ProtectedRoute>
               }
@@ -145,7 +148,7 @@ function AppContent() {
             <Route
               path="/mentors/:id"
               element={
-                <ProtectedRoute requiredRole={['mentor', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <MentorDetail />
                 </ProtectedRoute>
               }
@@ -161,7 +164,7 @@ function AppContent() {
             <Route
               path="/mentees"
               element={
-                <ProtectedRoute requiredRole={['mentee', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <MenteeList />
                 </ProtectedRoute>
               }
@@ -169,7 +172,7 @@ function AppContent() {
             <Route
               path="/mentees/add"
               element={
-                <ProtectedRoute requiredRole={['mentee', 'admin']}>
+                <ProtectedRoute requiredRole={['admin']}>
                   <AddMentee />
                 </ProtectedRoute>
               }
@@ -177,7 +180,7 @@ function AppContent() {
             <Route
               path="/mentees/:id"
               element={
-                <ProtectedRoute requiredRole={['mentee', 'admin']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <MenteeDetail />
                 </ProtectedRoute>
               }
@@ -201,7 +204,7 @@ function AppContent() {
             <Route
               path="/groups/add"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <AddGroup />
                 </ProtectedRoute>
               }
@@ -217,7 +220,7 @@ function AppContent() {
             <Route
               path="/groups/:id/edit"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <EditGroup />
                 </ProtectedRoute>
               }
@@ -255,6 +258,22 @@ function AppContent() {
               }
             />
             <Route
+              path="/account"
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/audit"
+              element={
+                <ProtectedRoute requiredRole={['admin']}>
+                  <AdminAuditPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/export"
               element={
                 <ProtectedRoute requiredRole={['admin']}>
@@ -281,7 +300,7 @@ function AppContent() {
             <Route
               path="/analytics"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <AnalyticsPage />
                 </ProtectedRoute>
               }
@@ -289,7 +308,7 @@ function AppContent() {
             <Route
               path="/insights"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requiredRole={['mentor', 'admin']}>
                   <InsightsPage />
                 </ProtectedRoute>
               }
@@ -297,7 +316,7 @@ function AppContent() {
             <Route
               path="/testimonials"
               element={
-                <ProtectedRoute requiredRole={['admin', 'mentor']}>
+                <ProtectedRoute requiredRole={['mentor', 'mentee', 'admin']}>
                   <TestimonialsPage />
                 </ProtectedRoute>
               }

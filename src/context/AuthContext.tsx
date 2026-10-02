@@ -9,11 +9,7 @@ import {
   login as loginApi,
   register as registerApi,
   logout as logoutApi,
-  storeAuthTokens,
-  storeUserData,
   clearAuthData,
-  getStoredAccessToken,
-  getStoredUserData,
   getProfile,
 } from '../services/authService';
 import type { LoginRequest, RegisterRequest } from '../services/authService';
@@ -45,15 +41,11 @@ export type AuthAction =
 export interface AuthContextType {
   state: AuthState;
   login: (credentials: LoginRequest) => Promise<void>;
-  register: (userData: RegisterRequest) => Promise<void>;
+  register: (userData: RegisterRequest) => Promise<{ needsVerification: true } | void>;
   logout: () => Promise<void>;
   clearError: () => void;
   restoreSession: () => Promise<void>;
-  completeOAuthLogin: (payload: {
-    user: AuthUser;
-    accessToken: string;
-    refreshToken: string;
-  }) => void;
+  completeOAuthLogin: () => Promise<void>;
 }
 
 // ============ CONTEXT ============
@@ -148,15 +140,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await loginApi(credentials);
 
-      const { user: rawUser, accessToken, refreshToken } = response.data;
+      const { user: rawUser } = response.data;
       const user = normalizeAuthUser(rawUser as Record<string, unknown>);
-
-      storeAuthTokens(accessToken, refreshToken);
-      storeUserData(user);
+      clearAuthData();
 
       dispatch({
         type: 'LOGIN_SUCCESS',
-        payload: { user, accessToken, refreshToken },
+        payload: { user, accessToken: '', refreshToken: '' },
       });
     } catch (error: unknown) {
       const err = error as { message?: string; response?: { data?: { message?: string } } };
@@ -172,16 +162,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       const response = await registerApi(userData);
+      const body = response as { needsVerification?: boolean; data?: { user?: Record<string, unknown> } };
+      if (body.needsVerification || !body.data?.user) {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return { needsVerification: true as const };
+      }
 
-      const { user: rawUser, accessToken, refreshToken } = response.data;
+      const { user: rawUser } = body.data;
       const user = normalizeAuthUser(rawUser as Record<string, unknown>);
-
-      storeAuthTokens(accessToken, refreshToken);
-      storeUserData(user);
+      clearAuthData();
 
       dispatch({
         type: 'REGISTER_SUCCESS',
-        payload: { user, accessToken, refreshToken },
+        payload: { user, accessToken: '', refreshToken: '' },
       });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
@@ -211,60 +204,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: 'SET_ERROR', payload: null });
   }, []);
 
-  const completeOAuthLogin = useCallback(
-    (payload: { user: AuthUser; accessToken: string; refreshToken: string }) => {
-      storeAuthTokens(payload.accessToken, payload.refreshToken);
-      storeUserData(payload.user);
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: {
-          user: payload.user,
-          accessToken: payload.accessToken,
-          refreshToken: payload.refreshToken,
-        },
-      });
-    },
-    []
-  );
-
   const restoreSession = useCallback(async () => {
-    const accessToken = getStoredAccessToken();
-    const userData = getStoredUserData();
-
     try {
-      if (accessToken && userData) {
-        try {
-          let user = normalizeAuthUser(userData as Record<string, unknown>);
-          try {
-            const profileRes = await getProfile();
-            const profile =
-              (profileRes as { data?: { data?: Record<string, unknown> } })?.data?.data ??
-              (profileRes as { data?: Record<string, unknown> })?.data ??
-              profileRes;
-            if (profile && typeof profile === 'object') {
-              user = normalizeAuthUser({ ...user, ...profile } as Record<string, unknown>);
-              storeUserData(user);
-            }
-          } catch {
-            // use stored user if profile fetch fails
-          }
-
-          dispatch({
-            type: 'RESTORE_SESSION',
-            payload: {
-              user,
-              accessToken,
-            },
-          });
-        } catch {
-          clearAuthData();
-          dispatch({ type: 'LOGOUT_SUCCESS' });
-        }
+      const profileRes = await getProfile();
+      const profile =
+        (profileRes as { data?: { data?: Record<string, unknown> } })?.data?.data ??
+        (profileRes as { data?: Record<string, unknown> })?.data ??
+        profileRes;
+      if (profile && typeof profile === 'object' && 'email' in profile) {
+        dispatch({
+          type: 'RESTORE_SESSION',
+          payload: {
+            user: normalizeAuthUser(profile as Record<string, unknown>),
+            accessToken: '',
+          },
+        });
+        return;
       }
+      clearAuthData();
+      dispatch({ type: 'LOGOUT_SUCCESS' });
+    } catch {
+      clearAuthData();
+      dispatch({ type: 'LOGOUT_SUCCESS' });
     } finally {
       dispatch({ type: 'BOOTSTRAP_COMPLETE' });
     }
   }, []);
+
+  const completeOAuthLogin = useCallback(async () => {
+    await restoreSession();
+  }, [restoreSession]);
 
   // Restore session on mount
   useEffect(() => {

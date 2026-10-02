@@ -54,7 +54,7 @@ A unified platform with role-based access, persistent storage (MongoDB), real-ti
 
 | Layer | Technologies |
 |-------|----------------|
-| **Client** | React 19, TypeScript, Vite, TanStack Query, React Router, Zod, i18next (EN · VI · JP · KR · CN) |
+| **Client** | React 19, TypeScript, Vite, TanStack Query, React Router, Zod, i18next (Vietnamese and English) |
 | **API** | Node.js 20+, Express 5, Mongoose, JWT access + refresh tokens, Socket.IO |
 | **Data** | MongoDB (required in production) |
 | **Integrations** *(optional)* | SendGrid, Zalo OA, Google Calendar, OpenAI, Stripe, Sentry |

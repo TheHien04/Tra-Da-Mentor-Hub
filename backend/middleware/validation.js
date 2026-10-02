@@ -20,6 +20,7 @@ export function validate(schema) {
 
         return res.status(400).json({
           success: false,
+          code: 'VALIDATION',
           type: "VALIDATION_ERROR",
           message: "Validation failed",
           errors: formattedErrors,
@@ -29,11 +30,11 @@ export function validate(schema) {
       // Replace req.body with validated data
       req.body = result.data;
       next();
-    } catch (error) {
+    } catch {
       return res.status(500).json({
         success: false,
-        message: "Validation error",
-        error: error.message,
+        code: 'INTERNAL',
+        message: 'The server could not complete that request.',
       });
     }
   };
@@ -42,18 +43,23 @@ export function validate(schema) {
 // Legacy validators (kept for backward compatibility)
 // Basic validation middleware for mentor data
 export const validateMentor = (req, res, next) => {
+  const isPartial = req.method === 'PATCH';
   const { name, email, phone, maxMentees } = req.body;
 
   const errors = [];
 
-  if (!name || name.trim() === '') {
-    errors.push('Name is required');
+  if (!isPartial || name !== undefined) {
+    if (!name || String(name).trim() === '') {
+      errors.push('Name is required');
+    }
   }
 
-  if (!email || email.trim() === '') {
-    errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Invalid email format');
+  if (!isPartial || email !== undefined) {
+    if (!email || String(email).trim() === '') {
+      errors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push('Invalid email format');
+    }
   }
 
   if (phone && !/^\d{10,}$/.test(phone.replace(/\D/g, ''))) {
@@ -65,9 +71,11 @@ export const validateMentor = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION',
       message: 'Validation failed',
-      errors 
+      errors,
     });
   }
 
@@ -76,18 +84,23 @@ export const validateMentor = (req, res, next) => {
 
 // Validation middleware for mentee data
 export const validateMentee = (req, res, next) => {
+  const isPartial = req.method === 'PATCH';
   const { name, email, phone } = req.body;
 
   const errors = [];
 
-  if (!name || name.trim() === '') {
-    errors.push('Name is required');
+  if (!isPartial || name !== undefined) {
+    if (!name || String(name).trim() === '') {
+      errors.push('Name is required');
+    }
   }
 
-  if (!email || email.trim() === '') {
-    errors.push('Email is required');
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors.push('Invalid email format');
+  if (!isPartial || email !== undefined) {
+    if (!email || String(email).trim() === '') {
+      errors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push('Invalid email format');
+    }
   }
 
   if (phone && !/^\d{10,}$/.test(phone.replace(/\D/g, ''))) {
@@ -95,9 +108,11 @@ export const validateMentee = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION',
       message: 'Validation failed',
-      errors 
+      errors,
     });
   }
 
@@ -133,9 +148,11 @@ export const validateGroup = (req, res, next) => {
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ 
+    return res.status(400).json({
+      success: false,
+      code: 'VALIDATION',
       message: 'Validation failed',
-      errors 
+      errors,
     });
   }
 

@@ -1,6 +1,6 @@
-import mongoose from 'mongoose';
 import Testimonial from '../models/Testimonial.js';
-import { TESTIMONIAL_DEMO } from '../data/demoContentSeed.js';
+import { TESTIMONIAL_COPY, TESTIMONIAL_DEMO } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 
@@ -11,18 +11,51 @@ function testimonialKey(s) {
   return `${s.menteeName}:${s.mentorName}:${s.date}`;
 }
 
-function useDb() {
-  return mongoose.connection.readyState === 1;
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function safeSearchPattern(q) {
+  return new RegExp(escapeRegex(String(q).slice(0, 80)), 'i');
+}
+
+function clampRating(value) {
+  const rating = Math.round(Number(value));
+  if (!Number.isFinite(rating)) return 5;
+  return Math.min(5, Math.max(1, rating));
+}
+
+function cleanText(value, max) {
+  return String(value || '').trim().slice(0, max);
+}
+
+const TRACKS = new Set(['career', 'personal', 'soft_skills']);
+const STATUSES = new Set(['PUBLISHED', 'PENDING', 'REJECTED']);
+
+function cleanTrack(value) {
+  const track = cleanText(value || 'career', 40);
+  return TRACKS.has(track) ? track : 'career';
+}
+
+function quotePair(doc) {
+  const copy = TESTIMONIAL_COPY[doc.menteeName] || {};
+  return {
+    contentEn: doc.contentEn || copy.en || doc.content,
+    contentVi: doc.contentVi || copy.vi || doc.content,
+  };
 }
 
 function toClient(doc) {
   if (!doc) return null;
   const o = typeof doc.toJSON === 'function' ? doc.toJSON() : { ...doc };
+  const quotes = quotePair(o);
   return {
     _id: String(o._id),
     menteeName: o.menteeName,
     mentorName: o.mentorName,
     content: o.content,
+    contentEn: quotes.contentEn,
+    contentVi: quotes.contentVi,
     rating: Number(o.rating) || 5,
     track: o.track || 'career',
     date: o.date || new Date().toISOString().split('T')[0],
@@ -37,35 +70,40 @@ export async function listTestimonials(query = {}) {
     if (status) filter.status = status;
     if (track) filter.track = track;
     if (q) {
-      const re = new RegExp(q, 'i');
+      const re = safeSearchPattern(q);
       filter.$or = [{ menteeName: re }, { mentorName: re }, { content: re }];
     }
     const docs = await Testimonial.find(filter).sort({ createdAt: -1 }).lean();
     return docs.map((d) => toClient(d));
   }
-  return memory.filter((t) => {
-    if (status && t.status !== status) return false;
-    if (track && t.track !== track) return false;
-    if (q) {
-      const s = q.toLowerCase();
-      return (
-        t.menteeName.toLowerCase().includes(s) ||
-        t.mentorName.toLowerCase().includes(s) ||
-        t.content.toLowerCase().includes(s)
-      );
-    }
-    return true;
-  });
+  return memory
+    .filter((t) => {
+      if (status && t.status !== status) return false;
+      if (track && t.track !== track) return false;
+      if (q) {
+        const s = q.toLowerCase();
+        const quotes = quotePair(t);
+        return (
+          t.menteeName.toLowerCase().includes(s) ||
+          t.mentorName.toLowerCase().includes(s) ||
+          String(t.content || '').toLowerCase().includes(s) ||
+          String(quotes.contentEn || '').toLowerCase().includes(s) ||
+          String(quotes.contentVi || '').toLowerCase().includes(s)
+        );
+      }
+      return true;
+    })
+    .map((t) => toClient(t));
 }
 
 export async function createTestimonial(payload) {
   const data = {
-    menteeName: payload.menteeName?.trim(),
-    mentorName: payload.mentorName?.trim(),
-    content: payload.content?.trim(),
-    rating: Number(payload.rating) || 5,
-    track: payload.track || 'career',
-    status: payload.status || 'PENDING',
+    menteeName: cleanText(payload.menteeName, 80),
+    mentorName: cleanText(payload.mentorName, 80),
+    content: cleanText(payload.content, 2000),
+    rating: clampRating(payload.rating),
+    track: cleanTrack(payload.track),
+    status: payload.status === 'PUBLISHED' ? 'PUBLISHED' : 'PENDING',
     date: payload.date || new Date().toISOString().split('T')[0],
   };
   if (useDb()) {
@@ -78,17 +116,24 @@ export async function createTestimonial(payload) {
 }
 
 export async function updateTestimonial(id, updates) {
+  const patch = { ...updates };
+  if (patch.menteeName !== undefined) patch.menteeName = cleanText(patch.menteeName, 80);
+  if (patch.mentorName !== undefined) patch.mentorName = cleanText(patch.mentorName, 80);
+  if (patch.content !== undefined) patch.content = cleanText(patch.content, 2000);
+  if (patch.rating !== undefined) patch.rating = clampRating(patch.rating);
+  if (patch.track !== undefined) patch.track = cleanTrack(patch.track);
+  if (patch.status !== undefined && !STATUSES.has(patch.status)) delete patch.status;
   if (useDb()) {
     const doc = await Testimonial.findByIdAndUpdate(
       id,
-      { $set: updates },
+      { $set: patch },
       { new: true, runValidators: true }
     );
     return toClient(doc);
   }
   const idx = memory.findIndex((t) => t._id === id);
   if (idx === -1) return null;
-  memory[idx] = { ...memory[idx], ...updates };
+  memory[idx] = { ...memory[idx], ...patch };
   return memory[idx];
 }
 

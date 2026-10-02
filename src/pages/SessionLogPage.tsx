@@ -3,6 +3,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionLogsApi } from '../services/api';
 import { useMentors } from '../hooks/queries/useMentors';
@@ -21,9 +22,15 @@ import { FormField, FormActions } from '../components/ui/FormShell';
 import Skeleton from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useAuth } from '../context/AuthContext';
 
 const SessionLogPage = () => {
   const { t, formatDate } = useAppTranslation();
+  const { state } = useAuth();
+  const role = state.user?.role;
+  const isAdmin = role === 'admin';
+  const showMentorSide = isAdmin || role === 'mentor';
+  const showMenteeSide = isAdmin || role === 'mentee';
   const queryClient = useQueryClient();
   const { data: logs = [], isLoading: loading } = useSessionLogs();
   const { data: mentors = [] } = useMentors();
@@ -47,8 +54,10 @@ const SessionLogPage = () => {
     menteeSupportReason: '',
   });
 
-  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) =>
-    list.find((x) => x._id === id)?.name || list.find((x) => x._id === id)?.email || id;
+  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) => {
+    const hit = list.find((x) => x._id === id);
+    return hit?.name || hit?.email || t('pages.sessionLog.unknownPerson');
+  };
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -92,26 +101,39 @@ const SessionLogPage = () => {
     });
   }, [logs, search, mentorFilter, supportFilter, mentors, mentees]);
 
+  const lockedMentorId = role === 'mentor' ? state.user?.mentorId || '' : '';
+  const lockedMenteeId = role === 'mentee' ? state.user?.menteeId || '' : '';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.mentorId || !form.menteeId || !form.sessionDate || !form.topic.trim()) {
+    const mentorId = lockedMentorId || form.mentorId;
+    const menteeId = lockedMenteeId || form.menteeId;
+    if (!mentorId || !menteeId || !form.sessionDate || !form.topic.trim()) {
       toast.error(t('pages.sessionLog.fillRequired'));
       return;
     }
     try {
       await sessionLogsApi.createOrUpdate({
-        mentorId: form.mentorId,
-        menteeId: form.menteeId,
+        mentorId,
+        menteeId,
         sessionDate: form.sessionDate,
         topic: form.topic.trim(),
-        mentorScore: form.mentorScore === '' ? undefined : Number(form.mentorScore),
-        menteeScore: form.menteeScore === '' ? undefined : Number(form.menteeScore),
-        mentorNeedsSupport: form.mentorNeedsSupport,
-        mentorSupportReason: form.mentorSupportReason || undefined,
-        menteeNeedsSupport: form.menteeNeedsSupport,
-        menteeSupportReason: form.menteeSupportReason || undefined,
-        completedByMentor: true,
-        completedByMentee: true,
+        ...(showMentorSide
+          ? {
+              mentorScore: form.mentorScore === '' ? undefined : Number(form.mentorScore),
+              mentorNeedsSupport: form.mentorNeedsSupport,
+              mentorSupportReason: form.mentorSupportReason || undefined,
+              completedByMentor: true,
+            }
+          : {}),
+        ...(showMenteeSide
+          ? {
+              menteeScore: form.menteeScore === '' ? undefined : Number(form.menteeScore),
+              menteeNeedsSupport: form.menteeNeedsSupport,
+              menteeSupportReason: form.menteeSupportReason || undefined,
+              completedByMentee: true,
+            }
+          : {}),
       });
       toast.success(t('pages.sessionLog.saved'));
       setShowForm(false);
@@ -186,8 +208,9 @@ const SessionLogPage = () => {
             <FormField label={t('pages.sessionLog.mentor')} required>
               <select
                 className="input"
-                value={form.mentorId}
+                value={lockedMentorId || form.mentorId}
                 onChange={(e) => setForm((f) => ({ ...f, mentorId: e.target.value }))}
+                disabled={Boolean(lockedMentorId)}
                 required
               >
                 <option value="">{t('pages.sessionLog.selectMentor')}</option>
@@ -201,8 +224,9 @@ const SessionLogPage = () => {
             <FormField label={t('pages.sessionLog.mentee')} required>
               <select
                 className="input"
-                value={form.menteeId}
+                value={lockedMenteeId || form.menteeId}
                 onChange={(e) => setForm((f) => ({ ...f, menteeId: e.target.value }))}
+                disabled={Boolean(lockedMenteeId)}
                 required
               >
                 <option value="">{t('pages.sessionLog.selectMentee')}</option>
@@ -218,6 +242,7 @@ const SessionLogPage = () => {
             <input
               type="date"
               className="input"
+              max={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}
               value={form.sessionDate}
               onChange={(e) => setForm((f) => ({ ...f, sessionDate: e.target.value }))}
               required
@@ -233,7 +258,7 @@ const SessionLogPage = () => {
             />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={t('pages.sessionLog.mentorScoreLabel')}>
+            {showMentorSide && <FormField label={t('pages.sessionLog.mentorScoreLabel')}>
               <select
                 className="input"
                 value={form.mentorScore}
@@ -251,8 +276,8 @@ const SessionLogPage = () => {
                   </option>
                 ))}
               </select>
-            </FormField>
-            <FormField label={t('pages.sessionLog.menteeScoreLabel')}>
+            </FormField>}
+            {showMenteeSide && <FormField label={t('pages.sessionLog.menteeScoreLabel')}>
               <select
                 className="input"
                 value={form.menteeScore}
@@ -270,9 +295,9 @@ const SessionLogPage = () => {
                   </option>
                 ))}
               </select>
-            </FormField>
+            </FormField>}
           </div>
-          <label className="flex items-center gap-2 text-sm text-secondary cursor-pointer">
+          {showMentorSide && <label className="flex items-center gap-2 text-sm text-secondary cursor-pointer">
             <input
               type="checkbox"
               checked={form.mentorNeedsSupport}
@@ -280,8 +305,8 @@ const SessionLogPage = () => {
               style={{ accentColor: 'var(--accent)' }}
             />
             {t('pages.sessionLog.mentorNeedsSupport')}
-          </label>
-          {form.mentorNeedsSupport && (
+          </label>}
+          {showMentorSide && form.mentorNeedsSupport && (
             <textarea
               className="input"
               rows={2}
@@ -290,7 +315,7 @@ const SessionLogPage = () => {
               onChange={(e) => setForm((f) => ({ ...f, mentorSupportReason: e.target.value }))}
             />
           )}
-          <label className="flex items-center gap-2 text-sm text-secondary cursor-pointer">
+          {showMenteeSide && <label className="flex items-center gap-2 text-sm text-secondary cursor-pointer">
             <input
               type="checkbox"
               checked={form.menteeNeedsSupport}
@@ -298,8 +323,8 @@ const SessionLogPage = () => {
               style={{ accentColor: 'var(--accent)' }}
             />
             {t('pages.sessionLog.menteeNeedsSupport')}
-          </label>
-          {form.menteeNeedsSupport && (
+          </label>}
+          {showMenteeSide && form.menteeNeedsSupport && (
             <textarea
               className="input"
               rows={2}
@@ -431,14 +456,25 @@ const SessionLogPage = () => {
                       <p className="text-xs text-muted mb-1">
                         {log.sessionDate ? formatDate(log.sessionDate) : '—'}
                       </p>
-                      <h3 className="text-sm font-semibold text-primary line-clamp-2">{log.topic}</h3>
+                      <h3 className="text-sm font-semibold text-primary">{log.topic}</h3>
                       <p className="text-sm text-secondary mt-2">
-                        {mentorName} → {menteeName}
+                        {mentorName}
+                        <span className="text-muted"> → </span>
+                        {menteeName}
                       </p>
                       {needsSupport && (
-                        <p className="schedule-meta-item mt-2 text-amber-700 dark:text-amber-400">
-                          <HiOutlineExclamationTriangle className="h-4 w-4 shrink-0" />
-                          {t('pages.sessionLog.needsSupportBadge')}
+                        <p className="mt-2 text-sm text-amber-700 dark:text-amber-400">
+                          <span className="inline-flex items-center gap-1.5">
+                            <HiOutlineExclamationTriangle className="h-4 w-4 shrink-0" />
+                            {t('pages.sessionLog.needsSupportBadge')}
+                          </span>
+                          <Link
+                            to={mentees.some((m) => m._id === log.menteeId) ? `/mentees/${log.menteeId}` : '/applications'}
+                            className="mt-1 block font-medium"
+                            style={{ color: 'var(--accent)' }}
+                          >
+                            {t('pages.sessionLog.supportAction')}
+                          </Link>
                         </p>
                       )}
                     </div>

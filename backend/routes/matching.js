@@ -10,9 +10,26 @@ const router = express.Router();
 /** GET /api/matching/suggestions?menteeId=&mentorId=&limit=8 */
 router.get('/suggestions', async (req, res, next) => {
   try {
+    const { loadActor } = await import('../lib/actor.js');
+    const { fail } = await import('../lib/httpError.js');
+    const actor = await loadActor(req);
     const mentors = await listMentors();
     const mentees = await listMentees();
-    const { menteeId, mentorId, limit } = req.query;
+    let { menteeId, mentorId, limit } = req.query;
+    if (actor?.isAdmin) {
+      menteeId = menteeId || undefined;
+      mentorId = mentorId || undefined;
+    } else if (actor?.role === 'mentee') {
+      if (!actor.menteeId) return fail(res, 403, 'FORBIDDEN');
+      menteeId = actor.menteeId;
+      mentorId = undefined;
+    } else if (actor?.role === 'mentor') {
+      if (!actor.mentorId) return fail(res, 403, 'FORBIDDEN');
+      mentorId = actor.mentorId;
+      menteeId = undefined;
+    } else {
+      return fail(res, 403, 'FORBIDDEN');
+    }
 
     const suggestions = getMatchSuggestions(mentors, mentees, {
       menteeId: menteeId || undefined,
@@ -33,16 +50,26 @@ router.get('/suggestions', async (req, res, next) => {
 /** GET /api/matching/explain?mentorId=&menteeId= */
 router.get('/explain', async (req, res, next) => {
   try {
+    const { loadActor } = await import('../lib/actor.js');
+    const { fail } = await import('../lib/httpError.js');
+    const actor = await loadActor(req);
     const { mentorId, menteeId } = req.query;
     if (!mentorId || !menteeId) {
-      return res.status(400).json({ success: false, message: 'mentorId and menteeId required' });
+      return fail(res, 400, 'VALIDATION', 'mentorId and menteeId required');
+    }
+    if (!actor?.isAdmin) {
+      const allowed =
+        (actor?.role === 'mentee' && actor.menteeId === String(menteeId)) ||
+        (actor?.role === 'mentor' && actor.mentorId === String(mentorId));
+      if (!allowed) return fail(res, 403, 'FORBIDDEN');
     }
     const mentor = await getMentorById(String(mentorId));
     const mentee = await getMenteeById(String(menteeId));
     if (!mentor || !mentee) {
-      return res.status(404).json({ success: false, message: 'Mentor or mentee not found' });
+      return fail(res, 404, 'NOT_FOUND', 'Mentor or mentee not found');
     }
-    const result = await explainMatch(mentor, mentee);
+    const lang = String(req.query.lang || '').toLowerCase().startsWith('en') ? 'en' : 'vi';
+    const result = await explainMatch(mentor, mentee, lang);
     res.json({ success: true, data: result });
   } catch (e) {
     next(e);

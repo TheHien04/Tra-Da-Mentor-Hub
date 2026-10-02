@@ -1,13 +1,9 @@
-import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { BROADCAST_NOTIFICATION_DEMO } from '../data/demoContentSeed.js';
+import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
 let seq = 1;
-
-function useDb() {
-  return mongoose.connection.readyState === 1;
-}
 
 function toClient(doc) {
   if (!doc) return null;
@@ -49,10 +45,11 @@ export async function createNotification(payload, io) {
   }
 
   if (io) {
-    io.emit('notification', notification);
-    if (payload.userId && payload.userId !== 'all') {
-      io.to(`user:${payload.userId}`).emit('notification', notification);
-    }
+    const target = notification.userId;
+    if (target === 'all') io.to('role:all').emit('notification', notification);
+    else if (target === 'mentors') io.to('role:mentors').emit('notification', notification);
+    else if (target === 'mentees') io.to('role:mentees').emit('notification', notification);
+    else if (target) io.to(`user:${target}`).emit('notification', notification);
   }
   return notification;
 }
@@ -73,43 +70,53 @@ export async function listBroadcastNotifications(limit = 50) {
     .slice(0, limit);
 }
 
+export async function listNotificationsForActor(actor) {
+  const ids = ['all', actor.userId];
+  if (actor.role === 'mentor' || actor.isAdmin) ids.push('mentors');
+  if (actor.role === 'mentee' || actor.isAdmin) ids.push('mentees');
+  return listNotifications(ids);
+}
+
 export async function listNotifications(userId) {
+  const ids = Array.isArray(userId) ? userId : [userId];
   if (useDb()) {
     const docs = await Notification.find({
-      $or: [{ userId: 'all' }, { userId }],
+      userId: { $in: ['all', ...ids] },
     })
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
     return docs.map((d) => toClient(d));
   }
-  return memory.filter((n) => n.userId === 'all' || n.userId === userId);
+  return memory.filter((n) => n.userId === 'all' || ids.includes(n.userId));
 }
 
 export async function markRead(id, userId) {
+  const ids = Array.isArray(userId) ? userId : ['all', userId];
   if (useDb()) {
     const doc = await Notification.findOneAndUpdate(
-      { _id: id, $or: [{ userId }, { userId: 'all' }] },
+      { _id: id, userId: { $in: ids } },
       { read: true },
       { new: true }
     );
     return toClient(doc);
   }
-  const n = memory.find((x) => x._id === id && (x.userId === userId || x.userId === 'all'));
+  const n = memory.find((x) => x._id === id && ids.includes(x.userId));
   if (n) n.read = true;
   return n || null;
 }
 
 export async function markAllRead(userId) {
+  const ids = Array.isArray(userId) ? userId : ['all', userId];
   if (useDb()) {
     await Notification.updateMany(
-      { $or: [{ userId }, { userId: 'all' }], read: false },
+      { userId: { $in: ids }, read: false },
       { read: true }
     );
     return;
   }
   memory.forEach((n) => {
-    if (n.userId === userId || n.userId === 'all') n.read = true;
+    if (ids.includes(n.userId)) n.read = true;
   });
 }
 

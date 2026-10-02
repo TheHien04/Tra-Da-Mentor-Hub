@@ -9,6 +9,7 @@ import { SkillTags, ProfileHero } from './ui';
 import { DetailShell, DetailCard, DetailGrid, DetailItem } from './ui/DetailShell';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useConfirm } from '../context/ConfirmContext';
+import { useAuth } from '../context/AuthContext';
 import { useMentee } from '../hooks/queries/useMentee';
 import { useMentor } from '../hooks/queries/useMentor';
 import { queryKeys } from '../hooks/queries/keys';
@@ -16,7 +17,11 @@ import { queryKeys } from '../hooks/queries/keys';
 const MenteeDetail = () => {
   const { t } = useAppTranslation();
   const { confirm } = useConfirm();
+  const { state } = useAuth();
   const { id } = useParams<{ id: string }>();
+  const role = state.user?.role;
+  const canEdit = role === 'admin' || (role === 'mentee' && state.user?.menteeId === id);
+  const canDelete = role === 'admin';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: mentee, isLoading: loading, isError, error: queryError } = useMentee(id);
@@ -87,16 +92,20 @@ const MenteeDetail = () => {
       error={error}
       notFound={!loading && !mentee}
       actions={
-        mentee && (
+        mentee && (canEdit || canDelete) ? (
           <>
-            <Link to={`/mentees/${id}/edit`} className="btn btn-primary">
-              {t('common.edit')}
-            </Link>
-            <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
-              <HiOutlineTrash className="h-4 w-4" />
-            </button>
+            {canEdit && (
+              <Link to={`/mentees/${id}/edit`} className="btn btn-primary">
+                {t('common.edit')}
+              </Link>
+            )}
+            {canDelete && (
+              <button type="button" className="btn btn-ghost-danger" onClick={handleDelete} aria-label={t('common.delete')}>
+                <HiOutlineTrash className="h-4 w-4" />
+              </button>
+            )}
           </>
-        )
+        ) : null
       }
     >
       {mentee && (
