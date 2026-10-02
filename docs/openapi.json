@@ -67,7 +67,14 @@
         "schema": { "type": "string", "enum": ["active", "full", "none"] }
       },
       "Expertise": { "name": "expertise", "in": "query", "schema": { "type": "string" } },
-      "ApplicationStatus": { "name": "applicationStatus", "in": "query", "schema": { "type": "string" } }
+      "ApplicationStatus": { "name": "applicationStatus", "in": "query", "schema": { "type": "string" } },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string" },
+        "description": "Reuse this value to replay the same successful POST instead of creating a second record."
+      }
     },
     "schemas": {
       "Error": {
@@ -89,6 +96,8 @@
               "SLOT_PAST",
               "INVALID_CREDENTIALS",
               "ACCOUNT_INACTIVE",
+              "EMAIL_UNVERIFIED",
+              "DEMO_ACCOUNT",
               "FILE_TOO_LARGE",
               "INTERNAL"
             ]
@@ -1251,7 +1260,10 @@
         "summary": "Book slot for the signed-in mentee",
         "description": "Non-admin callers ignore menteeId. Admin may pass menteeId.",
         "security": [{ "bearerAuth": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/Id" }],
+        "parameters": [
+          { "$ref": "#/components/parameters/Id" },
+          { "$ref": "#/components/parameters/IdempotencyKey" }
+        ],
         "requestBody": {
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BookSlotRequest" } } }
         },
@@ -1557,6 +1569,14 @@
         "summary": "Recent broadcasts",
         "security": [{ "bearerAuth": [] }],
         "responses": { "200": { "description": "Broadcasts" } }
+      }
+    },
+    "/api/admin/audit": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Recent successful writes",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Audit rows, newest first" } }
       }
     },
     "/api/admin/integrations": {

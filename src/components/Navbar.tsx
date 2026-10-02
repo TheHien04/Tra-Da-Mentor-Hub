@@ -17,6 +17,8 @@ import {
   HiOutlineArrowUpTray,
   HiOutlineUserPlus,
   HiOutlineBell,
+  HiOutlineClipboardDocumentCheck,
+  HiOutlineUserCircle,
   HiOutlineChatBubbleLeftRight,
   HiOutlineArrowRightOnRectangle,
 } from 'react-icons/hi2';
@@ -106,6 +108,7 @@ const Navbar = () => {
 
         {isAdmin && (
           <>
+            {navLink('/admin/audit', t('nav.audit'), <HiOutlineClipboardDocumentCheck className={iconClass} />, true)}
             {navLink('/admin/export', t('nav.export'), <HiOutlineArrowUpTray className={iconClass} />, true)}
             {navLink('/admin/invite', t('nav.invites'), <HiOutlineUserPlus className={iconClass} />, true)}
             {navLink('/admin/notifications', t('nav.notifications'), <HiOutlineBell className={iconClass} />, true)}
@@ -165,6 +168,14 @@ const Navbar = () => {
                   {t('common.role')}: {state.user?.role}
                 </div>
               </div>
+              <Link
+                to="/account"
+                className="profile-dropdown-logout flex items-center gap-2"
+                onClick={() => setShowDropdown(false)}
+              >
+                <HiOutlineUserCircle className="h-4 w-4 shrink-0" />
+                {t('nav.account')}
+              </Link>
               <button type="button" className="profile-dropdown-logout flex items-center gap-2" onClick={handleLogout}>
                 <HiOutlineArrowRightOnRectangle className="h-4 w-4 shrink-0" />
                 {t('nav.logout')}

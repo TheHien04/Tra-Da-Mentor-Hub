@@ -41,7 +41,7 @@ export type AuthAction =
 export interface AuthContextType {
   state: AuthState;
   login: (credentials: LoginRequest) => Promise<void>;
-  register: (userData: RegisterRequest) => Promise<void>;
+  register: (userData: RegisterRequest) => Promise<{ needsVerification: true } | void>;
   logout: () => Promise<void>;
   clearError: () => void;
   restoreSession: () => Promise<void>;
@@ -162,8 +162,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       const response = await registerApi(userData);
+      const body = response as { needsVerification?: boolean; data?: { user?: Record<string, unknown> } };
+      if (body.needsVerification || !body.data?.user) {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        return { needsVerification: true as const };
+      }
 
-      const { user: rawUser } = response.data;
+      const { user: rawUser } = body.data;
       const user = normalizeAuthUser(rawUser as Record<string, unknown>);
       clearAuthData();
 

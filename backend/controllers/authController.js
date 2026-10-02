@@ -17,6 +17,9 @@ import { fail } from '../lib/httpError.js';
 import { ensureCrmProfileForUser } from '../services/crmProfileSync.js';
 import { setSessionCookies, clearSessionCookies, readRefreshCookie } from '../lib/sessionCookie.js';
 import { forgetAccountActive } from '../lib/activeUser.js';
+import { emailVerifiedOnRegister, mustVerifyEmail } from '../lib/accountPolicy.js';
+import { sendEmailVerification } from '../utils/emailService.js';
+import env from '../config/env.js';
 
 function issueSession(res, { accessToken, refreshToken }) {
   setSessionCookies(res, {
@@ -94,6 +97,11 @@ export async function login(req, res) {
       return fail(res, 403, 'ACCOUNT_INACTIVE');
     }
 
+    if (mustVerifyEmail(user, Boolean(env.sendgridApiKey))) {
+      logger.warn(`Login failed - Email not verified: ${email} from IP: ${req.ip}`);
+      return fail(res, 403, 'EMAIL_UNVERIFIED');
+    }
+
     // Update last login and store refresh token (skip for mock user)
     const accessToken = generateAccessToken(user._id, user.email, user.role);
     const refreshToken = generateRefreshToken(user._id);
@@ -169,13 +177,32 @@ export async function register(req, res) {
       });
     }
 
+    const mailConfigured = Boolean(env.sendgridApiKey);
+    const emailVerified = emailVerifiedOnRegister({
+      invited: Boolean(inviteToken),
+      mailConfigured,
+    });
+
     // Create user
     const newUser = await User.create({
       email,
       password,
       name,
       role,
+      emailVerified,
     });
+
+    if (mailConfigured && !emailVerified) {
+      const token = newUser.generateEmailVerificationToken();
+      await newUser.save();
+      await sendEmailVerification(newUser, token);
+      logger.info(`Registration awaiting email verification: ${email}`);
+      return res.status(201).json({
+        success: true,
+        needsVerification: true,
+        message: 'Check your email to verify this account',
+      });
+    }
 
     // Legacy Mentor/Mentee collections are not the product profile.
     // CRM profiles (mentor_profiles / mentee_profiles) are created below.

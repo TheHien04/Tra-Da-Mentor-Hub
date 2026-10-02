@@ -48,6 +48,18 @@ test.describe('Critical paths', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
+  test('account page offers password, export, and delete', async ({ page }) => {
+    await page.goto('/account');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByRole('button', { name: /save password|lưu mật khẩu/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /download json|tải json/i })).toBeVisible();
+  });
+
+  test('audit log page loads for an admin', async ({ page }) => {
+    await page.goto('/admin/audit');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  });
+
   test('admin export page loads', async ({ page }) => {
     await page.goto('/admin/export');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

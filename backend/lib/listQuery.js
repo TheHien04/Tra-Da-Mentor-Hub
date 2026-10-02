@@ -45,6 +45,35 @@ export function applyListQuery(items, query, fields) {
       )
     );
   }
+  if (query.school) {
+    const needle = String(query.school).toLowerCase();
+    list = list.filter((item) => String(item.school || '').toLowerCase().includes(needle));
+  }
+  if (query.progressMin !== undefined && query.progressMin !== '') {
+    const min = Number(query.progressMin);
+    list = list.filter((item) => Number(item.progress) >= min);
+  }
+  if (query.progressMax !== undefined && query.progressMax !== '') {
+    const max = Number(query.progressMax);
+    list = list.filter((item) => Number(item.progress) <= max);
+  }
+  if (query.progress) {
+    const bands = String(query.progress).split(',').filter(Boolean);
+    list = list.filter((item) => {
+      const value = Number(item.progress) || 0;
+      if (value === 0 && bands.includes('just-started')) return true;
+      if (value > 0 && value < 100 && bands.includes('in-progress')) return true;
+      if (value === 100 && bands.includes('completed')) return true;
+      return false;
+    });
+  }
+  if (query.frequency) {
+    list = list.filter((item) => (item.frequency || item.meetingSchedule?.frequency) === query.frequency);
+  }
+  if (query.mentorName) {
+    const needle = String(query.mentorName).toLowerCase();
+    list = list.filter((item) => String(item.mentor?.name || '').toLowerCase().includes(needle));
+  }
 
   const hasPage = query.page != null && query.page !== '';
   if (!hasPage) {

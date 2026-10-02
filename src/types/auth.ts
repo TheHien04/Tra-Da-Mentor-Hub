@@ -53,7 +53,7 @@ export interface AuthContextType {
 
   // Methods
   login: (email: string, password: string) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<{ needsVerification: true } | void>;
   logout: () => void;
   clearError: () => void;
 }

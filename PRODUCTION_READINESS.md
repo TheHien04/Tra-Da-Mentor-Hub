@@ -15,7 +15,7 @@
 ### TIER 1 International Features
 - ✅ Email verification system (SendGrid)
 - ✅ Password reset flow
-- ✅ Multi-language support (i18n: EN, VI, JP, KR, CN)
+- ✅ Multi-language support in the product UI (Vietnamese and English)
 - ✅ Stripe payment integration (subscriptions & webhooks)
 - ✅ Privacy Policy & Terms of Service pages
 - ✅ GDPR Cookie Consent Banner
@@ -143,9 +143,8 @@ MONITORING_ENABLED=true
 
 ### 7. Testing (Priority: MEDIUM)
 **Current Status:**
-- Jest configured ✅
-- Test files exist ✅
-- No actual test cases written ❌
+- Jest, Vitest, and Playwright suites exist and run in CI with MongoDB ✅
+- Locale parity, OpenAPI, lint, and a production env check run in CI ✅
 
 **Action Required:**
 ```bash

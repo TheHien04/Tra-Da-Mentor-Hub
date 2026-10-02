@@ -1424,7 +1424,10 @@ export interface paths {
         patch: {
             parameters: {
                 query?: never;
-                header?: never;
+                header?: {
+                    /** @description Reuse this value to replay the same successful POST instead of creating a second record. */
+                    "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+                };
                 path: {
                     id: components["parameters"]["Id"];
                 };
@@ -2312,6 +2315,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Recent successful writes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Audit rows, newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/integrations": {
         parameters: {
             query?: never;
@@ -2405,7 +2442,7 @@ export interface components {
             /** @example false */
             success: boolean;
             /** @enum {string} */
-            code: "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "EMAIL_TAKEN" | "SLOT_TAKEN" | "SLOT_CONFLICT" | "SLOT_PAST" | "INVALID_CREDENTIALS" | "ACCOUNT_INACTIVE" | "FILE_TOO_LARGE" | "INTERNAL";
+            code: "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "VALIDATION" | "CONFLICT" | "EMAIL_TAKEN" | "SLOT_TAKEN" | "SLOT_CONFLICT" | "SLOT_PAST" | "INVALID_CREDENTIALS" | "ACCOUNT_INACTIVE" | "EMAIL_UNVERIFIED" | "DEMO_ACCOUNT" | "FILE_TOO_LARGE" | "INTERNAL";
             message: string;
         };
         Health: {
@@ -2853,6 +2890,8 @@ export interface components {
         Capacity: "active" | "full" | "none";
         Expertise: string;
         ApplicationStatus: string;
+        /** @description Reuse this value to replay the same successful POST instead of creating a second record. */
+        IdempotencyKey: string;
     };
     requestBodies: never;
     headers: never;

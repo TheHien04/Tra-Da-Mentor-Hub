@@ -19,7 +19,9 @@
     "ACCOUNT_INACTIVE": "This account is inactive.",
     "FILE_TOO_LARGE": "That image must be under 2MB.",
     "SLOT_PAST": "That time has already passed.",
-    "INTERNAL": "The server could not complete that request."
+    "INTERNAL": "The server could not complete that request.",
+    "EMAIL_UNVERIFIED": "Verify your email before signing in.",
+    "DEMO_ACCOUNT": "The demo account cannot be changed."
   },
   "command": {
     "title": "Command menu",
@@ -45,6 +47,8 @@
     "notifications": "Notifications",
     "invites": "Invite Users",
     "export": "Export Data",
+    "audit": "Audit log",
+    "account": "Account",
     "logout": "Logout",
     "insights": "AI Insights",
     "pricing": "Pricing",
@@ -242,6 +246,7 @@
     "emptyGroupsTitle": "No groups found",
     "emptyGroupsDefault": "Create a study group to get started.",
     "menteesShown": "{{shown}} shown · {{total}} total · {{completed}} completed",
+    "directoryPage": "{{shown}} on this page · {{total}} total",
     "statusActive": "Active ({{count}}/{{max}})",
     "statusFull": "Full ({{count}}/{{max}})",
     "seatsOpen": "{{open}} seats left of {{max}}",
@@ -473,6 +478,7 @@
   "registerPage": {
     "brand": "Tea Mentor",
     "subtitle": "Create your account",
+    "checkEmail": "Check your email and open the verification link before signing in.",
     "joinAs": "I want to join as:",
     "roleUser": "User (Learn)",
     "roleMentee": "Mentee (Get Mentorship)",
@@ -825,6 +831,35 @@
       "contactSupport": "If you believe this is incorrect, please contact support.",
       "backHome": "Back to Home",
       "goDashboard": "Go to Dashboard"
+    },
+    "account": {
+      "title": "Account",
+      "description": "Password, a copy of your data, and account removal.",
+      "passwordTitle": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "savePassword": "Save password",
+      "passwordSaved": "Password updated.",
+      "passwordMismatch": "The new passwords do not match.",
+      "exportTitle": "Download your data",
+      "exportBody": "A JSON file with your profile, linked records, session notes, and notifications.",
+      "exportAction": "Download JSON",
+      "exported": "Your data file is ready.",
+      "deleteTitle": "Delete account",
+      "deleteBody": "This removes your login and the profile tied to this role. Type your password to confirm.",
+      "deleteAction": "Delete my account"
+    },
+    "audit": {
+      "title": "Audit log",
+      "description": "Successful changes across the program.",
+      "when": "When",
+      "action": "Action",
+      "actor": "Role",
+      "record": "Record",
+      "emptyTitle": "No changes yet",
+      "emptyBody": "Creates, edits, and deletes show up here.",
+      "loadFailed": "The audit log could not be loaded."
     },
     "admin": {
       "invite": {
