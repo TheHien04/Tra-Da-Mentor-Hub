@@ -41,6 +41,8 @@ const NotFound = lazy(() => import('./components/NotFound'));
 const SessionLogPage = lazy(() => import('./pages/SessionLogPage'));
 const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage'));
 const AdminExportPage = lazy(() => import('./pages/AdminExportPage'));
+const AdminAuditPage = lazy(() => import('./pages/AdminAuditPage'));
+const AccountPage = lazy(() => import('./pages/AccountPage'));
 const AdminNotificationPage = lazy(() => import('./pages/AdminNotificationPage'));
 const SlotsPage = lazy(() => import('./pages/SlotsPage'));
 const AdminInvitePage = lazy(() => import('./pages/AdminInvitePage'));
@@ -252,6 +254,22 @@ function AppContent() {
               element={
                 <ProtectedRoute>
                   <SlotsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/account"
+              element={
+                <ProtectedRoute>
+                  <AccountPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/audit"
+              element={
+                <ProtectedRoute requiredRole={['admin']}>
+                  <AdminAuditPage />
                 </ProtectedRoute>
               }
             />

@@ -17,6 +17,8 @@ import {
   refreshTokenSchema,
   emailOnlySchema,
   resetPasswordBodySchema,
+  changePasswordSchema,
+  deleteAccountSchema,
 } from "../schemas/auth.schema.js";
 import { passwordResetLimiter } from "../middleware/security.js";
 import {
@@ -26,6 +28,7 @@ import {
   getProfile,
   logout,
 } from "../controllers/authController.js";
+import { changePassword, exportAccount, deleteAccount } from "../controllers/accountController.js";
 import {
   verifyEmail,
   forgotPassword,
@@ -56,6 +59,9 @@ router.post("/reset-password/:token", passwordResetLimiter, validate(resetPasswo
 // Protected routes
 router.get("/profile", authenticate, getProfile);
 router.post("/logout", authenticate, logout);
+router.post("/change-password", authenticate, validate(changePasswordSchema), changePassword);
+router.get("/export", authenticate, exportAccount);
+router.delete("/account", authenticate, validate(deleteAccountSchema), deleteAccount);
 router.post("/send-verification", authenticate, sendVerificationEmail);
 
 export default router;

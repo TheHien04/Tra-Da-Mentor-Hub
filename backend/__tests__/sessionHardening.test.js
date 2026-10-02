@@ -3,6 +3,8 @@ import { createApp } from '../createApp.js';
 import { oauthCallbackUrl } from '../controllers/googleAuthController.js';
 import { lockDataMode, resetDataMode, useDb } from '../lib/dataMode.js';
 import { readIdempotent, saveIdempotent } from '../lib/idempotency.js';
+import { emailVerifiedOnRegister, mustVerifyEmail } from '../lib/accountPolicy.js';
+import { shouldSkipAudit } from '../middleware/auditMutations.js';
 
 afterEach(() => {
   resetDataMode();
@@ -52,6 +54,78 @@ describe('cookie session CSRF', () => {
       .set('X-CSRF-Token', decodeURIComponent(csrf))
       .send({});
     expect(passed.status).not.toBe(403);
+  });
+});
+
+describe('account policy', () => {
+  it('blocks unverified sign-in only when mail can be sent', () => {
+    expect(mustVerifyEmail({ emailVerified: false }, true)).toBe(true);
+    expect(mustVerifyEmail({ emailVerified: true }, true)).toBe(false);
+    expect(mustVerifyEmail({ emailVerified: false }, false)).toBe(false);
+  });
+
+  it('treats an invite as a verified address', () => {
+    expect(emailVerifiedOnRegister({ invited: true, mailConfigured: true })).toBe(true);
+    expect(emailVerifiedOnRegister({ invited: false, mailConfigured: true })).toBe(false);
+    expect(emailVerifiedOnRegister({ invited: false, mailConfigured: false })).toBe(true);
+  });
+
+  it('keeps password changes in the audit log and skips login noise', () => {
+    expect(shouldSkipAudit('/api/auth/login')).toBe(true);
+    expect(shouldSkipAudit('/api/auth/change-password')).toBe(false);
+    expect(shouldSkipAudit('/api/auth/account')).toBe(false);
+  });
+});
+
+describe('account self-service', () => {
+  const app = createApp({ mountSpa: false });
+
+  async function adminToken() {
+    const login = await request(app).post('/api/auth/login').send({
+      email: 'admin@example.com',
+      password: 'AdminPass123',
+    });
+    return login.body?.data?.accessToken;
+  }
+
+  it('refuses to change or delete the demo account and still exports it', async () => {
+    const token = await adminToken();
+    const changed = await request(app)
+      .post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'AdminPass123', password: 'NewPass123', confirmPassword: 'NewPass123' });
+    expect(changed.status).toBe(403);
+    expect(changed.body.code).toBe('DEMO_ACCOUNT');
+
+    const removed = await request(app)
+      .delete('/api/auth/account')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ password: 'AdminPass123' });
+    expect(removed.status).toBe(403);
+    expect(removed.body.code).toBe('DEMO_ACCOUNT');
+
+    const exported = await request(app)
+      .get('/api/auth/export')
+      .set('Authorization', `Bearer ${token}`);
+    expect(exported.status).toBe(200);
+    expect(exported.body.data.profile.email).toBe('admin@example.com');
+  });
+
+  it('replays an invite when the same idempotency key is sent twice', async () => {
+    lockDataMode('memory');
+    const token = await adminToken();
+    const email = `invite-${Date.now()}@example.com`;
+    const send = () =>
+      request(app)
+        .post('/api/invites')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Idempotency-Key', 'invite-once')
+        .send({ email, role: 'mentee' });
+    const first = await send();
+    const second = await send();
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect(second.body.token).toBe(first.body.token);
   });
 });
 

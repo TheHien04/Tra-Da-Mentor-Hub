@@ -18,6 +18,7 @@ import {
 } from './middleware/security.js';
 import { requireCsrf } from './middleware/csrf.js';
 import { auditMutations } from './middleware/auditMutations.js';
+import { idempotentWrite } from './middleware/idempotentWrite.js';
 import { requireApiAuth } from './middleware/requireApiAuth.js';
 import { getHealthPayload } from './lib/healthStatus.js';
 import { mountFrontend } from './lib/serveFrontend.js';
@@ -117,6 +118,7 @@ export function createApp(options = {}) {
 
   app.use(generalLimiter);
   app.use(requireApiAuth);
+  app.use(idempotentWrite);
   app.use(auditMutations);
 
   app.use('/api/auth', authLimiter, authRoutes);

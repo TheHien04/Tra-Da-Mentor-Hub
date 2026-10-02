@@ -41,6 +41,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       { id: 'testimonials', label: t('nav.testimonials'), href: '/testimonials', group: t('command.groupNavigate') },
       { id: 'add-mentor', label: t('mentor.addMentor'), href: '/mentors/add', group: t('command.groupActions'), keywords: 'create new' },
       { id: 'add-mentee', label: t('mentee.addMentee'), href: '/mentees/add', group: t('command.groupActions'), keywords: 'create new' },
+      { id: 'account', label: t('nav.account'), href: '/account', group: t('command.groupActions'), keywords: 'password export delete' },
     ];
 
     if (role === 'mentor' || role === 'admin') {
@@ -54,6 +55,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
 
     if (role === 'admin') {
       base.push(
+        { id: 'audit', label: t('nav.audit'), href: '/admin/audit', group: t('command.groupAdmin') },
         { id: 'export', label: t('nav.export'), href: '/admin/export', group: t('command.groupAdmin') },
         { id: 'invite', label: t('nav.invites'), href: '/admin/invite', group: t('command.groupAdmin') },
         { id: 'notifications', label: t('nav.notifications'), href: '/admin/notifications', group: t('command.groupAdmin') }

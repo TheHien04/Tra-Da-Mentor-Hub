@@ -32,6 +32,23 @@ export function mongoListFilter(query, textFields, { skillFields = [] } = {}) {
     const rx = new RegExp(escapeRegex(query.expertise), 'i');
     and.push({ $or: skillFields.map((field) => ({ [field]: rx })) });
   }
+  if (query.school) filter.school = new RegExp(escapeRegex(query.school), 'i');
+  if (query.progressMin !== undefined && query.progressMin !== '') {
+    filter.progress = { ...(filter.progress || {}), $gte: Number(query.progressMin) };
+  }
+  if (query.progressMax !== undefined && query.progressMax !== '') {
+    filter.progress = { ...(filter.progress || {}), $lte: Number(query.progressMax) };
+  }
+  if (query.progress) {
+    const bands = String(query.progress).split(',').filter(Boolean);
+    const ors = [];
+    if (bands.includes('just-started')) ors.push({ progress: 0 });
+    if (bands.includes('in-progress')) ors.push({ progress: { $gt: 0, $lt: 100 } });
+    if (bands.includes('completed')) ors.push({ progress: 100 });
+    if (ors.length) and.push({ $or: ors });
+  }
+  if (query.frequency) filter['meetingSchedule.frequency'] = query.frequency;
+  if (query.mentorName) filter['mentor.name'] = new RegExp(escapeRegex(query.mentorName), 'i');
   if (and.length === 1) Object.assign(filter, and[0]);
   else if (and.length > 1) filter.$and = and;
   return filter;

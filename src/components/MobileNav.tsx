@@ -58,6 +58,8 @@ const MobileNav = () => {
     { to: '/analytics', label: t('nav.analytics') },
     { to: '/insights', label: t('nav.insights') },
     { to: '/testimonials', label: t('nav.testimonials') },
+    { to: '/account', label: t('nav.account') },
+    { to: '/admin/audit', label: t('nav.audit') },
     { to: '/admin/export', label: t('nav.export') },
     { to: '/admin/invite', label: t('nav.invites') },
     { to: '/admin/notifications', label: t('nav.notifications') },

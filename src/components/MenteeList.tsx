@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { HiOutlineUserGroup, HiOutlineArrowRight, HiOutlineTrash } from 'react-icons/hi2';
 import { useAppTranslation } from '../hooks/useAppTranslation';
 import { useConfirm } from '../context/ConfirmContext';
 import { menteeApi } from '../services/api';
-import { useMentees } from '../hooks/queries/useMentees';
+import { useMenteeDirectory } from '../hooks/queries/useMentees';
+import { progressQuery } from '../lib/directoryFilters';
 import { queryKeys } from '../hooks/queries/keys';
 import { getTrackOptions } from '../lib/trackOptions';
 import { resolveAssetUrl } from '../lib/assetUrl';
@@ -39,9 +40,7 @@ const MenteeList = () => {
   const { confirm } = useConfirm();
   const queryClient = useQueryClient();
   const trackOptions = getTrackOptions(t, true);
-  const { data: mentees = [], isLoading: loading, isError, error: queryError } = useMentees();
-  const error = isError ? getApiErrorMessage(queryError) : null;
-  const [successMessage, setSuccessMessage] = useState('');
+  const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({ 'just-started': true, 'in-progress': true, completed: true });
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -50,6 +49,20 @@ const MenteeList = () => {
     progressMin: '',
     progressMax: '',
   });
+  const { data, isLoading: loading, isError, error: queryError } = useMenteeDirectory({
+    q: searchQuery || undefined,
+    page,
+    limit: 12,
+    track: advancedFilters.track || undefined,
+    school: advancedFilters.school || undefined,
+    progressMin: advancedFilters.progressMin || undefined,
+    progressMax: advancedFilters.progressMax || undefined,
+    progress: progressQuery(filters),
+  });
+  const mentees = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const error = isError ? getApiErrorMessage(queryError) : null;
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleDelete = async (id: string, name: string) => {
     const ok = await confirm({
@@ -69,31 +82,7 @@ const MenteeList = () => {
     }
   };
 
-  const filteredMentees = useMemo(() => {
-    return (mentees as Mentee[]).filter((mentee) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        mentee.name.toLowerCase().includes(q) ||
-        mentee.email.toLowerCase().includes(q) ||
-        mentee.school?.toLowerCase().includes(q) ||
-        mentee.interests?.some((i) => i.toLowerCase().includes(q));
-
-      let matchesStatus = false;
-      if (mentee.progress === 0 && filters['just-started']) matchesStatus = true;
-      if (mentee.progress > 0 && mentee.progress < 100 && filters['in-progress']) matchesStatus = true;
-      if (mentee.progress === 100 && filters.completed) matchesStatus = true;
-
-      if (advancedFilters.track && mentee.track !== advancedFilters.track) return false;
-      if (advancedFilters.school && !mentee.school?.toLowerCase().includes(advancedFilters.school.toLowerCase()))
-        return false;
-      if (advancedFilters.progressMin !== '' && mentee.progress < parseInt(advancedFilters.progressMin, 10))
-        return false;
-      if (advancedFilters.progressMax !== '' && mentee.progress > parseInt(advancedFilters.progressMax, 10))
-        return false;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [mentees, searchQuery, filters, advancedFilters]);
+  const filteredMentees = mentees;
 
   const progressLabel = (p: number) => {
     if (p === 100) return t('lists.progressCompleted');
@@ -107,16 +96,13 @@ const MenteeList = () => {
     return 'progress-track__fill progress-track__fill--idle';
   };
 
-  const completed = mentees.filter((m) => m.progress === 100).length;
-
   return (
     <PageShell>
       <PageHeader
         title={t('mentee.title')}
-        description={t('lists.menteesShown', {
+        description={t('lists.directoryPage', {
           shown: filteredMentees.length,
-          total: mentees.length,
-          completed,
+          total,
         })}
         icon={<HiOutlineUserGroup className="h-7 w-7" />}
         action={isAdmin ? { label: `+ ${t('mentee.addMentee')}`, href: '/mentees/add' } : undefined}
@@ -141,9 +127,15 @@ const MenteeList = () => {
 
       <SearchFilter
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={(value) => {
+          setSearchQuery(value);
+          setPage(1);
+        }}
         filters={filters}
-        setFilters={setFilters}
+        setFilters={(next) => {
+          setFilters(next);
+          setPage(1);
+        }}
         filterOptions={[
           { label: t('lists.progressJustStarted'), value: 'just-started', checked: true },
           { label: t('lists.progressInProgress'), value: 'in-progress', checked: true },
@@ -153,13 +145,19 @@ const MenteeList = () => {
       />
 
       <FilterPanel
-        onClear={() => setAdvancedFilters({ track: '', school: '', progressMin: '', progressMax: '' })}
+        onClear={() => {
+          setAdvancedFilters({ track: '', school: '', progressMin: '', progressMax: '' });
+          setPage(1);
+        }}
       >
         <FilterField label={t('lists.filterTrack')}>
           <select
             className={filterSelectClass}
             value={advancedFilters.track}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, track: e.target.value })}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, track: e.target.value });
+              setPage(1);
+            }}
           >
             {trackOptions.map((o) => (
               <option key={o.value || 'all'} value={o.value}>
@@ -173,7 +171,10 @@ const MenteeList = () => {
             className={filterSelectClass}
             placeholder={t('lists.filterSchool')}
             value={advancedFilters.school}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, school: e.target.value })}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, school: e.target.value });
+              setPage(1);
+            }}
           />
         </FilterField>
         <FilterField label={t('lists.progressMin')}>
@@ -183,7 +184,10 @@ const MenteeList = () => {
             max={100}
             className={filterSelectClass}
             value={advancedFilters.progressMin}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, progressMin: e.target.value })}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, progressMin: e.target.value });
+              setPage(1);
+            }}
           />
         </FilterField>
         <FilterField label={t('lists.progressMax')}>
@@ -193,7 +197,10 @@ const MenteeList = () => {
             max={100}
             className={filterSelectClass}
             value={advancedFilters.progressMax}
-            onChange={(e) => setAdvancedFilters({ ...advancedFilters, progressMax: e.target.value })}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, progressMax: e.target.value });
+              setPage(1);
+            }}
           />
         </FilterField>
       </FilterPanel>
@@ -275,6 +282,24 @@ const MenteeList = () => {
               </div>
             </article>
           ))}
+        </div>
+      )}
+      {total > 12 && (
+        <div className="flex items-center justify-between mt-6">
+          <button type="button" className="btn btn-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            {t('common.previous')}
+          </button>
+          <span className="text-sm text-muted">
+            {page} / {Math.ceil(total / 12)}
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={page >= Math.ceil(total / 12)}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            {t('common.next')}
+          </button>
         </div>
       )}
     </PageShell>

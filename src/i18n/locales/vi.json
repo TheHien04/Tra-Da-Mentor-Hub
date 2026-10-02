@@ -28,6 +28,8 @@
     "notifications": "Thông báo",
     "invites": "Mời người dùng",
     "export": "Xuất dữ liệu",
+    "audit": "Nhật ký kiểm tra",
+    "account": "Tài khoản",
     "logout": "Đăng xuất",
     "insights": "AI Gợi ý",
     "pricing": "Bảng giá",
@@ -224,6 +226,7 @@
     "emptyGroupsTitle": "Không tìm thấy nhóm",
     "emptyGroupsDefault": "Tạo nhóm học để bắt đầu.",
     "menteesShown": "{{shown}} hiển thị · {{total}} tổng · {{completed}} hoàn thành",
+    "directoryPage": "{{shown}} trên trang này · {{total}} tất cả",
     "statusActive": "Còn chỗ ({{count}}/{{max}})",
     "statusFull": "Đã đầy ({{count}}/{{max}})",
     "seatsOpen": "{{open}} chỗ trống trên {{max}}",
@@ -361,7 +364,7 @@
     "invited": "Đã mời",
     "loadError": "Không tải được dữ liệu",
     "retry": "Thử lại",
-    "previous": "Previous"
+    "previous": "Trước"
   },
   "detail": {
     "profile": "Hồ sơ",
@@ -452,6 +455,7 @@
   "registerPage": {
     "brand": "Trà Đá Mentor",
     "subtitle": "Tạo tài khoản của bạn",
+    "checkEmail": "Hãy mở thư xác minh trước khi đăng nhập.",
     "joinAs": "Tôi muốn tham gia với vai trò:",
     "roleUser": "Người dùng (Học)",
     "roleMentee": "Mentee (Nhận mentoring)",
@@ -804,6 +808,35 @@
       "contactSupport": "Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ hỗ trợ.",
       "backHome": "Về trang chủ",
       "goDashboard": "Đến Dashboard"
+    },
+    "account": {
+      "title": "Tài khoản",
+      "description": "Mật khẩu, bản sao dữ liệu và xóa tài khoản.",
+      "passwordTitle": "Đổi mật khẩu",
+      "currentPassword": "Mật khẩu hiện tại",
+      "newPassword": "Mật khẩu mới",
+      "confirmPassword": "Nhập lại mật khẩu mới",
+      "savePassword": "Lưu mật khẩu",
+      "passwordSaved": "Đã cập nhật mật khẩu.",
+      "passwordMismatch": "Hai mật khẩu mới không trùng nhau.",
+      "exportTitle": "Tải dữ liệu của bạn",
+      "exportBody": "Tệp JSON gồm hồ sơ, bản ghi liên kết, nhật ký buổi học và thông báo.",
+      "exportAction": "Tải JSON",
+      "exported": "Tệp dữ liệu đã sẵn sàng.",
+      "deleteTitle": "Xóa tài khoản",
+      "deleteBody": "Việc này xóa đăng nhập và hồ sơ gắn với vai trò này. Nhập mật khẩu để xác nhận.",
+      "deleteAction": "Xóa tài khoản của tôi"
+    },
+    "audit": {
+      "title": "Nhật ký kiểm tra",
+      "description": "Các thay đổi thành công trong chương trình.",
+      "when": "Thời điểm",
+      "action": "Thao tác",
+      "actor": "Vai trò",
+      "record": "Bản ghi",
+      "emptyTitle": "Chưa có thay đổi",
+      "emptyBody": "Tạo, sửa và xóa sẽ hiện ở đây.",
+      "loadFailed": "Không tải được nhật ký kiểm tra."
     },
     "admin": {
       "invite": {
@@ -1220,6 +1253,8 @@
     "ACCOUNT_INACTIVE": "This account is inactive.",
     "FILE_TOO_LARGE": "That image must be under 2MB.",
     "SLOT_PAST": "Khung giờ này đã qua.",
-    "INTERNAL": "The server could not complete that request."
+    "INTERNAL": "Máy chủ không hoàn thành được yêu cầu.",
+    "EMAIL_UNVERIFIED": "Hãy xác minh email trước khi đăng nhập.",
+    "DEMO_ACCOUNT": "Không đổi được tài khoản demo."
   }
 }

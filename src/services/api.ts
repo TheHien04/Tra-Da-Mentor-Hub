@@ -151,6 +151,12 @@ export interface ListParams {
   capacity?: 'active' | 'full' | 'none';
   expertise?: string;
   applicationStatus?: string;
+  school?: string;
+  progress?: string;
+  progressMin?: string;
+  progressMax?: string;
+  frequency?: string;
+  mentorName?: string;
 }
 
 export interface Paged<T> {
@@ -226,7 +232,10 @@ export const sessionLogsApi = {
 };
 
 export const invitesApi = {
-  create: (data: Schemas['InviteWrite']) => api.post<InviteRecord>('/invites', data),
+  create: (data: Schemas['InviteWrite'], idempotencyKey?: string) =>
+    api.post<InviteRecord>('/invites', data, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    }),
   list: () => api.get<{ success: boolean; data: InviteRecord[] }>('/invites'),
   revoke: (token: string) => api.delete(`/invites/${token}`),
   validate: (token: string) => api.get<InviteRecord>(`/invites/validate/${token}`),
@@ -263,6 +272,12 @@ export const authApi = {
   resetPassword: (token: string, data: Schemas['ResetPasswordRequest']) =>
     api.post(`/auth/reset-password/${token}`, data),
   verifyEmail: (token: string) => api.get(`/auth/verify-email/${token}`),
+  changePassword: (data: { currentPassword: string; password: string; confirmPassword: string }) =>
+    api.post<{ success: boolean }>('/auth/change-password', data),
+  exportAccount: () =>
+    api.get<{ success: boolean; data: Record<string, unknown> }>('/auth/export'),
+  deleteAccount: (password: string) =>
+    api.delete<{ success: boolean }>('/auth/account', { data: { password } }),
 };
 
 export const paymentsApi = {
@@ -298,11 +313,18 @@ export const adminApi = {
   integrations: () =>
     api.get<{ success: boolean; data: AdminIntegrations }>('/admin/integrations'),
   broadcasts: () => api.get<{ success: boolean; data: AppNotification[] }>('/admin/broadcasts'),
-  broadcast: (data: Schemas['BroadcastRequest']) =>
+  broadcast: (data: Schemas['BroadcastRequest'], idempotencyKey?: string) =>
     api.post<{
       success: boolean;
       data: { delivery: BroadcastDelivery; channel: string };
-    }>('/admin/broadcast', data),
+    }>('/admin/broadcast', data, {
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    }),
+  audit: () =>
+    api.get<{
+      success: boolean;
+      data: { _id: string; at: string; action: string; entity: string; entityId: string | null; actorRole: string | null }[];
+    }>('/admin/audit'),
 };
 
 /** Axios instance — use named APIs when possible */

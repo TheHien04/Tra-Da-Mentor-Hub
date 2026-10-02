@@ -2,7 +2,7 @@
  * Admin – Invite mentor/mentee by email
  */
 
-import { useState, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { invitesApi } from '../services/api';
 import {
@@ -37,6 +37,7 @@ const AdminInvitePage = () => {
   const [role, setRole] = useState<'mentor' | 'mentee' | 'admin'>('mentee');
   const [loading, setLoading] = useState(false);
   const [inviteLink, setInviteLink] = useState('');
+  const inviteKey = useRef<string | null>(null);
 
   const stats = useMemo(
     () => ({
@@ -64,8 +65,10 @@ const AdminInvitePage = () => {
     }
     setLoading(true);
     setInviteLink('');
+    if (!inviteKey.current) inviteKey.current = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${email}`;
     try {
-      const res = await invitesApi.create({ email: email.trim(), role });
+      const res = await invitesApi.create({ email: email.trim(), role }, inviteKey.current);
+      inviteKey.current = null;
       const body = res.data as { link?: string; data?: { link?: string } };
       const link = body?.link || body?.data?.link || '';
       setInviteLink(link);
