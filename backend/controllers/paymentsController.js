@@ -8,6 +8,7 @@ import {
   constructWebhookEvent,
 } from '../utils/stripe.js';
 import env from '../config/env.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
 
 /**
  * Create Stripe checkout session
@@ -17,6 +18,19 @@ export const createCheckout = async (req, res) => {
   try {
     const { plan } = req.body; // 'pro' or 'premium'
     const userId = req.user.userId;
+
+    if (demoIntegrationsEnabled() && !env.stripeSecretKey) {
+      if (plan !== 'pro' && plan !== 'premium') {
+        return res.status(400).json({ message: 'Invalid plan' });
+      }
+      const sessionId = `demo_${plan}_${Date.now()}`;
+      return res.json({
+        sessionId,
+        url: `${env.frontendUrl}/payment/success?session_id=${sessionId}&plan=${plan}`,
+        demo: true,
+      });
+    }
+
     const user = await User.findById(userId);
 
     if (!user) {
@@ -182,6 +196,7 @@ export const handleWebhook = async (req, res) => {
 };
 
 export const getCheckoutAvailability = (_req, res) => {
-  const checkout = Boolean(env.stripeSecretKey && env.stripeProPriceId && env.stripePremiumPriceId);
-  res.json({ success: true, data: { checkout } });
+  const live = Boolean(env.stripeSecretKey && env.stripeProPriceId && env.stripePremiumPriceId);
+  const checkout = live || demoIntegrationsEnabled();
+  res.json({ success: true, data: { checkout, demo: checkout && !live } });
 };

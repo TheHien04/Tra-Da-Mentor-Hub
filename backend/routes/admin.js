@@ -10,6 +10,7 @@ import logger from '../config/logger.js';
 import env from '../config/env.js';
 import { fail } from '../lib/httpError.js';
 import { listAudit, seedAuditIfEmpty } from '../services/auditStore.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
 
 const router = express.Router();
 
@@ -37,28 +38,32 @@ router.get('/broadcasts', async (_req, res, next) => {
 
 /** GET /api/admin/integrations — feature flags for admin UI (no secrets) */
 router.get('/integrations', (_req, res) => {
+  const demo = demoIntegrationsEnabled();
   const zaloRecipients = getZaloRecipientIdsForAudience('all').length;
   const emailConfigured = Boolean(env.sendgridApiKey);
   const zaloToken = Boolean(env.zaloOaAccessToken);
+  const emailReady = emailConfigured || demo;
+  const zaloReady = (zaloToken && zaloRecipients > 0) || demo;
   res.json({
     success: true,
     data: {
       inApp: true,
-      email: emailConfigured,
-      zalo: zaloToken && zaloRecipients > 0,
-      zaloToken,
+      demo,
+      email: emailReady,
+      zalo: zaloReady,
+      zaloToken: zaloToken || demo,
       zaloRecipients,
-      googleCalendar: Boolean(env.googleClientId && env.googleClientSecret),
-      openai: Boolean(env.openaiApiKey),
-      stripe: Boolean(env.stripeSecretKey),
+      googleCalendar: Boolean(env.googleClientId && env.googleClientSecret) || demo,
+      openai: Boolean(env.openaiApiKey) || demo,
+      stripe: Boolean(env.stripeSecretKey) || demo,
       channels: {
         inApp: { ready: true, envVars: [] },
         email: {
-          ready: emailConfigured,
+          ready: emailReady,
           envVars: ['SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL'],
         },
         zalo: {
-          ready: zaloToken && zaloRecipients > 0,
+          ready: zaloReady,
           envVars: ['ZALO_OA_ACCESS_TOKEN', 'ZALO_BROADCAST_USER_IDS'],
           needsRecipients: zaloToken && zaloRecipients === 0,
         },

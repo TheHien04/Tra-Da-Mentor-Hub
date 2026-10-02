@@ -7,6 +7,8 @@
 import sgMail from '@sendgrid/mail';
 import logger from '../config/logger.js';
 import env from '../config/env.js';
+import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
+import { recordDemoEmail } from '../services/demoOutbox.js';
 
 // Initialize SendGrid
 if (env.sendgridApiKey) {
@@ -24,8 +26,13 @@ const FRONTEND_URL = env.frontendUrl || 'http://localhost:5173';
  */
 async function sendEmail({ to, subject, text, html }) {
   if (!env.sendgridApiKey) {
-    logger.warn(`Email sending disabled - Would send to ${to}: ${subject}`);
-    return { success: false, message: 'Email service not configured' };
+    if (!demoIntegrationsEnabled()) {
+      logger.warn(`Email sending disabled - Would send to ${to}: ${subject}`);
+      return { success: false, message: 'Email service not configured' };
+    }
+    recordDemoEmail({ to, subject, text });
+    logger.info(`Demo email stored for ${to}: ${subject}`);
+    return { success: true, demo: true };
   }
 
   const msg = {
@@ -245,7 +252,7 @@ export async function sendBroadcastEmail({ emails, subject, message }) {
     return { success: false, sent: 0, message: 'No recipient emails' };
   }
 
-  if (!env.sendgridApiKey) {
+  if (!env.sendgridApiKey && !demoIntegrationsEnabled()) {
     logger.warn(`Broadcast email skipped (${unique.length} recipients): SendGrid not configured`);
     return { success: false, sent: 0, message: 'Email service not configured' };
   }
