@@ -1,5 +1,5 @@
 import Testimonial from '../models/Testimonial.js';
-import { TESTIMONIAL_DEMO } from '../data/demoContentSeed.js';
+import { TESTIMONIAL_COPY, TESTIMONIAL_DEMO } from '../data/demoContentSeed.js';
 import { useDb } from '../lib/dataMode.js';
 
 const memory = [];
@@ -37,14 +37,25 @@ function cleanTrack(value) {
   return TRACKS.has(track) ? track : 'career';
 }
 
+function quotePair(doc) {
+  const copy = TESTIMONIAL_COPY[doc.menteeName] || {};
+  return {
+    contentEn: doc.contentEn || copy.en || doc.content,
+    contentVi: doc.contentVi || copy.vi || doc.content,
+  };
+}
+
 function toClient(doc) {
   if (!doc) return null;
   const o = typeof doc.toJSON === 'function' ? doc.toJSON() : { ...doc };
+  const quotes = quotePair(o);
   return {
     _id: String(o._id),
     menteeName: o.menteeName,
     mentorName: o.mentorName,
     content: o.content,
+    contentEn: quotes.contentEn,
+    contentVi: quotes.contentVi,
     rating: Number(o.rating) || 5,
     track: o.track || 'career',
     date: o.date || new Date().toISOString().split('T')[0],
@@ -65,19 +76,24 @@ export async function listTestimonials(query = {}) {
     const docs = await Testimonial.find(filter).sort({ createdAt: -1 }).lean();
     return docs.map((d) => toClient(d));
   }
-  return memory.filter((t) => {
-    if (status && t.status !== status) return false;
-    if (track && t.track !== track) return false;
-    if (q) {
-      const s = q.toLowerCase();
-      return (
-        t.menteeName.toLowerCase().includes(s) ||
-        t.mentorName.toLowerCase().includes(s) ||
-        t.content.toLowerCase().includes(s)
-      );
-    }
-    return true;
-  });
+  return memory
+    .filter((t) => {
+      if (status && t.status !== status) return false;
+      if (track && t.track !== track) return false;
+      if (q) {
+        const s = q.toLowerCase();
+        const quotes = quotePair(t);
+        return (
+          t.menteeName.toLowerCase().includes(s) ||
+          t.mentorName.toLowerCase().includes(s) ||
+          String(t.content || '').toLowerCase().includes(s) ||
+          String(quotes.contentEn || '').toLowerCase().includes(s) ||
+          String(quotes.contentVi || '').toLowerCase().includes(s)
+        );
+      }
+      return true;
+    })
+    .map((t) => toClient(t));
 }
 
 export async function createTestimonial(payload) {

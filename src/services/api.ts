@@ -45,6 +45,7 @@ export interface MatchSuggestion {
   score: number;
   matchedSkills: string[];
   reasons: string[];
+  factors?: { skills: number; track: number; capacity: number };
   reasonCodes?: { code: 'skills' | 'track' | 'capacity' | 'profile'; skills?: string[] }[];
   capacity: { active: number; max: number };
 }
@@ -54,6 +55,8 @@ export interface Testimonial {
   menteeName: string;
   mentorName: string;
   content: string;
+  contentEn?: string | null;
+  contentVi?: string | null;
   rating: number;
   track: 'career' | 'personal' | 'soft_skills';
   date: string;
@@ -250,7 +253,7 @@ export const notificationsApi = {
 export const matchingApi = {
   suggestions: (params?: { menteeId?: string; mentorId?: string; limit?: number }) =>
     api.get<{ success: boolean; data: MatchSuggestion[] }>('/matching/suggestions', { params }),
-  explain: (params: { mentorId: string; menteeId: string }) =>
+  explain: (params: { mentorId: string; menteeId: string; lang?: string }) =>
     api.get<Schemas['MatchExplain']>('/matching/explain', { params }),
 };
 
@@ -323,7 +326,15 @@ export const adminApi = {
   audit: () =>
     api.get<{
       success: boolean;
-      data: { _id: string; at: string; action: string; entity: string; entityId: string | null; actorRole: string | null }[];
+      data: {
+        _id: string;
+        at: string;
+        action: string;
+        entity: string;
+        entityId: string | null;
+        actorRole: string | null;
+        summary?: string | null;
+      }[];
     }>('/admin/audit'),
 };
 

@@ -70,6 +70,11 @@ export function scoreMentorForMentee(mentor, mentee) {
     menteeId: mentee._id,
     menteeName: mentee.name || mentee.email,
     score: Math.round(Math.min(99, total * 100)),
+    factors: {
+      skills: Math.round(Math.min(1, skillScore) * 100),
+      track: trackMatch * 100,
+      capacity: Math.round(cap * 100),
+    },
     matchedSkills: matches,
     reasons,
     reasonCodes,

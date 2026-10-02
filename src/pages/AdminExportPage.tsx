@@ -202,17 +202,17 @@ const AdminExportPage = () => {
         <DetailCard title={t('pages.admin.export.aboutTitle')}>
           <InfoRow
             icon={<HiOutlineTableCells className="h-5 w-5" />}
-            title={t('pages.admin.export.aboutWhat')}
+            title={t('pages.admin.export.aboutWhatTitle')}
             text={t('pages.admin.export.aboutWhat')}
           />
           <InfoRow
             icon={<HiOutlineCircleStack className="h-5 w-5" />}
-            title={t('pages.admin.export.aboutWhen')}
+            title={t('pages.admin.export.aboutWhenTitle')}
             text={t('pages.admin.export.aboutWhen')}
           />
           <InfoRow
             icon={<HiOutlineDocumentText className="h-5 w-5" />}
-            title={t('pages.admin.export.aboutFormat')}
+            title={t('pages.admin.export.aboutFormatTitle')}
             text={t('pages.admin.export.aboutFormat')}
           />
         </DetailCard>

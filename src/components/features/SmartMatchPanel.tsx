@@ -48,8 +48,12 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
   const explainQuery = useMatchExplain(
     explainPair?.mentorId,
     explainPair?.menteeId,
-    Boolean(explainPair)
+    Boolean(explainPair),
+    lang
   );
+  const explained = explainPair
+    ? matches.find((item) => item.mentorId === explainPair.mentorId && item.menteeId === explainPair.menteeId)
+    : undefined;
 
   return (
     <section className={`card p-6${compact ? ' h-full' : ''}`}>
@@ -93,6 +97,30 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
               <span className="badge-pill badge-accent text-[10px]">AI</span>
             )}
           </p>
+          {explained?.factors && (
+            <div className="grid gap-2 mb-3">
+              {(
+                [
+                  ['skills', explained.factors.skills, 'dashboard.matchFactorSkills'],
+                  ['track', explained.factors.track, 'dashboard.matchFactorTrack'],
+                  ['capacity', explained.factors.capacity, 'dashboard.matchFactorCapacity'],
+                ] as const
+              ).map(([key, value, label]) => (
+                <div key={key}>
+                  <div className="flex justify-between text-xs text-muted mb-1">
+                    <span>{t(label)}</span>
+                    <span className="tabular-nums">{value}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full" style={{ background: 'var(--bg-surface-muted)' }}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: 'var(--accent)' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {explainQuery.isLoading ? (
             <p className="text-muted">{t('common.loading')}</p>
           ) : (

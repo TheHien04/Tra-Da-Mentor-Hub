@@ -298,6 +298,45 @@ const AdminNotificationPage = () => {
             </FormField>
           )}
 
+          <div>
+            <p className="text-xs font-medium text-muted mb-2">{t('pages.admin.notifications.templates')}</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => {
+                  setAudience('mentees');
+                  setSubject(t('pages.admin.notifications.templateDeadlineSubject'));
+                  setMessage(t('pages.admin.notifications.templateDeadlineBody'));
+                }}
+              >
+                {t('pages.admin.notifications.templateDeadline')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => {
+                  setAudience('mentees');
+                  setSubject(t('pages.admin.notifications.templateSlotsSubject'));
+                  setMessage(t('pages.admin.notifications.templateSlotsBody'));
+                }}
+              >
+                {t('pages.admin.notifications.templateSlots')}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary text-sm"
+                onClick={() => {
+                  setAudience('mentors');
+                  setSubject(t('pages.admin.notifications.templateSessionSubject'));
+                  setMessage(t('pages.admin.notifications.templateSessionBody'));
+                }}
+              >
+                {t('pages.admin.notifications.templateSession')}
+              </button>
+            </div>
+          </div>
+
           <FormField label={t('pages.admin.notifications.subjectOptional')}>
             <input
               type="text"

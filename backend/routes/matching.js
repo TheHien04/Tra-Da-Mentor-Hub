@@ -68,7 +68,8 @@ router.get('/explain', async (req, res, next) => {
     if (!mentor || !mentee) {
       return fail(res, 404, 'NOT_FOUND', 'Mentor or mentee not found');
     }
-    const result = await explainMatch(mentor, mentee);
+    const lang = String(req.query.lang || '').toLowerCase().startsWith('en') ? 'en' : 'vi';
+    const result = await explainMatch(mentor, mentee, lang);
     res.json({ success: true, data: result });
   } catch (e) {
     next(e);
