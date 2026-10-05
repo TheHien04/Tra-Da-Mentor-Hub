@@ -1350,6 +1350,12 @@
   /* ─── Wow polish: global ─── */
   .page-shell {
     animation: pageEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    padding-inline: 1rem;
+    padding-bottom: 2rem;
+  }
+
+  .page-header__action {
+    min-height: 2.75rem;
   }
 
   @keyframes pageEnter {
@@ -1466,6 +1472,42 @@
   .wow-empty__desc {
     @apply mt-2 text-sm max-w-md;
     color: var(--text-muted);
+  }
+
+  @media (min-width: 640px) {
+    .page-shell {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-shell {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .page-header__action {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .wow-empty {
+      padding-inline: 1.25rem;
+      padding-block: 4rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page-shell,
+    .skeleton-line {
+      animation: none;
+    }
+
+    .card,
+    .card-hover {
+      transition: none;
+    }
   }
 
   /* 404 */

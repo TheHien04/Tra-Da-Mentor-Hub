@@ -31,14 +31,14 @@ const EmptyState = ({
     ) : null;
 
   return (
-    <div className="wow-empty">
+    <section className="wow-empty" aria-label={title}>
       <div className="wow-empty__icon" aria-hidden>
         {icon ?? <HiOutlineSparkles className="h-8 w-8" />}
       </div>
       <h2 className="wow-empty__title">{title}</h2>
       <p className="wow-empty__desc">{description}</p>
       {action}
-    </div>
+    </section>
   );
 };
 

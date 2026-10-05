@@ -17,8 +17,8 @@ export function PageHeader({ title, description, icon, badge, action, children }
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-[min(100%,16rem)] flex-1">
           <h1 className="page-title flex items-center gap-2.5 flex-wrap">
-            {icon && <span className="text-muted shrink-0">{icon}</span>}
-            <span className="truncate">{title}</span>
+            {icon && <span className="text-muted shrink-0" aria-hidden="true">{icon}</span>}
+            <span className="min-w-0 break-words">{title}</span>
             {badge && <LaunchBadge variant={badge} />}
           </h1>
           {description && (
@@ -28,7 +28,7 @@ export function PageHeader({ title, description, icon, badge, action, children }
         {action && (
           <Link
             to={action.href}
-            className="btn btn-primary shrink-0 inline-flex whitespace-nowrap"
+            className="btn btn-primary shrink-0 inline-flex whitespace-nowrap page-header__action"
           >
             {action.label}
           </Link>
