@@ -1,492 +1,253 @@
-<p align="center">
-  <img src="./Images/Dashboard%20light%201.jpg" alt="Trà Đá Mentor Hub — Dashboard" width="720" />
-</p>
+# Trà Đá Mentor Hub
 
-<h1 align="center">Trà Đá Mentor Hub</h1>
-
-<p align="center">
-  <strong>Production-grade mentoring operations platform</strong><br />
-  Mentor & mentee lifecycle · scheduling · session CRM · analytics · admin tooling
-</p>
-
-<p align="center">
-  <a href="#overview">Overview</a> ·
-  <a href="#architecture">Architecture</a> ·
-  <a href="#product-screenshots">Screenshots</a> ·
-  <a href="#getting-started">Getting Started</a> ·
-  <a href="#development-workflow">Development</a> ·
-  <a href="#quality-engineering">Quality</a> ·
-  <a href="#deployment-runbook">Deployment</a> ·
-  <a href="#security">Security</a>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white" alt="Node 20+" />
-  <img src="https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
-  <img src="https://img.shields.io/badge/typescript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/mongoDB-7-47A248?logo=mongodb&logoColor=white" alt="MongoDB" />
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" />
-</p>
+_A production-oriented mentoring operations platform for administrators, mentors, and mentees._
 
 ---
 
-## Overview
+Trà Đá Mentor Hub centralizes mentor and mentee lifecycle management, availability, scheduling, session CRM, notifications, analytics, and administration in one role-aware workspace.
 
-**Trà Đá Mentor Hub** is a full-stack web application that operationalizes structured mentoring programs. It gives program administrators, mentors, and mentees a single system of record for profiles, cohorts, interview scheduling, post-session CRM, operational notifications, and program analytics.
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-### Problem statement
+## 📋 Product overview
 
-Mentoring programs typically fragment data across spreadsheets, chat threads, and ad-hoc calendars. That creates poor visibility, inconsistent follow-up, and high operational overhead.
+### Who it serves
 
-### Solution
+| Role | Responsibilities |
+| --- | --- |
+| **Administrator** | Manage users, invitations, cohorts, broadcasts, exports, testimonials, analytics, and audit history. |
+| **Mentor** | Maintain a profile, publish availability, review mentees, manage sessions, and record outcomes. |
+| **Mentee** | Apply to the program, discover mentors, book slots, view sessions, and track progress. |
 
-A unified platform with role-based access, persistent storage (MongoDB), real-time in-app notifications, and optional integrations (email, messaging, calendar, payments, AI) activated only when credentials are configured on the server.
+### Core capabilities
 
-### Personas & capabilities
+- Role-based access control across UI routes and API resources.
+- Mentor and mentee directories with profile, group, and relationship views.
+- Availability slots, booking, schedule management, session logs, and support flags.
+- In-app notifications with Socket.IO and optional email/Zalo delivery.
+- Analytics, demand signals, AI-assisted matching, and operational insights.
+- Optional Google Calendar/Meet, Stripe, SendGrid, Zalo OA, OpenAI, Google OAuth, and Sentry integrations.
+- Vietnamese, English, Chinese, Japanese, and Korean locale support.
+- Responsive desktop/mobile navigation, dark mode, keyboard quick search, PWA metadata, and accessible route structure.
 
-| Persona | Primary capabilities |
-|---------|----------------------|
-| **Admin** | User invites, broadcast notifications, CSV export, testimonials, analytics, program configuration |
-| **Mentor** | Profile management, availability slots, mentee visibility, session logging, schedule |
-| **Mentee** | Application flow, slot booking, session participation, progress tracking |
+## 🏛️ Architecture
 
-### Technology stack
-
-| Layer | Technologies |
-|-------|----------------|
-| **Client** | React 19, TypeScript, Vite, TanStack Query, React Router, Zod, i18next (Vietnamese and English) |
-| **API** | Node.js 20+, Express 5, Mongoose, JWT access + refresh tokens, Socket.IO |
-| **Data** | MongoDB (required in production) |
-| **Integrations** *(optional)* | SendGrid, Zalo OA, Google Calendar, OpenAI, Stripe, Sentry |
-| **Quality** | Jest, Vitest, Playwright, GitHub Actions |
-
----
-
-## Architecture
+The application is intentionally deployable as a single service: the Express server exposes `/api`, serves protected uploads, and serves the compiled Vite SPA in production.
 
 ```mermaid
 flowchart TB
-  subgraph Client["Browser (SPA)"]
-    UI[React + Vite]
-    RQ[TanStack Query]
-    UI --> RQ
-  end
+    accTitle: Trà Đá Mentor Hub Architecture
+    accDescr: A React single-page application calls the Node and Express API, which enforces authentication and authorization before accessing MongoDB or optional integrations.
 
-  subgraph API["Node / Express"]
-    AUTH[JWT Auth + RBAC]
-    REST[REST /api/*]
-    WS[Socket.IO]
-    AUTH --> REST
-    REST --> WS
-  end
+    browser["🌐 Browser<br/>React + Vite + TanStack Query"]
+    api["🖥️ Application server<br/>Node.js + Express + Socket.IO"]
+    auth["🔐 Security boundary<br/>JWT cookies + CSRF + RBAC"]
+    data[("💾 MongoDB<br/>Persistent production store")]
+    memory[("💾 In-memory store<br/>Development fallback")]
+    integrations["🔌 Optional services<br/>Calendar · Email · Zalo · Stripe · AI · Sentry"]
+    ci["⚙️ Quality gates<br/>TypeScript · ESLint · Vitest · Jest · Playwright"]
 
-  subgraph Data["Persistence"]
-    MONGO[(MongoDB)]
-  end
-
-  subgraph Optional["Optional integrations"]
-    SG[SendGrid]
-    ZL[Zalo OA]
-    GC[Google Calendar]
-    OAI[OpenAI]
-    ST[Stripe]
-  end
-
-  RQ -->|HTTPS| REST
-  REST --> MONGO
-  REST -.-> SG
-  REST -.-> ZL
-  REST -.-> GC
-  REST -.-> OAI
-  REST -.-> ST
+    browser -->|HTTPS / REST| api
+    browser <-->|WebSocket| api
+    api --> auth
+    auth --> data
+    auth -.-> memory
+    api -.-> integrations
+    ci -.-> browser
+    ci -.-> api
 ```
 
-### Design principles
+### Request and authorization flow
 
-1. **Single deployable unit** — The production server serves the built SPA and API from one process (suitable for Railway, Render, Docker).
-2. **Fail-closed production** — Without MongoDB, the API refuses to start in `NODE_ENV=production` (no silent in-memory data loss).
-3. **Secrets off the client** — Integration keys exist only in server environment variables; the admin UI shows service status, never credentials.
-4. **Progressive enhancement** — In-app notifications work out of the box; email and Zalo activate when the operator configures them.
+```mermaid
+sequenceDiagram
+    accTitle: Authenticated API Request Flow
+    accDescr: The client sends a cookie-authenticated mutation, the server validates CSRF and JWT identity, applies role and ownership rules, then writes an audit record before returning the response.
+
+    participant client as Browser
+    participant middleware as Security middleware
+    participant route as API route
+    participant store as Domain store
+    participant audit as Audit log
+
+    client->>middleware: Mutation + CSRF token
+    middleware->>middleware: Validate origin, body size, rate limit, CSRF, JWT
+    middleware->>route: Authenticated request
+    route->>route: Resolve actor, role, and resource ownership
+    route->>store: Execute validated domain operation
+    store-->>route: Domain result
+    route->>audit: Record mutation metadata
+    route-->>client: JSON response
+```
 
 ### Repository layout
 
-```
-Tra-Da-Mentor-Hub/
-├── Images/                  # Product screenshots (documentation only)
+```text
+tra-da-mentor-hub/
 ├── backend/
-│   ├── controllers/         # HTTP handlers
-│   ├── models/              # Mongoose schemas
-│   ├── routes/              # API routers
-│   ├── services/            # Domain logic & stores
-│   ├── middleware/          # Auth, rate limits, security
-│   └── server.js            # Application entrypoint
-├── src/                     # React application
-│   ├── components/          # UI & feature modules
-│   ├── pages/               # Route-level views
-│   ├── hooks/queries/       # Server-state (React Query)
-│   └── services/            # API client
-├── e2e/                     # Playwright end-to-end specs
-├── scripts/                 # Tooling (locales, admin bootstrap, env verify)
-├── .github/workflows/       # CI pipeline
-├── .env.example             # Documented environment template (safe to commit)
-└── docker-compose.yml       # Local production simulation
+│   ├── controllers/        HTTP handlers and integration orchestration
+│   ├── config/             Environment and application configuration
+│   ├── middleware/         Authentication, CSRF, security, audit, errors
+│   ├── models/             Mongoose models
+│   ├── routes/             REST resource routes
+│   ├── services/           MongoDB and development stores
+│   └── server.js           Production entrypoint
+├── src/
+│   ├── components/         Shared UI and feature components
+│   ├── context/            Auth, theme, confirmation, notifications
+│   ├── hooks/queries/      TanStack Query hooks and cache keys
+│   ├── pages/              Route-level screens
+│   ├── services/           Typed API clients
+│   └── lib/                Client-side utilities and policy helpers
+├── e2e/                    Playwright browser tests
+├── docs/                   OpenAPI, architecture, runbooks, testing
+├── scripts/                Quality, locale, deployment, and environment tools
+├── Images/                 Current product screenshots
+└── docker-compose.yml      Local production simulation
 ```
 
----
+## 🖼️ Current product screenshots
 
-## Product screenshots
-
-All assets live under [`Images/`](./Images/). The product supports **light and dark** themes and **five UI locales**.
+These screenshots were captured from the running demo on 5 October 2026 and replace the previous README gallery.
 
 ### Authentication
 
-| Sign in (light) | Sign in (dark) |
-|:--:|:--:|
-| ![Sign in — light theme](./Images/Login%20light.jpg) | ![Sign in — dark theme](./Images/Login%20dark.jpg) |
-
-| Registration (light) | Registration (dark) |
-|:--:|:--:|
-| ![Create account — light](./Images/Create%20account%20light.jpg) | ![Create account — dark](./Images/Create%20account%20dark.jpg) |
+![Current login screen](./Images/demo-login.png)
 
 ### Dashboard
 
-| Program overview (light) | Activity & KPIs (light) |
-|:--:|:--:|
-| ![Dashboard overview](./Images/Dashboard%20light%201.jpg) | ![Dashboard detail](./Images/Dashboard%20light%202.jpg) |
+| Light theme | Dark theme |
+| --- | --- |
+| ![Dashboard light theme](./Images/demo-dashboard-light.png) | ![Dashboard dark theme](./Images/demo-dashboard-dark.png) |
 
-| Program overview (dark) |
-|:--:|
-| ![Dashboard — dark theme](./Images/Dashboard%20dark%201.jpg) |
+### Schedule
 
-### Mentor & mentee management
+![Current schedule screen in dark theme](./Images/demo-schedule-dark.png)
 
-| Mentor directory (light) | Mentor directory (dark) |
-|:--:|:--:|
-| ![Mentor list — light](./Images/Mentor%20light.jpg) | ![Mentor list — dark](./Images/Mentor%20dark.jpg) |
-
-| Mentee directory | Create mentor | Create mentee |
-|:--:|:--:|:--:|
-| ![Mentee list](./Images/Mentees.jpg) | ![Add mentor form](./Images/Add%20mentor.jpg) | ![Add mentee form](./Images/Add%20mentee.jpg) |
-
-| Edit mentor | Edit mentee | Mentee profile |
-|:--:|:--:|:--:|
-| ![Edit mentor](./Images/Edit%20mentor.jpg) | ![Edit mentee](./Images/Edit%20mentee.jpg) | ![Mentee details](./Images/Mentee%20details.jpg) |
-
-| Global quick search |
-|:--:|
-| ![Quick search across entities](./Images/Quick%20search.jpg) |
-
-### Applications, schedule & slots
-
-| Application pipeline | Master schedule | Available slots |
-|:--:|:--:|:--:|
-| ![Applications](./Images/Application.jpg) | ![Schedule](./Images/Schedule.jpg) | ![Free slots](./Images/Free%20slots.jpg) |
-
-### Session CRM
-
-| Post-session logs & support flags |
-|:--:|
-| ![Session logs — CRM view](./Images/Session%20logs.jpg) |
-
-### Analytics & AI
-
-| Analytics dashboard (light) | Analytics dashboard (dark) |
-|:--:|:--:|
-| ![Analytics — light](./Images/Analytics%20light.jpg) | ![Analytics — dark](./Images/Analytics%20dark%201.jpg) |
-
-| Trend & engagement (light) | Trend & engagement (dark) |
-|:--:|:--:|
-| ![Analytics detail — light](./Images/Analytics%20light%202.jpg) | ![Analytics detail — dark](./Images/Analytics%20Dark%202.jpg) |
-
-| AI insights & smart matching |
-|:--:|
-| ![AI insights](./Images/AI%20Insights.jpg) |
-
-### Testimonials
-
-| Public testimonials | Admin curation |
-|:--:|:--:|
-| ![Testimonials showcase](./Images/Testimonials%201.jpg) | ![Testimonials management](./Images/Testimonials%202.jpg) |
-
-### Admin operations
-
-| Broadcast notifications | User invites | Data export |
-|:--:|:--:|:--:|
-| ![Send notification](./Images/Notifications.jpg) | ![Invite users](./Images/Invitie%20user.jpg) | ![Export CSV](./Images/Export%20data.jpg) |
-
----
-
-## Getting started
+## 🚀 Getting started
 
 ### Prerequisites
 
-| Requirement | Version |
-|-------------|---------|
-| Node.js | ≥ 20 |
-| npm | ≥ 9 |
-| MongoDB | 6+ (local or [Atlas](https://www.mongodb.com/atlas)) |
+- Node.js 20 or newer
+- npm 10 or newer
+- MongoDB 7 for persistence and backend integration tests
+- Docker Desktop if you prefer the containerized local stack
 
-### 1. Clone and install
+### Install
 
 ```bash
 git clone https://github.com/TheHien04/Tra-Da-Mentor-Hub.git
 cd Tra-Da-Mentor-Hub
-npm install
-```
-
-### 2. Configure environment
-
-```bash
+npm ci
 cp .env.example .env
 ```
 
-Edit `.env` locally. **Never commit this file.**
+For a local demo, set development JWT secrets in `.env` and keep `NODE_ENV=development`. The server can use the in-memory store when MongoDB is unavailable; production always requires MongoDB.
 
-Minimum development configuration:
-
-```env
-NODE_ENV=development
-PORT=5000
-DATABASE_URL=mongodb://localhost:27017/tra-da-mentor
-
-# Generate with: openssl rand -hex 64
-JWT_SECRET=<64-char-hex>
-JWT_REFRESH_SECRET=<different-64-char-hex>
-
-CORS_ORIGIN=http://localhost:5173
-FRONTEND_URL=http://localhost:5173
-VITE_API_URL=http://localhost:5000/api
-ENABLE_DEMO_AUTH=true
-```
-
-### 3. Run locally
+### Run the demo
 
 ```bash
-# Terminal A — API :5000 + SPA :5173
 npm run dev:all
 ```
 
-Optional demo data:
+Open:
 
-```bash
-npm run seed
+- Frontend: <http://localhost:5173>
+- API health: <http://localhost:5000/api/health>
+- API documentation: <http://localhost:5000/api/docs>
+
+Demo credentials:
+
+```text
+Email: admin@example.com
+Password: AdminPass123
 ```
 
-**Demo credentials** (only when `ENABLE_DEMO_AUTH=true`):
+Demo authentication and integrations are development-only. Never enable demo authentication in production.
 
-| Field | Value |
-|-------|-------|
-| Email | `admin@example.com` |
-| Password | `AdminPass123` |
-
-### 4. Verify health
-
-```bash
-curl http://localhost:5000/api/health
-```
-
----
-
-## Development workflow
-
-### NPM scripts
-
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Vite dev server (frontend only) |
-| `npm run dev:server` | API with nodemon |
-| `npm run dev:all` | Frontend + API concurrently |
-| `npm run build` | Typecheck + production frontend build |
-| `npm run start` | Production API (serves `dist/`) |
-| `npm run start:prod` | `build` then `start` |
-| `npm run lint` | ESLint |
-| `npm run merge:locales` | Sync i18n keys from `en.json` |
-| `npm run check:locales` | Enforce locale key parity |
-| `npm run check:secrets` | Pre-push secret guard |
-| `npm run verify:env` | Production env validation |
-| `npm run create:admin` | Bootstrap first production admin |
-| `npm run docker:up` | Docker Compose stack |
-
-### Recommended local loop
-
-1. Create a feature branch from `main`.
-2. Implement with `npm run dev:all` running.
-3. Run `npm run lint && npm run build` before opening a PR.
-4. Run `npm run check:secrets` before pushing.
-
----
-
-## Quality engineering
-
-### Test pyramid
-
-| Layer | Command | Scope |
-|-------|---------|-------|
-| **Unit + integration (API)** | `npm run test:unit` | All `backend/__tests__` (MongoDB required for auth suite) |
-| **Coverage gate (CI)** | `npm run test:unit:ci` | Scoped backend modules + minimum thresholds |
-| **Unit (UI)** | `npm run test:frontend` | Pure functions, form helpers |
-| **Full local gate** | `npm run quality` | Build, lint, tests, locales, OpenAPI, secrets |
-| **E2E** | `npm run test:e2e` | Smoke, critical paths, production flows (Playwright) |
-| **i18n** | `npm run check:locales` | Key parity across locale files |
-| **API contract** | `npm run check:openapi` | Validates `docs/openapi.json` |
-
-### Continuous integration
-
-Every push/PR to `main`, `master`, or `develop` runs GitHub Actions:
-
-- Dependency install (`npm ci`)
-- Secret tracking guard (`check:secrets`)
-- Typecheck + production build
-- ESLint
-- Unit tests (backend + frontend)
-- Locale parity
-- Production env script validation
-- Playwright E2E (with MongoDB service)
-
-See [`.github/workflows/ci.yml`](./.github/workflows/ci.yml). Staging CD (`develop`) and manual releases: [`staging.yml`](./.github/workflows/staging.yml), [`release.yml`](./.github/workflows/release.yml).
-
-SDLC maturity scorecard: [`docs/QUALITY.md`](./docs/QUALITY.md). Testing details: [`docs/TESTING.md`](./docs/TESTING.md).
-
----
-
-## Deployment runbook
-
-### Pre-release checklist
-
-- [ ] `NODE_ENV=production`
-- [ ] `ENABLE_DEMO_AUTH=false`
-- [ ] MongoDB connection string set (`DATABASE_URL`)
-- [ ] Strong, distinct `JWT_SECRET` and `JWT_REFRESH_SECRET` (≥ 64 hex chars each)
-- [ ] `CORS_ORIGIN` restricted to production frontend origin
-- [ ] `npm run verify:env` passes in CI or locally with production vars
-- [ ] `npm run build` succeeds
-- [ ] First admin created:  
-  `npm run create:admin -- admin@company.com "Admin Name" 'StrongPass123!'`
-- [ ] Persistent volume mounted at `backend/uploads` (avatars)
-- [ ] HTTPS terminated at load balancer / platform edge
-- [ ] Optional: `SENTRY_DSN` + `VITE_SENTRY_DSN` for error monitoring
-
-### Docker (local production simulation)
+### Run with Docker
 
 ```bash
 npm run docker:up
-# App → http://localhost:5000
 ```
 
-`docker-compose.yml` provisions MongoDB and an `uploads` volume for avatar persistence.
+Stop the stack:
 
-### Platform deploy
+```bash
+npm run docker:down
+```
 
-For Railway, Render, or similar PaaS workflows, see **[DEPLOY.md](./DEPLOY.md)**.
+## 🧪 Quality engineering
 
----
+| Command | Purpose |
+| --- | --- |
+| `npm run lint` | ESLint validation |
+| `npm run build` | TypeScript project build and Vite production bundle |
+| `npm run test:frontend` | Frontend Vitest suite |
+| `npm run test:unit` | Jest unit and API integration suite |
+| `npm run test:e2e` | Playwright browser suite |
+| `npm run quality` | Repository quality gate |
+| `npm run check:locales` | Locale parity check |
+| `npm run check:openapi` | OpenAPI contract check |
+| `npm run check:secrets` | Secret tracking check |
 
-## Security
+The CRM/admin integration tests require a reachable MongoDB instance:
 
-### Secret management policy
+```bash
+docker run -d --name tra-da-mongo -p 27017:27017 mongo:7
+export TEST_DATABASE_URL=mongodb://127.0.0.1:27017/tra-da-mentor-test
+npm run test:unit
+```
 
-| **Never commit** | **Safe to commit** |
-|------------------|-------------------|
-| `.env`, `.env.local`, any file with live credentials | `.env.example` |
-| `deploy/*.generated`, platform env exports | `deploy/*.template` |
-| `*.pem`, `credentials.json`, service account JSON | Application source code |
-| User-uploaded avatars (`backend/uploads/*`) | `backend/uploads/avatars/.gitkeep` |
+## 🔒 Security model
 
-Enforced via `.gitignore` and `npm run check:secrets`.
+- Access and refresh tokens are stored in `httpOnly` cookies.
+- Cookie-authenticated mutations require a matching readable CSRF token.
+- Production enables Helmet, CSP, HSTS, strict CORS allowlisting, rate limits, and request size limits.
+- MongoDB operators are sanitized before persistence.
+- Uploads require authentication and are served through a protected route.
+- API authorization validates both role and resource ownership.
+- Calendar synchronization is limited to administrators, the owning mentor, or the mentee who booked the slot.
+- Production refuses to start without MongoDB and strong JWT secrets.
 
-### Application controls
+Report a vulnerability privately according to [SECURITY.md](./SECURITY.md). Do not open a public issue containing exploit details.
 
-- Bcrypt password hashing
-- JWT access tokens + rotating refresh tokens
-- Role-based route protection (admin / mentor / mentee)
-- Helmet security headers, CORS allowlist, rate limiting
-- Zod request validation
-- Invite-token gated admin registration
-- Production boot guard: MongoDB required; demo auth disabled by default
+## 📦 Deployment
 
-### Operator responsibilities
+The project supports Railway, Render, and Docker-based deployments. See:
 
-- Rotate JWT secrets if compromise is suspected
-- Scope `CORS_ORIGIN` to known domains only
-- Store SendGrid, Stripe, Google, and OpenAI keys in the hosting provider’s secret manager—not in the repository
-- Review dependency updates regularly (`npm audit`)
+- [Deployment guide](./DEPLOY.md)
+- [Production readiness checklist](./PRODUCTION_READINESS.md)
+- [Operational runbook](./docs/RUNBOOK.md)
+- [Staging guide](./docs/STAGING.md)
+- [Architecture documentation](./docs/ARCHITECTURE.md)
 
----
+Required production configuration includes:
 
-## Documentation index
+```text
+NODE_ENV=production
+HOST=0.0.0.0
+DATABASE_URL=<mongodb connection string>
+JWT_SECRET=<strong secret>
+JWT_REFRESH_SECRET=<different strong secret>
+ENABLE_DEMO_AUTH=false
+```
 
-| Document | Purpose |
-|----------|---------|
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | System design, layers, flows |
-| [docs/openapi.json](./docs/openapi.json) | OpenAPI 3 contract |
-| Interactive docs | `GET /api/docs` (Swagger UI when server is running) |
-| [docs/adr/](./docs/adr/) | Architecture Decision Records |
-| [docs/STAGING.md](./docs/STAGING.md) | Staging environment guide |
-| [docs/RUNBOOK.md](./docs/RUNBOOK.md) | Operations & incident response |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Contributor workflow |
-| [CHANGELOG.md](./CHANGELOG.md) | Version history |
-| [DEPLOY.md](./DEPLOY.md) | Platform deployment |
-| [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md) | Launch checklist |
+Optional integrations remain disabled unless their server-side credentials are configured.
 
-## API reference (summary)
+## 🤝 Contributing
 
-**Base URL:** `/api`  
-**Authentication:** `Authorization: Bearer <accessToken>`  
-**Full contract:** [docs/openapi.json](./docs/openapi.json) · live explorer at `/api/docs`
+1. Create a focused branch from the default branch.
+2. Make a small, reviewable change with tests.
+3. Run lint, build, relevant unit tests, and E2E smoke tests.
+4. Update documentation and OpenAPI when behavior or contracts change.
+5. Open a pull request using the repository template.
 
-| Domain | Endpoints |
-|--------|-----------|
-| **Health** | `GET /api/health` |
-| **Auth** | `POST /api/auth/login`, `register`, `refresh`, `logout` · `GET /api/auth/profile` · Google OAuth |
-| **Mentors** | `GET/POST /api/mentors` · `GET/PATCH/DELETE /api/mentors/:id` |
-| **Mentees** | `GET/POST /api/mentees` · `PATCH /api/mentees/:id/application-status` |
-| **Groups** | `GET/POST /api/groups` · member assignment routes |
-| **Operations** | `/api/slots`, `/api/session-logs`, `/api/activities` |
-| **Admin** | `POST /api/admin/broadcast` · `/api/invites` · `GET /api/analytics/summary` |
-| **Uploads** | `POST /api/uploads/avatar` |
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the complete workflow.
 
----
+## 📄 License
 
-## Feature catalog
-
-| Module | Description |
-|--------|-------------|
-| **Auth & RBAC** | Email/password, Google SSO, invite-based registration, JWT refresh |
-| **Mentor / Mentee CRM** | Profiles, tracks, avatars, search, detail views |
-| **Groups** | Cohort management and mentee assignment |
-| **Applications** | Pipeline status for mentee onboarding |
-| **Scheduling** | Calendar-style schedule and interview slot booking |
-| **Session logs** | Post-session notes, scores, support escalation flags |
-| **Notifications** | In-app broadcast; optional email (SendGrid) and Zalo OA |
-| **Invites** | Admin-issued registration links with MongoDB persistence |
-| **Analytics** | KPI cards, engagement trends, exportable insights |
-| **AI** | Smart match suggestions and insights (OpenAI, optional) |
-| **Testimonials** | Curated success stories |
-| **Export** | CSV export for mentors, mentees, session logs |
-| **i18n & a11y** | Five languages, skip links, keyboard-friendly UI |
-
----
-
-## Contributing
-
-1. Fork the repository and create a branch from `main`.
-2. Follow existing code style (TypeScript strict mode, ESLint).
-3. Add or update tests for behavioral changes.
-4. Run the full local quality gate before submitting a PR.
-5. Do not include secrets, personal data, or production screenshots with PII.
-
----
-
-## License
-
-Released under the [MIT License](./LICENSE).
-
----
-
-## Maintainers
-
-**Trà Đá Community** · [TheHien04](https://github.com/TheHien04)
-
-<p align="center">
-  <sub>Built for mentoring programs that need operational rigor without operational chaos.</sub>
-</p>
+This project is released under the [MIT License](./LICENSE).

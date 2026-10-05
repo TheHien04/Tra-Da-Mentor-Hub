@@ -25,4 +25,17 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: [
+      'src/components/features/CommandPalette.tsx',
+      'src/context/AuthContext.tsx',
+      'src/context/ConfirmContext.tsx',
+      'src/context/NotificationContext.tsx',
+      'src/context/ThemeContext.tsx',
+    ],
+    rules: {
+      // These modules intentionally colocate their provider/component and hook APIs.
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 )
