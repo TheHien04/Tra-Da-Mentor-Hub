@@ -12,7 +12,7 @@ export default function Skeleton({
   circle = false,
 }: SkeletonProps) {
   return (
-    <div>
+    <div aria-hidden="true">
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}

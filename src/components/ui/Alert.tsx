@@ -28,8 +28,12 @@ export function Alert({
         : 'alert-info';
 
   return (
-    <div className={`flex gap-3 rounded-xl border px-4 py-3 text-sm ${tone} ${className}`}>
-      {icons[variant]}
+    <div
+      className={`flex gap-3 rounded-xl border px-4 py-3 text-sm ${tone} ${className}`}
+      role={variant === 'error' ? 'alert' : 'status'}
+      aria-live={variant === 'error' ? 'assertive' : 'polite'}
+    >
+      <span aria-hidden="true">{icons[variant]}</span>
       <div>
         {title && <p className="font-medium mb-0.5">{title}</p>}
         <div className="opacity-90">{children}</div>
