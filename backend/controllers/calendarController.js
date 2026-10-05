@@ -13,6 +13,7 @@ import { getMentorById } from '../services/mentorStore.js';
 import { getMenteeById } from '../services/menteeStore.js';
 import { slotToDateTimes } from '../lib/slotDateTime.js';
 import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
+import { loadActor } from '../lib/actor.js';
 
 function calendarDemo() {
   return demoIntegrationsEnabled() && !(env.googleClientId && env.googleClientSecret);
@@ -150,6 +151,7 @@ export const syncSlot = async (req, res) => {
     const demo = calendarDemo();
     const userId = req.user._id || req.user.userId;
     const user = demo ? null : await User.findById(userId);
+    const actor = await loadActor(req);
 
     if (!demo && !user?.googleCalendarTokens) {
       return res.status(400).json({
@@ -161,6 +163,16 @@ export const syncSlot = async (req, res) => {
     const slot = await getSlotById(req.params.slotId);
     if (!slot) return res.status(404).json({ message: 'Slot not found' });
 
+    const menteeId = slot.menteeId || slot.bookedBy;
+    const ownsMentorSlot = actor?.role === 'mentor' && actor.mentorId === String(slot.mentorId);
+    const ownsBookedSlot = actor?.role === 'mentee' && menteeId === actor.menteeId;
+    if (!actor?.isAdmin && !ownsMentorSlot && !ownsBookedSlot) {
+      return res.status(403).json({ message: 'You are not allowed to sync this slot' });
+    }
+    if (!actor?.isAdmin && !menteeId) {
+      return res.status(409).json({ message: 'Only booked slots can be synced to calendar' });
+    }
+
     if (slot.googleCalendarEventId) {
       return res.json({
         alreadySynced: true,
@@ -169,9 +181,7 @@ export const syncSlot = async (req, res) => {
         htmlLink: null,
       });
     }
-
     const mentor = await getMentorById(slot.mentorId);
-    const menteeId = slot.menteeId || slot.bookedBy;
     const mentee = menteeId ? await getMenteeById(menteeId) : null;
 
     const { startDateTime, endDateTime, timeZone } = slotToDateTimes(

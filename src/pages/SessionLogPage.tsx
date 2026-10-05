@@ -2,7 +2,7 @@
  * Session Log – CRM after each mentoring session
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { sessionLogsApi } from '../services/api';
@@ -54,10 +54,13 @@ const SessionLogPage = () => {
     menteeSupportReason: '',
   });
 
-  const nameOf = (list: { _id: string; name?: string; email?: string }[], id: string) => {
-    const hit = list.find((x) => x._id === id);
-    return hit?.name || hit?.email || t('pages.sessionLog.unknownPerson');
-  };
+  const nameOf = useCallback(
+    (list: { _id: string; name?: string; email?: string }[], id: string) => {
+      const hit = list.find((x) => x._id === id);
+      return hit?.name || hit?.email || t('pages.sessionLog.unknownPerson');
+    },
+    [t]
+  );
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -99,7 +102,7 @@ const SessionLogPage = () => {
         (supportFilter === 'NO' && !needsSupport);
       return matchQ && matchMentor && matchSupport;
     });
-  }, [logs, search, mentorFilter, supportFilter, mentors, mentees]);
+  }, [logs, search, mentorFilter, supportFilter, mentors, mentees, nameOf]);
 
   const lockedMentorId = role === 'mentor' ? state.user?.mentorId || '' : '';
   const lockedMenteeId = role === 'mentee' ? state.user?.menteeId || '' : '';

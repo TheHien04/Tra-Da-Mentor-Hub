@@ -34,6 +34,7 @@ export default defineConfig({
     },
   },
   build: {
+    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -41,6 +42,12 @@ export default defineConfig({
           'vendor-charts': ['recharts'],
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
           'vendor-query': ['@tanstack/react-query'],
+          'vendor-ui': ['react-icons', 'react-modal', 'react-toastify', 'react-tooltip'],
+          'vendor-forms': ['zod'],
+          'vendor-http': ['axios'],
+          'vendor-realtime': ['socket.io-client'],
+          'vendor-monitoring': ['@sentry/react'],
+          'vendor-markdown': ['react-markdown'],
         },
       },
     },
