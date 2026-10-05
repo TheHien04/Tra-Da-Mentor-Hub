@@ -12,6 +12,9 @@ import {
   HiOutlineTrophy,
   HiOutlineCalendarDays,
   HiOutlineChartBar,
+  HiOutlineBolt,
+  HiOutlineCheckCircle,
+  HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 import Skeleton from './Skeleton';
 import { Alert } from './ui/Alert';
@@ -229,6 +232,65 @@ const Dashboard = () => {
     { label: t('dashboard.mentorsAtCapacity'), value: stats.mentorsAtCapacity, pct: stats.totalMentors },
   ];
 
+  const capacityRate = stats.totalMentors > 0
+    ? Math.round((stats.mentorsAtCapacity / stats.totalMentors) * 100)
+    : 0;
+  const bookingRate = slots.length > 0
+    ? Math.round((slots.filter((slot) => slot.bookedBy || slot.menteeId).length / slots.length) * 100)
+    : 0;
+  const actionItems = isOps
+    ? [
+        {
+          label: stats.mentorsAtCapacity > 0
+            ? t('dashboard.actionCapacityTitle', 'Review mentor capacity')
+            : t('dashboard.actionCapacityReady', 'Capacity is healthy'),
+          detail: stats.mentorsAtCapacity > 0
+            ? t('dashboard.actionCapacityDetail', '{{count}} mentors are at capacity', { count: stats.mentorsAtCapacity })
+            : t('dashboard.actionCapacityReadyDetail', 'No mentors need intervention right now'),
+          href: '/mentors',
+          icon: stats.mentorsAtCapacity > 0 ? HiOutlineExclamationTriangle : HiOutlineCheckCircle,
+          tone: stats.mentorsAtCapacity > 0 ? 'warning' : 'success',
+        },
+        {
+          label: t('dashboard.actionSessionsTitle', 'Keep sessions moving'),
+          detail: upcomingSessions.length > 0
+            ? t('dashboard.actionSessionsDetail', '{{count}} upcoming sessions in view', { count: upcomingSessions.length })
+            : t('dashboard.actionSessionsEmpty', 'Review the schedule and open new slots'),
+          href: upcomingSessions.length > 0 ? '/schedule' : '/slots',
+          icon: HiOutlineBolt,
+          tone: 'accent',
+        },
+        {
+          label: t('dashboard.actionInsightsTitle', 'Program health'),
+          detail: t('dashboard.actionInsightsDetail', '{{value}}% of available slots are booked', { value: bookingRate }),
+          href: '/analytics',
+          icon: HiOutlineChartBar,
+          tone: 'neutral',
+        },
+      ]
+    : [
+        {
+          label: role === 'mentee'
+            ? t('dashboard.actionBookTitle', 'Find your next session')
+            : t('dashboard.actionOpenTitle', 'Open your next slot'),
+          detail: role === 'mentee'
+            ? t('dashboard.actionBookDetail', 'Browse availability that fits your goals')
+            : t('dashboard.actionOpenDetail', 'Make your availability visible to mentees'),
+          href: role === 'mentee' ? '/slots' : '/slots',
+          icon: HiOutlineBolt,
+          tone: 'accent',
+        },
+        {
+          label: t('dashboard.actionScheduleTitle', 'Stay prepared'),
+          detail: upcomingSessions.length > 0
+            ? t('dashboard.actionScheduleDetail', 'Your next session is ready to review')
+            : t('dashboard.actionScheduleEmpty', 'No upcoming sessions yet'),
+          href: '/schedule',
+          icon: upcomingSessions.length > 0 ? HiOutlineCheckCircle : HiOutlineExclamationTriangle,
+          tone: upcomingSessions.length > 0 ? 'success' : 'warning',
+        },
+      ];
+
   return (
     <PageShell>
       <DashboardHero />
@@ -278,6 +340,46 @@ const Dashboard = () => {
               </Link>
             ))}
       </div>
+
+      <section className="action-center card p-5 mb-8" aria-labelledby="action-center-title" data-reveal>
+        <div className="action-center__header">
+          <div>
+            <p className="section-eyebrow">{t('dashboard.actionCenterEyebrow', 'Decision support')}</p>
+            <h2 id="action-center-title" className="text-xl font-semibold text-primary">
+              {t('dashboard.actionCenterTitle', 'What needs your attention')}
+            </h2>
+          </div>
+          {isOps && (
+            <span className="action-center__health">
+              <span className="action-center__health-dot" />
+              {t('dashboard.platformHealthy', 'Platform healthy')}
+            </span>
+          )}
+        </div>
+        <div className="action-center__grid">
+          {actionItems.map((item) => (
+            <Link key={item.label} to={item.href} className={`action-card action-card--${item.tone}`}>
+              <span className="action-card__icon"><item.icon className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <strong>{item.label}</strong>
+                <span>{item.detail}</span>
+              </span>
+              <span className="action-card__arrow" aria-hidden>→</span>
+            </Link>
+          ))}
+        </div>
+        {isOps && (
+          <div className="program-health" aria-label={t('dashboard.programHealth', 'Program health')}>
+            <div className="program-health__label">
+              <span>{t('dashboard.programHealth', 'Program health')}</span>
+              <strong>{Math.max(0, 100 - capacityRate)}%</strong>
+            </div>
+            <div className="program-health__track">
+              <span style={{ width: `${Math.max(8, 100 - capacityRate)}%` }} />
+            </div>
+          </div>
+        )}
+      </section>
 
       <div className={`grid grid-cols-1 gap-6 mb-8 ${laterSessions.length ? 'lg:grid-cols-2' : ''}`} data-reveal>
         {laterSessions.length > 0 && (

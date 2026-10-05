@@ -18,9 +18,9 @@ import {
   HiOutlineUserPlus,
   HiOutlineBell,
   HiOutlineClipboardDocumentCheck,
-  HiOutlineUserCircle,
   HiOutlineChatBubbleLeftRight,
   HiOutlineArrowRightOnRectangle,
+  HiOutlineCog6Tooth,
 } from 'react-icons/hi2';
 import logoImg from '../assets/logo.png';
 import { resolveAssetUrl } from '../lib/assetUrl';
@@ -75,7 +75,7 @@ const Navbar = () => {
   const navLink = (to: string, label: string, icon: React.ReactNode, matchPrefix = false) => {
     if (!canAccessPath(role, to)) return null;
     return (
-      <Link to={to} className={`nav-item ${isActive(to, matchPrefix) ? 'active' : ''}`}>
+      <Link key={to} to={to} className={`nav-item ${isActive(to, matchPrefix) ? 'active' : ''}`}>
         {icon}
         <span>{label}</span>
       </Link>
@@ -83,6 +83,12 @@ const Navbar = () => {
   };
 
   const iconClass = 'h-[18px] w-[18px]';
+  const navSection = (label: string, links: React.ReactNode[]) => (
+    <div className="nav-section" key={label}>
+      <p className="nav-section__label">{label}</p>
+      {links}
+    </div>
+  );
 
   return (
     <nav className="navbar">
@@ -92,30 +98,29 @@ const Navbar = () => {
       </Link>
 
       <div className="navbar-links flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">
-        {navLink('/', t('nav.dashboard'), <HiOutlineHome className={iconClass} />)}
-        {navLink('/mentors', t('nav.mentors'), <HiOutlineAcademicCap className={iconClass} />, true)}
-        {navLink('/mentees', t('nav.mentees'), <HiOutlineUserGroup className={iconClass} />, true)}
-        {navLink('/groups', t('nav.groups'), <HiOutlineUsers className={iconClass} />, true)}
-        {navLink('/schedule', t('nav.schedule'), <HiOutlineCalendar className={iconClass} />, true)}
-        {navLink('/slots', t('nav.slots'), <HiOutlineClock className={iconClass} />, true)}
-        {navLink('/session-logs', t('nav.sessions'), <HiOutlineClipboardDocumentList className={iconClass} />, true)}
-
-        {isMentorOrAdmin &&
-          navLink('/applications', t('nav.applications'), <HiOutlineDocumentText className={iconClass} />, true)}
-
-        {navLink('/analytics', t('nav.analytics'), <HiOutlineChartBar className={iconClass} />, true)}
-        {navLink('/insights', t('nav.insights'), <HiOutlineSparkles className={iconClass} />, true)}
-
-        {isAdmin && (
-          <>
-            {navLink('/admin/audit', t('nav.audit'), <HiOutlineClipboardDocumentCheck className={iconClass} />, true)}
-            {navLink('/admin/export', t('nav.export'), <HiOutlineArrowUpTray className={iconClass} />, true)}
-            {navLink('/admin/invite', t('nav.invites'), <HiOutlineUserPlus className={iconClass} />, true)}
-            {navLink('/admin/notifications', t('nav.notifications'), <HiOutlineBell className={iconClass} />, true)}
-          </>
-        )}
-
-        {navLink('/testimonials', t('nav.testimonials'), <HiOutlineChatBubbleLeftRight className={iconClass} />, true)}
+        {navSection(t('nav.workspace', 'Workspace'), [
+          navLink('/', t('nav.dashboard'), <HiOutlineHome className={iconClass} />),
+          navLink('/mentors', t('nav.mentors'), <HiOutlineAcademicCap className={iconClass} />, true),
+          navLink('/mentees', t('nav.mentees'), <HiOutlineUserGroup className={iconClass} />, true),
+          navLink('/groups', t('nav.groups'), <HiOutlineUsers className={iconClass} />, true),
+          navLink('/schedule', t('nav.schedule'), <HiOutlineCalendar className={iconClass} />, true),
+          navLink('/slots', t('nav.slots'), <HiOutlineClock className={iconClass} />, true),
+          navLink('/session-logs', t('nav.sessions'), <HiOutlineClipboardDocumentList className={iconClass} />, true),
+          isMentorOrAdmin &&
+            navLink('/applications', t('nav.applications'), <HiOutlineDocumentText className={iconClass} />, true),
+        ])}
+        {navSection(t('nav.insightsGroup', 'Insights'), [
+          navLink('/analytics', t('nav.analytics'), <HiOutlineChartBar className={iconClass} />, true),
+          navLink('/insights', t('nav.insights'), <HiOutlineSparkles className={iconClass} />, true),
+        ])}
+        {isAdmin &&
+          navSection(t('nav.administration', 'Administration'), [
+            navLink('/admin/audit', t('nav.audit'), <HiOutlineClipboardDocumentCheck className={iconClass} />, true),
+            navLink('/admin/export', t('nav.export'), <HiOutlineArrowUpTray className={iconClass} />, true),
+            navLink('/admin/invite', t('nav.invites'), <HiOutlineUserPlus className={iconClass} />, true),
+            navLink('/admin/notifications', t('nav.notifications'), <HiOutlineBell className={iconClass} />, true),
+            navLink('/testimonials', t('nav.testimonials'), <HiOutlineChatBubbleLeftRight className={iconClass} />, true),
+          ])}
       </div>
 
       <div className="navbar-footer">
@@ -173,7 +178,7 @@ const Navbar = () => {
                 className="profile-dropdown-logout flex items-center gap-2"
                 onClick={() => setShowDropdown(false)}
               >
-                <HiOutlineUserCircle className="h-4 w-4 shrink-0" />
+                <HiOutlineCog6Tooth className="h-4 w-4 shrink-0" />
                 {t('nav.account')}
               </Link>
               <button type="button" className="profile-dropdown-logout flex items-center gap-2" onClick={handleLogout}>
