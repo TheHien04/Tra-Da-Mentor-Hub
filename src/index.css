@@ -2573,6 +2573,20 @@ html.motion-on [data-reveal] {
   @apply mx-2 flex items-center gap-2.5 rounded-lg border-l-0 px-3 py-2 text-sm font-medium text-muted no-underline transition-colors duration-150 hover:bg-surface-muted hover:text-primary;
 }
 
+.nav-section {
+  margin-bottom: 0.75rem;
+}
+
+.nav-section__label {
+  margin: 0.75rem 0.75rem 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .nav-item svg {
   @apply shrink-0 opacity-70;
 }
@@ -2598,6 +2612,149 @@ html.motion-on [data-reveal] {
 
 .navbar-footer {
   @apply mt-auto border-t border-surface-border px-3 pb-5 pt-4;
+}
+
+.action-center {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-subtle) 72%, var(--bg-surface)), var(--bg-surface));
+}
+
+.action-center__header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-eyebrow {
+  color: var(--accent-subtle-fg);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  margin: 0 0 0.35rem;
+  text-transform: uppercase;
+}
+
+.action-center__health {
+  align-items: center;
+  color: var(--text-secondary);
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 600;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.action-center__health-dot {
+  background: #22c55e;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, #22c55e 15%, transparent);
+  height: 0.45rem;
+  width: 0.45rem;
+}
+
+.action-center__grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.action-card {
+  align-items: center;
+  background: color-mix(in srgb, var(--bg-surface) 84%, transparent);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  color: var(--text-primary);
+  display: flex;
+  gap: 0.75rem;
+  min-height: 5.25rem;
+  padding: 0.85rem;
+  text-decoration: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.action-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 12%, transparent);
+  transform: translateY(-2px);
+}
+
+.action-card strong,
+.action-card span span {
+  display: block;
+}
+
+.action-card strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.action-card span span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  margin-top: 0.25rem;
+}
+
+.action-card__icon {
+  align-items: center;
+  background: var(--accent-subtle);
+  border-radius: 0.65rem;
+  color: var(--accent-subtle-fg);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 2.35rem;
+  justify-content: center;
+  width: 2.35rem;
+}
+
+.action-card--warning .action-card__icon {
+  background: color-mix(in srgb, #f59e0b 15%, var(--bg-surface));
+  color: #b45309;
+}
+
+.action-card--success .action-card__icon {
+  background: color-mix(in srgb, #22c55e 14%, var(--bg-surface));
+  color: #15803d;
+}
+
+.action-card__arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-left: auto;
+}
+
+.program-health {
+  margin-top: 1.15rem;
+}
+
+.program-health__label {
+  color: var(--text-muted);
+  display: flex;
+  font-size: 0.7rem;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.program-health__label strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.program-health__track {
+  background: var(--bg-surface-muted);
+  border-radius: 999px;
+  height: 0.45rem;
+  overflow: hidden;
+}
+
+.program-health__track span {
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 500ms ease;
 }
 
 .navbar-profile {
@@ -2830,6 +2987,14 @@ tbody tr:last-child {
 @media (max-width: 1024px) {
   .app-container {
     @apply flex-col;
+  }
+
+  .action-center__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .action-center__header {
+    flex-direction: column;
   }
 
   .navbar {
