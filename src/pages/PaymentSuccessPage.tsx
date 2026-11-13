@@ -9,6 +9,7 @@ export const PaymentSuccessPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const isDemo = searchParams.get('demo') === '1';
   const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
@@ -27,8 +28,12 @@ export const PaymentSuccessPage = () => {
           <div className="auth-status-icon auth-status-icon--success" aria-hidden>
             ✓
           </div>
-          <h1 className="auth-title">{t('legal.paymentSuccess.title')}</h1>
-          <p className="auth-subtitle">{t('legal.paymentSuccess.thanks')}</p>
+          <h1 className="auth-title">
+            {t(isDemo ? 'legal.paymentSuccess.demoTitle' : 'legal.paymentSuccess.title')}
+          </h1>
+          <p className="auth-subtitle">
+            {t(isDemo ? 'legal.paymentSuccess.demoThanks' : 'legal.paymentSuccess.thanks')}
+          </p>
           {sessionId && (
             <p className="auth-note text-xs break-all">
               {t('legal.paymentSuccess.sessionId')}: {sessionId}

@@ -7,7 +7,7 @@ export function useCalendarStatus() {
     queryKey: queryKeys.calendarStatus,
     queryFn: async () => {
       const res = await calendarApi.getStatus();
-      return res.data as { connected: boolean };
+      return res.data as { connected: boolean; demo?: boolean };
     },
   });
 }

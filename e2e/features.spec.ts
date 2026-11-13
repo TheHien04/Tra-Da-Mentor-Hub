@@ -1,12 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './helpers';
 
 test.describe('Features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel(/email|địa chỉ email/i).fill('admin@example.com');
-    await page.getByLabel(/^password|mật khẩu/i).fill('AdminPass123');
-    await page.getByRole('button', { name: /sign in|đăng nhập/i }).click();
-    await expect(page).toHaveURL(/\/(\?.*)?$/, { timeout: 15_000 });
+    await loginAsAdmin(page);
   });
 
   test('schedule page shows calendar connect', async ({ page }) => {

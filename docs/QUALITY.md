@@ -9,19 +9,19 @@ This document tracks how close the repository is to a **full software engineerin
 | Requirements & scope | Done | README, OpenAPI, ADRs |
 | Design | Done | `docs/ARCHITECTURE.md`, ADRs |
 | Implementation | Done | TypeScript frontend, Express API |
-| Testing | Strong | Jest (unit + Mongo integration), Vitest, Playwright E2E in CI |
+| Testing | Strong | Backend core ≥80% lines/functions, Vitest, Chromium critical E2E, Firefox/WebKit contract tests and p95 smoke budget in CI |
 | CI/CD | Strong | `.github/workflows/ci.yml`, `staging.yml`, `release.yml` |
 | Documentation | Done | README, RUNBOOK, STAGING, TESTING, CONTRIBUTING |
-| Security | Done | SECURITY.md, secret checks, audit in CI, Helmet, rate limits |
+| Security | Strong | SECURITY.md, production dependency audit, CodeQL SAST, Helmet, rate limits, direct SendGrid HTTPS integration |
 | Release mgmt | Done | CHANGELOG, semver `1.1.0`, manual release workflow |
-| Operations | Documented | RUNBOOK, health endpoint, Docker Compose |
+| Operations | Strong | RUNBOOK, liveness/readiness, admin runtime metrics, SLOs, checksum backup/guarded restore, Docker Compose |
 | Governance | Done | LICENSE, PR template, issue templates, Dependabot |
 
 ## What is intentionally out of scope
 
-- 80%+ line coverage on **every** file (coverage is gated on critical modules only).
 - Managed staging host (wire `STAGING_DEPLOY_COMMAND` when you have a server).
 - SOC2 / formal pen-test (use your org’s security process).
+- Production UAT and third-party sandbox certification require real users and credentials.
 
 ## Run the full gate locally
 

@@ -19,7 +19,15 @@ export function getTestApp() {
 
 export async function connectTestMongo() {
   if (mongoose.connection.readyState === 1) return;
-  await mongoose.connect(TEST_DB_URL);
+  try {
+    await mongoose.connect(TEST_DB_URL, {
+      serverSelectionTimeoutMS: Number(process.env.TEST_MONGO_TIMEOUT_MS || 5000),
+    });
+  } catch (error) {
+    throw new Error(
+      `Test MongoDB is unavailable at ${TEST_DB_URL}. Start the repository Mongo service or set TEST_DATABASE_URL. ${error.message}`
+    );
+  }
 }
 
 export async function disconnectTestMongo() {

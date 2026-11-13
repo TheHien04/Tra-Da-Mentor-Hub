@@ -25,6 +25,6 @@ jobs:
             -e CORS_ORIGIN=http://localhost:5050 \
             tra-da-mentor:ci
           sleep 8
-          curl -sf http://localhost:5050/api/health | grep -q '"status":"ok"'
+          curl -sf http://localhost:5050/api/ready | grep -q '"status":"ok"'
           curl -sf -o /dev/null -w "%{http_code}" http://localhost:5050/login | grep -q 200
           docker stop app-ci

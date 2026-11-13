@@ -12,6 +12,12 @@ import {
 import MentorProfile from '../models/MentorProfile.js';
 import MenteeProfile from '../models/MenteeProfile.js';
 
+function futureDate(days = 30) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 async function registerAndLogin(email, role) {
   const app = getTestApp();
   const password = 'TestPass123';
@@ -85,7 +91,7 @@ describe('API access control', () => {
     const created = await request(app)
       .post('/api/slots')
       .set('Authorization', `Bearer ${await loginAsAdmin()}`)
-      .send({ mentorId: 'm-slot', date: '2026-12-02', time: '11:00', duration: 60 });
+      .send({ mentorId: 'm-slot', date: futureDate(), time: '11:00', duration: 60 });
     expect(created.status).toBe(201);
 
     const booked = await request(app)
@@ -125,5 +131,72 @@ describe('API access control', () => {
     expect(list.status).toBe(200);
     expect(list.body.success).toBe(true);
     expect(list.body.data.every((n) => n.userId === 'all' || n.userId === 'mentees' || n.userId === mentee.user._id)).toBe(true);
+  });
+
+  it('keeps a broadcast read receipt isolated per authenticated user', async () => {
+    const app = getTestApp();
+    const admin = await loginAsAdmin();
+    const first = await registerAndLogin(`receipt-one-${Date.now()}@test.com`, 'mentee');
+    const second = await registerAndLogin(`receipt-two-${Date.now()}@test.com`, 'mentee');
+    const created = await request(app)
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ userId: 'all', title: 'Private read receipt', message: 'QA' });
+    expect(created.status).toBe(201);
+
+    const marked = await request(app)
+      .patch(`/api/notifications/${created.body.data._id}/read`)
+      .set('Authorization', `Bearer ${first.token}`);
+    expect(marked.status).toBe(200);
+
+    const firstList = await request(app)
+      .get('/api/notifications')
+      .set('Authorization', `Bearer ${first.token}`);
+    const secondList = await request(app)
+      .get('/api/notifications')
+      .set('Authorization', `Bearer ${second.token}`);
+    const firstRow = firstList.body.data.find((row) => row._id === created.body.data._id);
+    const secondRow = secondList.body.data.find((row) => row._id === created.body.data._id);
+    expect(firstRow.read).toBe(true);
+    expect(secondRow.read).toBe(false);
+  });
+
+  it('blocks a mentor from logging a session with an unrelated mentee', async () => {
+    const app = getTestApp();
+    const admin = await loginAsAdmin();
+    const email = `mentor-log-${Date.now()}@test.com`;
+    const invite = await request(app)
+      .post('/api/invites')
+      .set('Authorization', `Bearer ${admin}`)
+      .send({ email, role: 'mentor' });
+    expect(invite.status).toBe(201);
+    const mentor = await request(app).post('/api/auth/register').send({
+      email,
+      password: 'TestPass123',
+      confirmPassword: 'TestPass123',
+      name: 'Session Mentor',
+      role: 'mentor',
+      inviteToken: invite.body.token,
+    });
+    expect(mentor.status).toBe(201);
+    await MenteeProfile.create({
+      _id: 'unrelated-log-mentee',
+      name: 'Unrelated Log Mentee',
+      email: 'unrelated-log-mentee@test.com',
+      track: 'tech',
+      applicationStatus: 'accepted',
+    });
+
+    const logged = await request(app)
+      .post('/api/session-logs')
+      .set('Authorization', `Bearer ${mentor.body.data.accessToken}`)
+      .send({
+        mentorId: mentor.body.data.user.mentorId,
+        menteeId: 'unrelated-log-mentee',
+        sessionDate: new Date().toISOString(),
+        topic: 'Unauthorized pairing',
+      });
+    expect(logged.status).toBe(409);
+    expect(logged.body.code).toBe('MENTORING_RELATIONSHIP_REQUIRED');
   });
 });

@@ -74,6 +74,7 @@ const env = {
     `${process.env.BASE_URL?.trim() || platformPublicUrl || `http://localhost:${process.env.PORT || "5000"}`}/api`,
   openaiApiKey: process.env.OPENAI_API_KEY || "",
   openaiModel: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  openaiTimeoutMs: parseInt(process.env.OPENAI_TIMEOUT_MS || "8000", 10),
   frontendUrl: process.env.FRONTEND_URL?.trim() || platformPublicUrl || defaultDevOrigin,
   baseUrl:
     process.env.BASE_URL?.trim() ||
@@ -91,6 +92,8 @@ const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
   stripeProPriceId: process.env.STRIPE_PRO_PRICE_ID || "",
   stripePremiumPriceId: process.env.STRIPE_PREMIUM_PRICE_ID || "",
+  // Deliberate launch switch: configuring Stripe alone must never start charging users.
+  paidPlansEnabled: process.env.ENABLE_PAID_PLANS === "true",
 
   corsOrigin: publicAppUrl || (isTest || isDev ? defaultDevOrigin : getEnvVar("CORS_ORIGIN")),
   corsOrigins: (publicAppUrl || (isTest || isDev ? defaultDevOrigin : getEnvVar("CORS_ORIGIN")))
@@ -139,6 +142,8 @@ if (env.isProduction) {
   }
   if (!env.stripeSecretKey) {
     warnings.push("STRIPE_SECRET_KEY not set — payments disabled");
+  } else if (!env.paidPlansEnabled) {
+    warnings.push("ENABLE_PAID_PLANS is not true — live checkout remains disabled");
   }
   if (!env.googleClientId) {
     warnings.push("GOOGLE_CLIENT_ID not set — Google SSO disabled");

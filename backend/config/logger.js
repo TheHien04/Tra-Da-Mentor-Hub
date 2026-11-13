@@ -77,11 +77,11 @@ const logger = winston.createLogger({
 // HTTP request logging middleware
 export const httpLogger = (req, res, next) => {
   const start = Date.now();
-  
+
   res.on('finish', () => {
     const duration = Date.now() - start;
-    const message = `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`;
-    
+    const message = `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms requestId=${req.id || '-'}`;
+
     if (res.statusCode >= 400) {
       logger.error(message);
     } else if (res.statusCode >= 300) {
@@ -90,7 +90,7 @@ export const httpLogger = (req, res, next) => {
       logger.http(message);
     }
   });
-  
+
   next();
 };
 

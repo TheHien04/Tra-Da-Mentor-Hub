@@ -22,7 +22,7 @@
 - Rate limiting and Helmet on the API (`backend/middleware/security.js`).
 - `npm run check:secrets` in CI blocks tracked `.env` files.
 - Production requires MongoDB (`DATABASE_URL`); demo auth is disabled unless explicitly enabled.
-- Dependency audit runs in CI (`npm audit --audit-level=high`).
+- Dependency audit runs in CI (`npm audit --omit=dev --audit-level=moderate`).
 
 ## Deployment reminders
 

@@ -1,4 +1,3 @@
-import User from '../models/User.js';
 import { DEMO_USER, isDemoUserId } from '../config/demoAuth.js';
 import { fail } from '../lib/httpError.js';
 import { clearSessionCookies } from '../lib/sessionCookie.js';
@@ -9,17 +8,18 @@ import { getMentorById, deleteMentor } from '../services/mentorStore.js';
 import { listSessionLogs } from '../services/sessionLogStore.js';
 import { listNotificationsForActor } from '../services/notificationStore.js';
 import logger from '../config/logger.js';
+import { deleteUserById, findUserById } from '../services/userStore.js';
 
 async function safeProfile(userId) {
   if (isDemoUserId(userId)) return DEMO_USER.toJSON();
-  const user = await User.findById(userId);
+  const user = await findUserById(userId);
   return user ? user.toJSON() : null;
 }
 
 export async function changePassword(req, res) {
   try {
     if (isDemoUserId(req.user?.userId)) return fail(res, 403, 'DEMO_ACCOUNT');
-    const user = await User.findById(req.user.userId).select('+password');
+    const user = await findUserById(req.user.userId);
     if (!user) return fail(res, 404, 'NOT_FOUND');
     const matches = await user.comparePassword(req.body.currentPassword);
     if (!matches) return fail(res, 401, 'INVALID_CREDENTIALS');
@@ -69,7 +69,7 @@ export async function exportAccount(req, res) {
 export async function deleteAccount(req, res) {
   try {
     if (isDemoUserId(req.user?.userId)) return fail(res, 403, 'DEMO_ACCOUNT');
-    const user = await User.findById(req.user.userId).select('+password');
+    const user = await findUserById(req.user.userId);
     if (!user) return fail(res, 404, 'NOT_FOUND');
     const matches = await user.comparePassword(req.body.password);
     if (!matches) return fail(res, 401, 'INVALID_CREDENTIALS');
@@ -82,7 +82,7 @@ export async function deleteAccount(req, res) {
       await deleteMentor(actor.mentorId);
     }
 
-    await User.deleteOne({ _id: user._id });
+    await deleteUserById(user._id);
     forgetAccountActive(user._id);
     clearSessionCookies(res);
     logger.info(`Account deleted: ${user.email}`);

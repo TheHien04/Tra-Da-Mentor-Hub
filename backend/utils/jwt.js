@@ -5,6 +5,7 @@
  */
 
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import env from "../config/env.js";
 
 /**
@@ -40,6 +41,7 @@ export function generateRefreshToken(userId) {
     {
       expiresIn: env.jwtRefreshExpire,
       issuer: "tra-da-mentor",
+      jwtid: crypto.randomUUID(),
     }
   );
 }

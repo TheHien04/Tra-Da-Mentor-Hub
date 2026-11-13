@@ -6,6 +6,10 @@ _A production-oriented mentoring operations platform for administrators, mentors
 
 Trà Đá Mentor Hub centralizes mentor and mentee lifecycle management, availability, scheduling, session CRM, notifications, analytics, and administration in one role-aware workspace.
 
+The public `/programs` page mirrors the official [Trà Đá Mentor service catalogue](https://www.tradamentor.com/dich-vu) and routes prospective mentees to the official application process. See the [product content source of truth](./docs/PRODUCT_CONTENT.md) for provenance and update rules.
+
+Product decisions and metrics are governed by the [product operating model](./docs/PRODUCT_OPERATING_MODEL.md) and [data governance contract](./docs/DATA_GOVERNANCE.md).
+
 [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -28,9 +32,9 @@ Trà Đá Mentor Hub centralizes mentor and mentee lifecycle management, availab
 - Mentor and mentee directories with profile, group, and relationship views.
 - Availability slots, booking, schedule management, session logs, and support flags.
 - In-app notifications with Socket.IO and optional email/Zalo delivery.
-- Analytics, demand signals, AI-assisted matching, and operational insights.
+- Analytics, demand signals, explainable rule-based matching, and operational insights.
 - Optional Google Calendar/Meet, Stripe, SendGrid, Zalo OA, OpenAI, Google OAuth, and Sentry integrations.
-- Vietnamese, English, Chinese, Japanese, and Korean locale support.
+- Complete Vietnamese and English locale support. Chinese, Japanese, and Korean catalogs are staged for future translation review.
 - Responsive desktop/mobile navigation, dark mode, keyboard quick search, PWA metadata, and accessible route structure.
 
 ## 🏛️ Architecture
@@ -90,42 +94,91 @@ tra-da-mentor-hub/
 ├── backend/
 │   ├── controllers/        HTTP handlers and integration orchestration
 │   ├── config/             Environment and application configuration
+│   ├── domain/             Framework-independent business rules/state machines
 │   ├── middleware/         Authentication, CSRF, security, audit, errors
 │   ├── models/             Mongoose models
-│   ├── routes/             REST resource routes
+│   ├── routes/             REST resource routes + central route registry
 │   ├── services/           MongoDB and development stores
 │   └── server.js           Production entrypoint
 ├── src/
-│   ├── components/         Shared UI and feature components
+│   ├── app/                Route table and shared application shell
+│   ├── components/         Shared UI and domain component modules
+│   ├── content/            Typed, source-traceable public product content
 │   ├── context/            Auth, theme, confirmation, notifications
 │   ├── hooks/queries/      TanStack Query hooks and cache keys
 │   ├── pages/              Route-level screens
-│   ├── services/           Typed API clients
+│   ├── services/api/       HTTP client, contracts, and domain API modules
 │   └── lib/                Client-side utilities and policy helpers
 ├── e2e/                    Playwright browser tests
 ├── docs/                   OpenAPI, architecture, runbooks, testing
 ├── scripts/                Quality, locale, deployment, and environment tools
-├── Images/                 Current product screenshots
+├── docs/screenshots/       Playwright-captured product evidence
 └── docker-compose.yml      Local production simulation
 ```
 
-## 🖼️ Current product screenshots
+Dependency direction is kept one-way: route screens use feature components and query hooks; query hooks use the typed API boundary; backend routes delegate to controllers/services and never import frontend code. `src/App.tsx` and `backend/createApp.js` remain small composition roots rather than feature containers.
 
-These screenshots were captured from the running demo on 5 October 2026 and replace the previous README gallery.
+## 🖼️ Product walkthrough
 
-### Authentication
+The gallery below was captured from the running application with Playwright using the development demo account and synthetic data. It is intentionally kept under version control so the README documents the product that is actually built, not a separate design mockup.
 
-![Current login screen](./Images/demo-login.png)
+### Public and authentication surfaces
 
-### Dashboard
-
-| Light theme | Dark theme |
+| Program catalogue | Login and account entry |
 | --- | --- |
-| ![Dashboard light theme](./Images/demo-dashboard-light.png) | ![Dashboard dark theme](./Images/demo-dashboard-dark.png) |
+| ![Program catalogue](./docs/screenshots/public-programs.png) | ![Login screen](./docs/screenshots/auth-login.png) |
 
-### Schedule
+The public catalogue gives prospective mentees a clear entry point, while the authentication surface supports localized email/password login, theme switching, password visibility, and development-only demo access.
 
-![Current schedule screen in dark theme](./Images/demo-schedule-dark.png)
+### Operational workspace
+
+![Dashboard](./docs/screenshots/product/dashboard.png)
+
+The dashboard is the operational command centre: capacity KPIs, next actions, Smart Match signals, quick navigation, and role-aware administration links are visible without hiding the primary workflow.
+
+| Mentor directory | Mentee directory |
+| --- | --- |
+| ![Mentor directory](./docs/screenshots/product/mentors.png) | ![Mentee directory](./docs/screenshots/product/mentees.png) |
+
+### Lifecycle and scheduling
+
+| Applications | Availability slots |
+| --- | --- |
+| ![Applications workflow](./docs/screenshots/product/applications.png) | ![Availability slots](./docs/screenshots/product/availability-slots.png) |
+
+| Schedule | Session CRM |
+| --- | --- |
+| ![Schedule](./docs/screenshots/product/schedule.png) | ![Session logs](./docs/screenshots/product/session-logs.png) |
+
+### Intelligence and administration
+
+| Analytics | Explainable matching insights |
+| --- | --- |
+| ![Analytics](./docs/screenshots/product/analytics.png) | ![Matching insights](./docs/screenshots/product/matching-insights.png) |
+
+| Audit history | Data export |
+| --- | --- |
+| ![Audit history](./docs/screenshots/product/admin-audit.png) | ![Data export](./docs/screenshots/product/admin-export.png) |
+
+### Responsive experience
+
+| Mobile dashboard | Mobile schedule |
+| --- | --- |
+| ![Mobile dashboard](./docs/screenshots/mobile/dashboard.png) | ![Mobile schedule](./docs/screenshots/mobile/schedule.png) |
+
+### Product surface map
+
+| Product area | Route | What it supports |
+| --- | --- | --- |
+| Mentor directory | `/mentors` | Search, filters, profile detail, skills, capacity, and mentor lifecycle actions. |
+| Mentee directory | `/mentees` | Applicant profile, application status, group assignment, progress, and ownership-aware editing. |
+| Applications | `/applications` | Governed workflow: pending → interview invite → interviewed → accepted/rejected, with audit history. |
+| Groups | `/groups` | Cohort creation, member assignment, capacity enforcement, detail views, and cross-group safety rules. |
+| Availability and booking | `/slots` | Create, update, lock, cancel, and book mentor slots with conflict protection. |
+| Session CRM | `/session-logs` | Record valid mentoring sessions, outcomes, support flags, and follow-up notes. |
+| Analytics and insights | `/analytics`, `/insights` | Governed KPIs, demand signals, explainable matching, and operational trends. |
+| Administration | `/admin/audit`, `/admin/export`, `/admin/notifications`, `/admin/invite` | Audit trail, data export, broadcasts, integrations status, and secure invitations. |
+| Account and legal | `/account`, `/privacy-policy`, `/terms-of-service` | Profile/security controls, account deletion/export, privacy, and terms. |
 
 ## 🚀 Getting started
 
@@ -157,6 +210,7 @@ Open:
 
 - Frontend: <http://localhost:5173>
 - API health: <http://localhost:5000/api/health>
+- API readiness: <http://localhost:5000/api/ready>
 - API documentation: <http://localhost:5000/api/docs>
 
 Demo credentials:
@@ -192,6 +246,7 @@ npm run docker:down
 | `npm run quality` | Repository quality gate |
 | `npm run check:locales` | Locale parity check |
 | `npm run check:openapi` | OpenAPI contract check |
+| `npm run check:structure` | Architecture and file-placement guardrail |
 | `npm run check:secrets` | Secret tracking check |
 
 The CRM/admin integration tests require a reachable MongoDB instance:
@@ -224,6 +279,8 @@ The project supports Railway, Render, and Docker-based deployments. See:
 - [Operational runbook](./docs/RUNBOOK.md)
 - [Staging guide](./docs/STAGING.md)
 - [Architecture documentation](./docs/ARCHITECTURE.md)
+- [Repository structure rules](./docs/STRUCTURE.md)
+- [Product content source of truth](./docs/PRODUCT_CONTENT.md)
 
 Required production configuration includes:
 

@@ -34,7 +34,6 @@ export function UnauthorizedPage() {
             className="btn btn-primary w-full"
             onClick={() => {
               if (state.user?.role === 'mentor') navigate('/mentors');
-              else if (state.user?.role === 'mentee') navigate('/mentees');
               else navigate('/');
             }}
           >

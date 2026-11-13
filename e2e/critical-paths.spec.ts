@@ -1,16 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-async function loginAsAdmin(page: import('@playwright/test').Page) {
-  await page.addInitScript(() => {
-    localStorage.setItem('tdm-onboarding-admin-v1', 'done');
-    localStorage.setItem('tdm-pwa-install-dismissed', '1');
-  });
-  await page.goto('/login');
-  await page.getByLabel(/email|địa chỉ email/i).fill('admin@example.com');
-  await page.getByLabel(/^password|mật khẩu/i).fill('AdminPass123');
-  await page.getByRole('button', { name: /sign in|đăng nhập/i }).click();
-  await expect(page).toHaveURL(/\/(\?.*)?$/, { timeout: 15_000 });
-}
+import { loginAsAdmin } from './helpers';
 
 test.describe('Critical paths', () => {
   test.beforeEach(async ({ page }) => {

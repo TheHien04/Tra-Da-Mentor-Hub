@@ -4,7 +4,6 @@
  * Handle login, register, token refresh
  */
 
-import User from "../models/User.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -20,6 +19,13 @@ import { forgetAccountActive } from '../lib/activeUser.js';
 import { emailVerifiedOnRegister, mustVerifyEmail } from '../lib/accountPolicy.js';
 import { sendEmailVerification } from '../utils/emailService.js';
 import env from '../config/env.js';
+import {
+  createUser,
+  findUserByEmail,
+  findUserByEmailWithPassword,
+  findUserById,
+  rotateUserRefreshToken,
+} from '../services/userStore.js';
 
 function issueSession(res, { accessToken, refreshToken }) {
   setSessionCookies(res, {
@@ -49,7 +55,7 @@ export async function login(req, res) {
     if (isDemoAuthEnabled() && normalizedEmail === DEMO_USER.email.toLowerCase()) {
       logger.info("Using demo admin account");
       const user = DEMO_USER;
-      
+
       // Check password
       const isValidPassword = await user.comparePassword(password);
       if (!isValidPassword) {
@@ -61,7 +67,7 @@ export async function login(req, res) {
       const accessToken = generateAccessToken(user._id, user.email, user.role);
       const refreshToken = generateRefreshToken(user._id);
       issueSession(res, { accessToken, refreshToken });
-      
+
       logger.info(`Login successful (mock user): ${email} (${user.role}) from IP: ${req.ip}`);
 
       return res.status(200).json({
@@ -74,7 +80,7 @@ export async function login(req, res) {
     // Try to find user in database (for real users)
     let user;
     try {
-      user = await User.findByEmailWithPassword(email);
+      user = await findUserByEmailWithPassword(email);
     } catch (dbError) {
       logger.warn("Database error:", dbError.message);
     }
@@ -105,7 +111,7 @@ export async function login(req, res) {
     // Update last login and store refresh token (skip for mock user)
     const accessToken = generateAccessToken(user._id, user.email, user.role);
     const refreshToken = generateRefreshToken(user._id);
-    
+
     if (!isDemoUserId(user._id)) {
       await user.updateLastLogin();
       await user.addRefreshToken(refreshToken);
@@ -123,7 +129,7 @@ export async function login(req, res) {
     } catch (crmErr) {
       logger.warn('CRM profile sync on login failed:', crmErr.message);
     }
-    
+
     logger.info(`Login successful: ${email} (${user.role}) from IP: ${req.ip}`);
 
     // Return response
@@ -148,7 +154,7 @@ export async function register(req, res) {
   try {
     const { email, password, name, role: bodyRole, inviteToken } = req.body;
 
-    let role = bodyRole || "user";
+    let role = bodyRole || "mentee";
     if (inviteToken) {
       const { validateInviteToken } = await import("../services/inviteStore.js");
       const check = await validateInviteToken(inviteToken);
@@ -168,7 +174,7 @@ export async function register(req, res) {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await findUserByEmail(email);
     if (existingUser) {
       logger.warn(`Registration failed - Email already exists: ${email} from IP: ${req.ip}`);
       return res.status(409).json({
@@ -184,7 +190,7 @@ export async function register(req, res) {
     });
 
     // Create user
-    const newUser = await User.create({
+    const newUser = await createUser({
       email,
       password,
       name,
@@ -226,11 +232,11 @@ export async function register(req, res) {
       newUser.role
     );
     const refreshToken = generateRefreshToken(newUser._id);
-    
+
     // Store refresh token
     await newUser.addRefreshToken(refreshToken);
     issueSession(res, { accessToken, refreshToken });
-    
+
     if (inviteToken) {
       const { consumeInviteToken } = await import("../services/inviteStore.js");
       await consumeInviteToken(inviteToken, { email });
@@ -288,7 +294,7 @@ export async function refreshToken(req, res) {
     }
 
     // Get user
-    const user = await User.findById(decoded.userId);
+    const user = await findUserById(decoded.userId);
     if (!user) {
       return fail(res, 401, 'UNAUTHORIZED', 'Invalid refresh token');
     }
@@ -297,10 +303,11 @@ export async function refreshToken(req, res) {
       forgetAccountActive(user._id);
       return fail(res, 403, 'ACCOUNT_INACTIVE');
     }
-    
-    // Check if refresh token exists in user's token list
-    const hasToken = user.refreshTokens?.some((rt) => rt.token === refreshToken);
-    if (!hasToken) {
+
+    const newAccessToken = generateAccessToken(user._id, user.email, user.role);
+    const newRefreshToken = generateRefreshToken(user._id);
+    const rotated = await rotateUserRefreshToken(user._id, refreshToken, newRefreshToken);
+    if (!rotated) {
       logger.warn(`Invalid refresh token used for user: ${user.email} from IP: ${req.ip}`);
       return res.status(401).json({
         success: false,
@@ -309,12 +316,8 @@ export async function refreshToken(req, res) {
       });
     }
 
-    const newAccessToken = generateAccessToken(user._id, user.email, user.role);
-    const newRefreshToken = generateRefreshToken(user._id);
-    await user.removeRefreshToken(refreshToken);
-    await user.addRefreshToken(newRefreshToken);
     issueSession(res, { accessToken: newAccessToken, refreshToken: newRefreshToken });
-    
+
     logger.info(`Token refreshed for user: ${user.email} from IP: ${req.ip}`);
 
     return res.status(200).json({
@@ -327,7 +330,6 @@ export async function refreshToken(req, res) {
     return res.status(500).json({
       success: false,
       message: "Token refresh failed",
-      error: error.message,
     });
   }
 }
@@ -344,7 +346,7 @@ export async function getProfile(req, res) {
       });
     }
 
-    const user = await User.findById(req.user.userId);
+    const user = await findUserById(req.user.userId);
 
     if (!user) {
       return res.status(404).json({
@@ -375,7 +377,6 @@ export async function getProfile(req, res) {
     return res.status(500).json({
       success: false,
       message: "Failed to get profile",
-      error: error.message,
     });
   }
 }
@@ -398,7 +399,7 @@ export async function logout(req, res) {
     }
 
     if (refreshToken) {
-      const user = await User.findById(req.user.userId);
+      const user = await findUserById(req.user.userId);
       if (user) {
         await user.removeRefreshToken(refreshToken);
         logger.info(`User logged out: ${user.email} from IP: ${req.ip}`);

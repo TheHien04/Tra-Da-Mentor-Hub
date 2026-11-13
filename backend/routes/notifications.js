@@ -32,7 +32,7 @@ router.patch('/:id/read', async (req, res, next) => {
   try {
     const actor = await loadActor(req);
     if (!actor) return fail(res, 401, 'UNAUTHORIZED');
-    const n = await markRead(req.params.id, audienceIds(actor));
+    const n = await markRead(req.params.id, audienceIds(actor), actor.userId);
     if (!n) return fail(res, 404, 'NOT_FOUND');
     res.json({ success: true, data: n });
   } catch (e) {
@@ -44,7 +44,7 @@ router.post('/read-all', async (req, res, next) => {
   try {
     const actor = await loadActor(req);
     if (!actor) return fail(res, 401, 'UNAUTHORIZED');
-    await markAllRead(audienceIds(actor));
+    await markAllRead(audienceIds(actor), actor.userId);
     res.json({ success: true });
   } catch (e) {
     next(e);

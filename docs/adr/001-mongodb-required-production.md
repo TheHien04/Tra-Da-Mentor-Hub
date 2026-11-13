@@ -13,7 +13,7 @@ Early development used in-memory Maps when MongoDB was unavailable. That allowed
 When `NODE_ENV=production`:
 
 1. `connectDatabase()` failure → process exits (no silent fallback).
-2. `/api/health` returns **503 degraded** if Mongo is not connected.
+2. `/api/ready` returns **503 degraded** if Mongo is not connected; `/api/health` remains a process liveness probe.
 3. Invite tokens and other durable data persist only in MongoDB.
 
 Development may still fall back to memory stores with a logged warning.

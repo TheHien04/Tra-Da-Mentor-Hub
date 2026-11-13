@@ -1,12 +1,14 @@
 {
-  "name": "Tea Mentor",
-  "short_name": "TeaMentor",
+  "id": "/",
+  "name": "Trà Đá Mentor",
+  "short_name": "Trà Đá",
   "description": "Nền tảng mentoring — kết nối mentor và mentee",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f4f5",
-  "theme_color": "#0d9488",
-  "orientation": "portrait-primary",
+  "background_color": "#fbfaf6",
+  "theme_color": "#123d2c",
+  "orientation": "any",
   "icons": [
     {
       "src": "/logo.png",

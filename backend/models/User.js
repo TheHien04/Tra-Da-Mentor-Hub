@@ -8,6 +8,10 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+export function hashRefreshToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -36,7 +40,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["user", "mentor", "mentee", "admin"],
-      default: "user",
+      default: "mentee",
     },
     avatar: {
       type: String,
@@ -96,7 +100,10 @@ const userSchema = new mongoose.Schema(
     },
     refreshTokens: [
       {
-        token: String,
+        tokenHash: {
+          type: String,
+          required: true,
+        },
         createdAt: {
           type: Date,
           default: Date.now,
@@ -149,13 +156,13 @@ userSchema.methods.updateLastLogin = async function () {
  * @param {string} token - Refresh token to store
  */
 userSchema.methods.addRefreshToken = async function (token) {
-  this.refreshTokens.push({ token, createdAt: new Date() });
-  
+  this.refreshTokens.push({ tokenHash: hashRefreshToken(token), createdAt: new Date() });
+
   // Keep only last 5 refresh tokens
   if (this.refreshTokens.length > 5) {
     this.refreshTokens = this.refreshTokens.slice(-5);
   }
-  
+
   await this.save({ validateBeforeSave: false });
 };
 
@@ -164,7 +171,8 @@ userSchema.methods.addRefreshToken = async function (token) {
  * @param {string} token - Refresh token to remove
  */
 userSchema.methods.removeRefreshToken = async function (token) {
-  this.refreshTokens = this.refreshTokens.filter((rt) => rt.token !== token);
+  const tokenHash = hashRefreshToken(token);
+  this.refreshTokens = this.refreshTokens.filter((rt) => rt.tokenHash !== tokenHash);
   await this.save({ validateBeforeSave: false });
 };
 

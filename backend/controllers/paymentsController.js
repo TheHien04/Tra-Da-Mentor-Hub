@@ -19,6 +19,12 @@ export const createCheckout = async (req, res) => {
     const { plan } = req.body; // 'pro' or 'premium'
     const userId = req.user.userId;
 
+    // The public product is a mentee application flow, not a SaaS subscription.
+    // Keep this legacy endpoint closed unless billing has been explicitly approved.
+    if (!env.paidPlansEnabled) {
+      return res.status(503).json({ message: 'Subscription checkout is not available' });
+    }
+
     if (demoIntegrationsEnabled() && !env.stripeSecretKey) {
       if (plan !== 'pro' && plan !== 'premium') {
         return res.status(400).json({ message: 'Invalid plan' });
@@ -26,15 +32,25 @@ export const createCheckout = async (req, res) => {
       const sessionId = `demo_${plan}_${Date.now()}`;
       return res.json({
         sessionId,
-        url: `${env.frontendUrl}/payment/success?session_id=${sessionId}&plan=${plan}`,
+        url: `${env.frontendUrl}/payment/success?session_id=${sessionId}&plan=${plan}&demo=1`,
         demo: true,
       });
+    }
+
+    if (!env.stripeWebhookSecret) {
+      return res.status(503).json({ message: 'Payments are temporarily unavailable' });
     }
 
     const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.subscription?.status === 'active' && user.subscription?.plan !== 'free') {
+      return res.status(409).json({
+        message: 'An active paid subscription already exists. Use the billing portal to change it.',
+      });
     }
 
     // Determine price ID based on plan
@@ -57,7 +73,7 @@ export const createCheckout = async (req, res) => {
       email: user.email,
       priceId,
       successUrl: `${env.frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${env.frontendUrl}/pricing`,
+      cancelUrl: `${env.frontendUrl}/programs`,
     });
 
     res.json({ sessionId: session.id, url: session.url });
@@ -140,7 +156,13 @@ export const handleWebhook = async (req, res) => {
 
         // Get subscription details
         const subscription = await getSubscription(subscriptionId);
-        const plan = subscription.items.data[0].price.id === env.stripeProPriceId ? 'pro' : 'premium';
+        const priceId = subscription.items.data[0]?.price?.id;
+        const plan = priceId === env.stripeProPriceId
+          ? 'pro'
+          : priceId === env.stripePremiumPriceId
+            ? 'premium'
+            : null;
+        if (!plan) throw new Error(`Unknown Stripe price received: ${priceId || 'missing'}`);
 
         // Update user subscription
         await User.findByIdAndUpdate(userId, {
@@ -196,7 +218,13 @@ export const handleWebhook = async (req, res) => {
 };
 
 export const getCheckoutAvailability = (_req, res) => {
-  const live = Boolean(env.stripeSecretKey && env.stripeProPriceId && env.stripePremiumPriceId);
-  const checkout = live || demoIntegrationsEnabled();
+  const live = Boolean(
+    env.paidPlansEnabled &&
+    env.stripeSecretKey &&
+    env.stripeWebhookSecret &&
+    env.stripeProPriceId &&
+    env.stripePremiumPriceId
+  );
+  const checkout = live || (env.paidPlansEnabled && demoIntegrationsEnabled());
   res.json({ success: true, data: { checkout, demo: checkout && !live } });
 };

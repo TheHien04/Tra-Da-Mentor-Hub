@@ -34,7 +34,7 @@ router.get('/suggestions', async (req, res, next) => {
     const suggestions = getMatchSuggestions(mentors, mentees, {
       menteeId: menteeId || undefined,
       mentorId: mentorId || undefined,
-      limit: limit ? Number(limit) : 8,
+      limit: Math.min(50, Math.max(1, Number(limit) || 8)),
     });
 
     res.json({

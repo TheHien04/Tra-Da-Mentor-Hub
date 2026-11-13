@@ -31,6 +31,12 @@ const STATUS_CLASS: Record<ApplicationStatus, string> = {
   rejected: 'badge-full',
 };
 
+const NEXT_STATUS: Partial<Record<ApplicationStatus, ApplicationStatus>> = {
+  pending: 'invited_for_interview',
+  invited_for_interview: 'interviewed',
+  interviewed: 'accepted',
+};
+
 const ApplicationsPage = () => {
   const { t } = useAppTranslation();
   const statusLabel = (s: ApplicationStatus) => {
@@ -45,6 +51,7 @@ const ApplicationsPage = () => {
   };
   const [mentees, setMentees] = useState<MenteeWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | 'ALL'>('ALL');
 
   useEffect(() => {
@@ -74,16 +81,26 @@ const ApplicationsPage = () => {
     filterStatus === 'ALL' ? mentees : mentees.filter((m) => m.applicationStatus === filterStatus);
 
   const handleStatusChange = async (menteeId: string, newStatus: ApplicationStatus) => {
+    setUpdatingId(menteeId);
     try {
       await menteeApi.updateApplicationStatus(menteeId, newStatus);
-      toast.success(t('pages.applications.statusUpdated', { status: statusLabel(newStatus) }));
+      const message = t('pages.applications.statusUpdated', { status: statusLabel(newStatus) });
+      toast.success(message);
       setMentees((prev) =>
         prev.map((m) => (m._id === menteeId ? { ...m, applicationStatus: newStatus } : m))
       );
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || t('pages.applications.updateFailed'));
+    } finally {
+      setUpdatingId(null);
     }
+  };
+
+  const nextActionLabel = (status: ApplicationStatus) => {
+    if (status === 'pending') return t('pages.applications.invite');
+    if (status === 'invited_for_interview') return t('pages.applications.markInterviewed');
+    return t('pages.applications.accept');
   };
 
   const filterOptions = [
@@ -153,32 +170,30 @@ const ApplicationsPage = () => {
                   {t('pages.applications.view')}
                   <HiOutlineArrowRight className="h-3.5 w-3.5" />
                 </Link>
-                {m.applicationStatus === 'pending' && (
+                {NEXT_STATUS[m.applicationStatus!] && (
                   <button
                     type="button"
                     className="btn btn-primary text-sm"
-                    onClick={() => handleStatusChange(m._id, 'invited_for_interview')}
+                    disabled={updatingId === m._id}
+                    aria-busy={updatingId === m._id}
+                    onClick={() =>
+                      handleStatusChange(m._id, NEXT_STATUS[m.applicationStatus!]!)
+                    }
                   >
-                    {t('pages.applications.invite')}
+                    {updatingId === m._id
+                      ? t('pages.applications.updating')
+                      : nextActionLabel(m.applicationStatus!)}
                   </button>
                 )}
-                {['invited_for_interview', 'interviewed', 'pending'].includes(m.applicationStatus!) && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-primary text-sm"
-                      onClick={() => handleStatusChange(m._id, 'accepted')}
-                    >
-                      {t('pages.applications.accept')}
-                    </button>
+                {['pending', 'invited_for_interview', 'interviewed'].includes(m.applicationStatus!) && (
                     <button
                       type="button"
                       className="btn btn-ghost-danger text-sm"
+                      disabled={updatingId === m._id}
                       onClick={() => handleStatusChange(m._id, 'rejected')}
                     >
                       {t('pages.applications.reject')}
                     </button>
-                  </>
                 )}
               </div>
             </article>

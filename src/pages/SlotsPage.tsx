@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { slotsApi, menteeApi } from '../services/api';
 import { useSlots } from '../hooks/queries/useSlots';
 import { useMentors } from '../hooks/queries/useMentors';
+import { useMentees } from '../hooks/queries/useMentees';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { HiOutlineCalendar, HiOutlinePlus, HiOutlineLink, HiOutlineClock } from 'react-icons/hi2';
@@ -34,7 +35,9 @@ const SlotsPage = () => {
     refetch: refetchSlots,
   } = useSlots(slotParams);
   const { data: mentors = [] } = useMentors();
+  const { data: mentees = [] } = useMentees();
   const [menteeProfileId, setMenteeProfileId] = useState<string | null>(state.user?.menteeId || null);
+  const [adminMenteeId, setAdminMenteeId] = useState('');
   const ownMentorId = state.user?.mentorId || '';
   const { data: calendarStatus } = useCalendarStatus();
   const syncSlot = useSyncSlotToCalendar();
@@ -110,9 +113,11 @@ const SlotsPage = () => {
 
   const handleBook = async (slotId: string) => {
     if (bookingId) return;
-    const menteeId = menteeProfileId;
+    const menteeId = role === 'admin' ? adminMenteeId : menteeProfileId;
     if (!menteeId) {
-      toast.warning(t('pages.slots.noMenteeProfile'));
+      toast.warning(
+        role === 'admin' ? t('pages.slots.selectMenteeToBook') : t('pages.slots.noMenteeProfile')
+      );
       return;
     }
     let key = bookingKeys.current.get(slotId);
@@ -125,7 +130,7 @@ const SlotsPage = () => {
       await slotsApi.book(slotId, menteeId, key);
       bookingKeys.current.delete(slotId);
       toast.success(t('pages.slots.bookSuccess'));
-      if (calendarStatus?.connected) {
+      if (calendarStatus?.connected || calendarStatus?.demo) {
         try {
           const syncRes = await syncSlot.mutateAsync(slotId);
           if (syncRes.data?.meetLink) {
@@ -230,20 +235,39 @@ const SlotsPage = () => {
         </form>
       )}
 
-      <FormField label={t('pages.slots.filterByMentor')}>
-        <select
-          className="input max-w-xs mb-6"
-          value={filterMentorId}
-          onChange={(e) => setFilterMentorId(e.target.value)}
-        >
-          <option value="">{t('pages.slots.allMentors')}</option>
-          {mentors.map((m) => (
-            <option key={m._id} value={m._id}>
-              {m.name || m.email}
-            </option>
-          ))}
-        </select>
-      </FormField>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-2xl">
+        <FormField label={t('pages.slots.filterByMentor')}>
+          <select
+            className="input"
+            value={filterMentorId}
+            onChange={(e) => setFilterMentorId(e.target.value)}
+          >
+            <option value="">{t('pages.slots.allMentors')}</option>
+            {mentors.map((m) => (
+              <option key={m._id} value={m._id}>
+                {m.name || m.email}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        {role === 'admin' && (
+          <FormField label={t('pages.slots.bookForMentee')} required>
+            <select
+              className="input"
+              value={adminMenteeId}
+              onChange={(e) => setAdminMenteeId(e.target.value)}
+              required
+            >
+              <option value="">{t('pages.sessionLog.selectMentee')}</option>
+              {mentees.map((m) => (
+                <option key={m._id} value={m._id}>
+                  {m.name || m.email}
+                </option>
+              ))}
+            </select>
+          </FormField>
+        )}
+      </div>
 
       {loadError && !loading && (
         <Alert variant="error" className="mb-6">
@@ -303,7 +327,7 @@ const SlotsPage = () => {
                   <button
                     type="button"
                     className="btn btn-primary w-full mt-auto"
-                    disabled={bookingId === s._id}
+                    disabled={bookingId === s._id || (role === 'admin' && !adminMenteeId)}
                     onClick={() => void handleBook(s._id)}
                   >
                     {t('pages.slots.book')}

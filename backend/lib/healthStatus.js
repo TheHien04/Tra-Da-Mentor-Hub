@@ -1,13 +1,29 @@
 import mongoose from "mongoose";
 import env from "../config/env.js";
 
-export function getHealthPayload() {
+function storageState() {
   const mongoReady = mongoose.connection.readyState === 1;
+  return { mongoReady, storage: mongoReady ? "mongodb" : "memory" };
+}
+
+export function getLivenessPayload() {
+  const { storage } = storageState();
+  return {
+    status: "ok",
+    check: "liveness",
+    timestamp: new Date().toISOString(),
+    storage,
+  };
+}
+
+export function getReadinessPayload() {
+  const { mongoReady, storage } = storageState();
   const unhealthy = env.isProduction && !mongoReady;
   const base = {
     status: unhealthy ? "degraded" : "ok",
+    check: "readiness",
     timestamp: new Date().toISOString(),
-    storage: mongoReady ? "mongodb" : "memory",
+    storage,
     ...(unhealthy ? { message: "MongoDB connection required in production" } : {}),
   };
 
@@ -29,3 +45,6 @@ export function getHealthPayload() {
     },
   };
 }
+
+// Backward-compatible export for internal consumers; readiness is the stricter check.
+export const getHealthPayload = getReadinessPayload;

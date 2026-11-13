@@ -9,7 +9,11 @@ import {
   removeMenteeFromGroup,
   queryGroupDirectory,
 } from '../services/groupStore.js';
-import { updateMentee } from '../services/menteeStore.js';
+import {
+  assignMenteeToGroup,
+  clearMenteeGroup,
+  getMenteeById,
+} from '../services/menteeStore.js';
 import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
 import { sendDirectory } from '../lib/directoryQuery.js';
@@ -62,9 +66,21 @@ router.post('/:groupId/mentees/:menteeId', async (req, res, next) => {
     const existing = await getGroupById(req.params.groupId);
     if (!existing) return fail(res, 404, 'NOT_FOUND', 'Group not found');
     if (!(await assertGroupManager(req, res, existing))) return;
+    const mentee = await getMenteeById(req.params.menteeId);
+    if (!mentee) return fail(res, 404, 'NOT_FOUND', 'Mentee not found');
+    if (mentee.groupId && mentee.groupId !== req.params.groupId) {
+      return fail(res, 409, 'GROUP_ASSIGNMENT_CONFLICT');
+    }
+    if (!existing.mentees.includes(req.params.menteeId) && existing.mentees.length >= (existing.maxSize || 5)) {
+      return fail(res, 409, 'GROUP_FULL');
+    }
     const group = await addMenteeToGroup(req.params.groupId, req.params.menteeId);
-    if (!group) return fail(res, 404, 'NOT_FOUND', 'Group not found');
-    await updateMentee(req.params.menteeId, { groupId: req.params.groupId });
+    if (!group) return fail(res, 409, 'GROUP_FULL');
+    const assigned = await assignMenteeToGroup(req.params.menteeId, req.params.groupId);
+    if (!assigned) {
+      await removeMenteeFromGroup(req.params.groupId, req.params.menteeId);
+      return fail(res, 409, 'GROUP_ASSIGNMENT_CONFLICT');
+    }
     res.json(group);
   } catch (e) {
     next(e);
@@ -78,7 +94,7 @@ router.delete('/:groupId/mentees/:menteeId', async (req, res, next) => {
     if (!(await assertGroupManager(req, res, existing))) return;
     const group = await removeMenteeFromGroup(req.params.groupId, req.params.menteeId);
     if (!group) return fail(res, 404, 'NOT_FOUND', 'Group not found');
-    await updateMentee(req.params.menteeId, { groupId: null });
+    await clearMenteeGroup(req.params.menteeId, req.params.groupId);
     res.json(group);
   } catch (e) {
     next(e);

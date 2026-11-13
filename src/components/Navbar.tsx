@@ -21,6 +21,7 @@ import {
   HiOutlineChatBubbleLeftRight,
   HiOutlineArrowRightOnRectangle,
   HiOutlineCog6Tooth,
+  HiOutlineChevronDown,
 } from 'react-icons/hi2';
 import logoImg from '../assets/logo.png';
 import { resolveAssetUrl } from '../lib/assetUrl';
@@ -34,6 +35,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { state, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(() => location.pathname.startsWith('/admin'));
   const dropdownRef = useRef<HTMLDivElement>(null);
   const role = state.user?.role || 'user';
   const avatarSrc = resolveAssetUrl(state.user?.avatar);
@@ -55,6 +57,10 @@ const Navbar = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDropdown]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/admin')) setAdminOpen(true);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {
@@ -83,23 +89,35 @@ const Navbar = () => {
   };
 
   const iconClass = 'h-[18px] w-[18px]';
-  const navSection = (label: string, links: React.ReactNode[]) => (
-    <div className="nav-section" key={label}>
-      <p className="nav-section__label">{label}</p>
-      {links}
-    </div>
-  );
+  const navSection = (label: string, links: React.ReactNode[]) => {
+    const visibleLinks = links.filter(Boolean);
+    if (!visibleLinks.length) return null;
+    return (
+      <div className="nav-section" key={label}>
+        <p className="nav-section__label">{label}</p>
+        {visibleLinks}
+      </div>
+    );
+  };
+
+  const adminLinks = [
+    navLink('/admin/audit', t('nav.audit'), <HiOutlineClipboardDocumentCheck className={iconClass} />, true),
+    navLink('/admin/export', t('nav.export'), <HiOutlineArrowUpTray className={iconClass} />, true),
+    navLink('/admin/invite', t('nav.invites'), <HiOutlineUserPlus className={iconClass} />, true),
+    navLink('/admin/notifications', t('nav.notifications'), <HiOutlineBell className={iconClass} />, true),
+  ].filter(Boolean);
 
   return (
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
         <img src={logoImg} alt={t('app.brand')} />
-        <h1>{t('app.brand')}</h1>
+        <span className="navbar-brand__name">{t('app.brand')}</span>
       </Link>
 
       <div className="navbar-links flex flex-col gap-0.5 px-1 py-2 flex-1 overflow-y-auto">
         {navSection(t('nav.workspace', 'Workspace'), [
           navLink('/', t('nav.dashboard'), <HiOutlineHome className={iconClass} />),
+          navLink('/programs', t('nav.pricing'), <HiOutlineDocumentText className={iconClass} />, true),
           navLink('/mentors', t('nav.mentors'), <HiOutlineAcademicCap className={iconClass} />, true),
           navLink('/mentees', t('nav.mentees'), <HiOutlineUserGroup className={iconClass} />, true),
           navLink('/groups', t('nav.groups'), <HiOutlineUsers className={iconClass} />, true),
@@ -112,21 +130,25 @@ const Navbar = () => {
         {navSection(t('nav.insightsGroup', 'Insights'), [
           navLink('/analytics', t('nav.analytics'), <HiOutlineChartBar className={iconClass} />, true),
           navLink('/insights', t('nav.insights'), <HiOutlineSparkles className={iconClass} />, true),
+          navLink('/testimonials', t('nav.testimonials'), <HiOutlineChatBubbleLeftRight className={iconClass} />, true),
         ])}
-        {isAdmin &&
-          navSection(t('nav.administration', 'Administration'), [
-            navLink('/admin/audit', t('nav.audit'), <HiOutlineClipboardDocumentCheck className={iconClass} />, true),
-            navLink('/admin/export', t('nav.export'), <HiOutlineArrowUpTray className={iconClass} />, true),
-            navLink('/admin/invite', t('nav.invites'), <HiOutlineUserPlus className={iconClass} />, true),
-            navLink('/admin/notifications', t('nav.notifications'), <HiOutlineBell className={iconClass} />, true),
-            navLink('/testimonials', t('nav.testimonials'), <HiOutlineChatBubbleLeftRight className={iconClass} />, true),
-          ])}
+        {isAdmin && adminLinks.length > 0 && (
+          <details
+            className="nav-section nav-section--collapsible"
+            open={adminOpen}
+            onToggle={(event) => setAdminOpen(event.currentTarget.open)}
+          >
+            <summary className="nav-section__summary">
+              <span>{t('nav.administration', 'Administration')}</span>
+              <HiOutlineChevronDown className="h-3.5 w-3.5" aria-hidden />
+            </summary>
+            <div>{adminLinks}</div>
+          </details>
+        )}
       </div>
 
       <div className="navbar-footer">
         <div className="flex items-center gap-2 px-2 mb-2 text-[10px] text-muted">
-          <Link to="/pricing" className="hover:text-[var(--accent)]">{t('nav.pricing')}</Link>
-          <span>·</span>
           <Link to="/privacy-policy" className="hover:text-[var(--accent)]">{t('footer.privacy')}</Link>
           <span>·</span>
           <Link to="/terms-of-service" className="hover:text-[var(--accent)]">{t('footer.terms')}</Link>
@@ -142,7 +164,7 @@ const Navbar = () => {
           onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
         >
           <span>{t('command.search', 'Quick search')}</span>
-          <kbd className="rounded px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+          <kbd className="rounded-sm px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
         </button>
 
         <div className="navbar-profile flex justify-center" ref={dropdownRef}>

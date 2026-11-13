@@ -240,7 +240,7 @@ export default function LoginPage() {
               </Link>
             </p>
             <p className="auth-register-text">
-              <Link to="/pricing" className="auth-link-muted">
+              <Link to="/programs" className="auth-link-muted">
                 {t('auth.viewPricing')}
               </Link>
             </p>

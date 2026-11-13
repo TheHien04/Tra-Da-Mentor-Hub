@@ -5,7 +5,7 @@ import { useDb } from '../lib/dataMode.js';
 const memory = [];
 let seq = 1;
 
-function toClient(doc) {
+function toClient(doc, viewerId) {
   if (!doc) return null;
   const o = typeof doc.toJSON === 'function' ? doc.toJSON() : { ...doc };
   return {
@@ -15,7 +15,7 @@ function toClient(doc) {
     message: o.message || '',
     type: o.type || 'info',
     href: o.href ?? null,
-    read: Boolean(o.read),
+    read: viewerId ? (o.readBy || []).includes(String(viewerId)) : Boolean(o.read),
     createdAt: o.createdAt instanceof Date ? o.createdAt.toISOString() : o.createdAt,
   };
 }
@@ -28,6 +28,7 @@ export async function createNotification(payload, io) {
     type: payload.type || 'info',
     href: payload.href || null,
     read: false,
+    readBy: [],
   };
 
   let notification;
@@ -74,10 +75,10 @@ export async function listNotificationsForActor(actor) {
   const ids = ['all', actor.userId];
   if (actor.role === 'mentor' || actor.isAdmin) ids.push('mentors');
   if (actor.role === 'mentee' || actor.isAdmin) ids.push('mentees');
-  return listNotifications(ids);
+  return listNotifications(ids, actor.userId);
 }
 
-export async function listNotifications(userId) {
+export async function listNotifications(userId, viewerId = Array.isArray(userId) ? null : userId) {
   const ids = Array.isArray(userId) ? userId : [userId];
   if (useDb()) {
     const docs = await Notification.find({
@@ -86,37 +87,45 @@ export async function listNotifications(userId) {
       .sort({ createdAt: -1 })
       .limit(100)
       .lean();
-    return docs.map((d) => toClient(d));
+    return docs.map((d) => toClient(d, viewerId));
   }
-  return memory.filter((n) => n.userId === 'all' || ids.includes(n.userId));
+  return memory
+    .filter((n) => n.userId === 'all' || ids.includes(n.userId))
+    .map((n) => toClient(n, viewerId));
 }
 
-export async function markRead(id, userId) {
+export async function markRead(id, userId, viewerId = Array.isArray(userId) ? null : userId) {
   const ids = Array.isArray(userId) ? userId : ['all', userId];
+  if (!viewerId) return null;
   if (useDb()) {
     const doc = await Notification.findOneAndUpdate(
       { _id: id, userId: { $in: ids } },
-      { read: true },
+      { $addToSet: { readBy: String(viewerId) } },
       { new: true }
     );
-    return toClient(doc);
+    return toClient(doc, viewerId);
   }
   const n = memory.find((x) => x._id === id && ids.includes(x.userId));
-  if (n) n.read = true;
-  return n || null;
+  if (n && !(n.readBy || []).includes(String(viewerId))) {
+    n.readBy = [...(n.readBy || []), String(viewerId)];
+  }
+  return toClient(n, viewerId);
 }
 
-export async function markAllRead(userId) {
+export async function markAllRead(userId, viewerId = Array.isArray(userId) ? null : userId) {
   const ids = Array.isArray(userId) ? userId : ['all', userId];
+  if (!viewerId) return;
   if (useDb()) {
     await Notification.updateMany(
-      { userId: { $in: ids }, read: false },
-      { read: true }
+      { userId: { $in: ids }, readBy: { $ne: String(viewerId) } },
+      { $addToSet: { readBy: String(viewerId) } }
     );
     return;
   }
   memory.forEach((n) => {
-    if (ids.includes(n.userId)) n.read = true;
+    if (ids.includes(n.userId) && !(n.readBy || []).includes(String(viewerId))) {
+      n.readBy = [...(n.readBy || []), String(viewerId)];
+    }
   });
 }
 
@@ -126,6 +135,7 @@ function broadcastSeedRows() {
     ...d,
     href: '/',
     read: i > 1,
+    readBy: [],
     createdAt: new Date(now - i * 36 * 60 * 60 * 1000).toISOString(),
   }));
 }

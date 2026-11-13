@@ -101,7 +101,7 @@ const SearchFilter = ({
                 >
                   <input
                     type="checkbox"
-                    className="rounded"
+                    className="rounded-sm"
                     style={{ accentColor: 'var(--accent)' }}
                     checked={Boolean(filters[option.value])}
                     onChange={() => handleFilterChange(option.value)}

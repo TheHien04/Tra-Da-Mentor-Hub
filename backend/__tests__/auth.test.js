@@ -18,7 +18,9 @@ app.use('/api/auth', authRoutes);
 app.use(errorHandler);
 
 // Test database URL
-const TEST_DB_URL = process.env.TEST_DATABASE_URL || 'mongodb://localhost:27017/tra-da-mentor-test';
+// Use IPv4 explicitly: Docker Desktop may publish Mongo only on 127.0.0.1
+// while `localhost` resolves to ::1 first on macOS.
+const TEST_DB_URL = process.env.TEST_DATABASE_URL || 'mongodb://127.0.0.1:27017/tra-da-mentor-test';
 
 describe('Authentication API', () => {
   let testUser;
@@ -27,7 +29,15 @@ describe('Authentication API', () => {
 
   // Connect to test database before all tests
   beforeAll(async () => {
-    await mongoose.connect(TEST_DB_URL);
+    try {
+      await mongoose.connect(TEST_DB_URL, {
+        serverSelectionTimeoutMS: Number(process.env.TEST_MONGO_TIMEOUT_MS || 5000),
+      });
+    } catch (error) {
+      throw new Error(
+        `Test MongoDB is unavailable at ${TEST_DB_URL}. Start the repository Mongo service or set TEST_DATABASE_URL. ${error.message}`
+      );
+    }
   });
 
   // Clear database before each test

@@ -1,10 +1,18 @@
-/* Tailwind CSS */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind CSS v4 — legacy token config is loaded explicitly during migration. */
+@import "tailwindcss";
+@config "../tailwind.config.js";
+@plugin "@tailwindcss/forms";
 
 /* ─── Design tokens: cùng cấu trúc cho light & dark ─── */
 @layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
   :root {
     --bg-app: #fbfaf6;
     --bg-sidebar: #ffffff;
@@ -16,10 +24,10 @@
     --border-subtle: #e1e7e3;
     --text-primary: #17372d;
     --text-secondary: #315044;
-    --text-muted: #6a7a74;
+    --text-muted: #64746d;
     --text-on-accent: #ffffff;
     --accent: #123d2c;
-    --accent-hover: #86a914;
+    --accent-hover: #8baa15;
     --accent-subtle: #f2f6e5;
     --accent-subtle-fg: #3f5c0a;
     --danger: #9e2f22;
@@ -95,7 +103,7 @@
 
   /* Surfaces — colors come from the Tailwind theme, which reads the CSS variables above */
   .card {
-    @apply rounded-sm border border-surface-border bg-surface transition-shadow duration-200;
+    @apply rounded-xs border border-surface-border bg-surface transition-shadow duration-200;
     box-shadow: var(--shadow-card);
   }
 
@@ -145,16 +153,16 @@
 
   /* Buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-sm px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 rounded-xs px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-offset-2;
     --tw-ring-offset-color: var(--ring-offset);
   }
 
   .btn-primary {
-    @apply bg-accent text-[color:var(--text-on-accent)] shadow-sm hover:bg-accent-hover focus:ring-accent;
+    @apply bg-accent text-[color:var(--text-on-accent)] shadow-xs hover:bg-accent-hover focus:ring-accent;
   }
 
   .btn-primary:hover {
-    color: var(--text-on-accent);
+    color: #123d2c;
   }
 
   .btn-secondary {
@@ -188,7 +196,7 @@
   }
 
   .dashboard-hero .btn.btn-primary {
-    background: #86a914;
+    background: #8baa15;
     color: #123d2c;
   }
 
@@ -225,7 +233,7 @@
 
   /* Form */
   .input {
-    @apply w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-primary transition-colors placeholder:text-muted focus:outline-none focus:ring-2;
+    @apply w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-primary transition-colors placeholder:text-muted focus:outline-hidden focus:ring-2;
   }
 
   .input:focus {
@@ -239,7 +247,8 @@
 
   /* Stats */
   .stat-card {
-    @apply card p-6 flex flex-col gap-3;
+    @apply rounded-xs border border-surface-border bg-surface p-6 flex flex-col gap-3 transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
   }
 
   .stat-label {
@@ -252,7 +261,7 @@
 
   .skeleton {
     background-color: var(--bg-surface-muted);
-    @apply animate-pulse rounded;
+    @apply animate-pulse rounded-sm;
   }
 
   .badge-pill {
@@ -321,7 +330,7 @@
 
   .overlay-backdrop {
     background-color: color-mix(in srgb, var(--text-primary) 35%, transparent);
-    @apply backdrop-blur-sm;
+    @apply backdrop-blur-xs;
   }
 
   .modal-panel {
@@ -743,7 +752,10 @@
   }
 
   .icon-btn-danger {
-    @apply icon-btn;
+    @apply flex items-center justify-center rounded-lg transition-colors;
+    background-color: var(--bg-surface-muted);
+    border: 1px solid var(--border-default);
+    color: var(--text-secondary);
     width: 2.25rem;
     height: 2.25rem;
     padding: 0;
@@ -950,7 +962,8 @@
   }
 
   .insights-stat-card {
-    @apply card p-4 flex flex-col gap-1;
+    @apply rounded-xs border border-surface-border bg-surface p-4 flex flex-col gap-1 transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
   }
 
   .insights-stat-card__value {
@@ -1173,11 +1186,11 @@
   }
 
   .dashboard-hero__cta {
-    @apply shadow-sm;
+    @apply shadow-xs;
   }
 
   .dashboard-hero .btn-primary {
-    background: #86a914;
+    background: #8baa15;
     color: #123d2c;
   }
 
@@ -1301,6 +1314,11 @@
 
   .admin-integration-tile--partial {
     border-color: color-mix(in srgb, #d97706 40%, var(--border-default));
+  }
+
+  .admin-integration-tile--demo {
+    border-color: color-mix(in srgb, #d97706 32%, var(--border-default));
+    background: color-mix(in srgb, #f59e0b 5%, var(--bg-elevated));
   }
 
   .admin-integration-tile--off {
@@ -1525,7 +1543,8 @@
   }
 
   .not-found-card {
-    @apply relative card p-10 max-w-md w-full text-center;
+    @apply relative rounded-xs border border-surface-border bg-surface p-10 max-w-md w-full text-center transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
     animation: pageEnter 0.5s ease both;
   }
 
@@ -1555,7 +1574,8 @@
 
   /* Testimonial quote cards */
   .testimonial-card {
-    @apply card card-hover p-6 flex flex-col relative overflow-hidden;
+    @apply rounded-xs border border-surface-border bg-surface p-6 flex flex-col relative overflow-hidden transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
   }
 
   .testimonial-card::before {
@@ -1582,7 +1602,8 @@
   }
 
   .error-boundary__card {
-    @apply card p-8 max-w-md w-full text-center;
+    @apply rounded-xs border border-surface-border bg-surface p-8 max-w-md w-full text-center transition-shadow duration-200;
+    box-shadow: var(--shadow-card);
     border-color: color-mix(in srgb, var(--danger) 30%, var(--border-default));
     background: color-mix(in srgb, var(--danger) 6%, var(--bg-surface));
   }
@@ -1762,7 +1783,7 @@
 }
 
 .pwa-install-prompt__inner {
-  @apply card flex items-center gap-3 p-4;
+  @apply rounded-xs border border-surface-border bg-surface flex items-center gap-3 p-4 transition-shadow duration-200;
   border-color: color-mix(in srgb, var(--accent) 30%, var(--border-default));
   box-shadow: 0 12px 40px rgb(0 0 0 / 0.12);
 }
@@ -1836,8 +1857,10 @@
 }
 
 html.motion-on [data-reveal] {
-  opacity: var(--reveal, 1);
-  transform: translate3d(0, calc((1 - var(--reveal, 1)) * 18px), 0);
+  /* Motion is enhancement only: content remains fully readable even before
+     Intersection/scroll state has been calculated. */
+  opacity: 1;
+  transform: translate3d(0, calc((1 - var(--reveal, 1)) * 10px), 0);
 }
 
 [data-parallax] {
@@ -2010,6 +2033,10 @@ html.motion-on [data-reveal] {
   margin-bottom: 1.5rem;
 }
 
+.work-grid--single {
+  grid-template-columns: 1fr;
+}
+
 .next-up {
   display: flex;
   flex-direction: column;
@@ -2020,6 +2047,12 @@ html.motion-on [data-reveal] {
   border-left: 3px solid var(--accent);
   border-radius: 2px;
   background: var(--bg-surface);
+}
+
+.work-grid--single .next-up {
+  flex-direction: row;
+  align-items: center;
+  min-height: 0;
 }
 
 .work-grid > .card {
@@ -2079,6 +2112,33 @@ html.motion-on [data-reveal] {
 
   .work-studio__stage {
     height: 18rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .work-grid--single .next-up {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .btn,
+  .mobile-nav-item,
+  .mobile-nav-close,
+  .people-card__footer > a,
+  .people-card__footer > button,
+  .list-row a,
+  .list-row button {
+    min-height: 44px;
+  }
+
+  .list-row a,
+  .list-row button {
+    align-items: center;
+    display: inline-flex;
+  }
+
+  .mobile-nav-close {
+    min-width: 44px;
   }
 }
 
@@ -2532,11 +2592,11 @@ html.motion-on [data-reveal] {
 /* ─── App shell (was App.css). Layout utilities come from the Tailwind theme. ─── */
 /* Role accent — đồng bộ --accent cho light & dark */
 .app-container.role-mentor {
-  --primary-color: #86a914;
+  --primary-color: #8baa15;
   --secondary-color: #6d8c10;
   --accent-color: #c3e24f;
   --light-accent: #f2f6e5;
-  --accent: #86a914;
+  --accent: #8baa15;
   --accent-hover: #123d2c;
   --accent-subtle: #f2f6e5;
   --accent-subtle-fg: #3f5c0a;
@@ -2550,7 +2610,7 @@ html.motion-on [data-reveal] {
   --accent-color: #86a914;
   --light-accent: #f2f6e5;
   --accent: #123d2c;
-  --accent-hover: #86a914;
+  --accent-hover: #8baa15;
   --accent-subtle: #f2f6e5;
   --accent-subtle-fg: #3f5c0a;
   --text-on-accent: #ffffff;
@@ -2606,7 +2666,7 @@ html.motion-on [data-reveal] {
   @apply h-9 w-auto;
 }
 
-.navbar-brand h1 {
+.navbar-brand__name {
   @apply whitespace-nowrap font-display text-lg font-extrabold uppercase text-primary;
   letter-spacing: 0.12em;
 }
@@ -2627,6 +2687,40 @@ html.motion-on [data-reveal] {
   letter-spacing: 0.12em;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.nav-section__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.75rem 0.75rem 0.35rem;
+  padding: 0.35rem 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.nav-section__summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-section__summary svg {
+  transition: transform 150ms ease;
+}
+
+.nav-section--collapsible[open] .nav-section__summary svg {
+  transform: rotate(180deg);
+}
+
+.nav-section__summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 0.25rem;
 }
 
 .nav-item svg {
@@ -3049,7 +3143,7 @@ tbody tr:last-child {
     border-bottom: none;
   }
 
-  .navbar-brand h1 {
+  .navbar-brand__name {
     font-size: 1rem;
   }
 

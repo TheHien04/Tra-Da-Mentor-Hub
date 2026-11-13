@@ -4,16 +4,12 @@
  * Handles all email sending functionality
  */
 
-import sgMail from '@sendgrid/mail';
 import logger from '../config/logger.js';
 import env from '../config/env.js';
 import { demoIntegrationsEnabled } from '../lib/demoIntegrations.js';
 import { recordDemoEmail } from '../services/demoOutbox.js';
 
-// Initialize SendGrid
-if (env.sendgridApiKey) {
-  sgMail.setApiKey(env.sendgridApiKey);
-} else {
+if (!env.sendgridApiKey) {
   logger.warn('SendGrid API key not configured. Email sending will be disabled.');
 }
 
@@ -47,7 +43,34 @@ async function sendEmail({ to, subject, text, html }) {
   };
 
   try {
-    await sgMail.send(msg);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    let response;
+    try {
+      response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${env.sendgridApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: to }] }],
+          from: msg.from,
+          subject: msg.subject,
+          content: [
+            { type: 'text/plain', value: msg.text || '' },
+            { type: 'text/html', value: msg.html || '' },
+          ],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(`SendGrid request failed (${response.status}): ${detail.slice(0, 300)}`);
+    }
     logger.info(`Email sent successfully to ${to}: ${subject}`);
     return { success: true };
   } catch (error) {

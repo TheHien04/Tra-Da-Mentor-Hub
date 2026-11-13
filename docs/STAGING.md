@@ -17,6 +17,7 @@ Staging mirrors production configuration with isolated credentials and data.
 | `NODE_ENV` | `production` | `production` |
 | `ENABLE_DEMO_AUTH` | `false` | `false` |
 | `CORS_ORIGIN` | `https://staging.yourdomain.com` | `https://app.yourdomain.com` |
+| `ENABLE_PAID_PLANS` | `false` | `false` until a reviewed post-application billing flow replaces the legacy SaaS plans |
 | SendGrid | Staging API key / sandbox | Live API key |
 | Stripe | Test mode keys | Live keys |
 
@@ -33,9 +34,10 @@ CORS_ORIGIN=https://staging.yourdomain.com
 FRONTEND_URL=https://staging.yourdomain.com
 BASE_URL=https://staging.yourdomain.com
 ENABLE_DEMO_AUTH=false
+ENABLE_PAID_PLANS=false
 ```
 
-Use **different** JWT secrets than production.
+Use **different** JWT secrets than production. Live checkout also requires both Stripe price IDs and a webhook secret; configuring a Stripe secret key alone never enables charging.
 
 ## Deploy steps
 
@@ -44,7 +46,8 @@ Use **different** JWT secrets than production.
 3. Deploy container or PaaS service (see [DEPLOY.md](../DEPLOY.md))
 4. `npm run create:admin -- ...` once per environment
 5. Smoke test:
-   - `GET /api/health` → 200, `storage: mongodb`
+   - `GET /api/health` → 200, `check: liveness`
+   - `GET /api/ready` → 200, `storage: mongodb`
    - Login → dashboard
    - `GET /api/docs` → Swagger loads
 

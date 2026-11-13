@@ -37,7 +37,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       { id: 'slots', label: t('nav.slots'), href: '/slots', group: t('command.groupNavigate') },
       { id: 'sessions', label: t('nav.sessions'), href: '/session-logs', group: t('command.groupNavigate') },
       { id: 'analytics', label: t('nav.analytics'), href: '/analytics', group: t('command.groupNavigate') },
-      { id: 'insights', label: t('nav.insights', 'AI Insights'), href: '/insights', group: t('command.groupNavigate'), keywords: 'smart match ai' },
+      { id: 'insights', label: t('nav.insights', 'Match suggestions'), href: '/insights', group: t('command.groupNavigate'), keywords: 'smart match suggestions' },
       { id: 'testimonials', label: t('nav.testimonials'), href: '/testimonials', group: t('command.groupNavigate') },
       { id: 'add-mentor', label: t('mentor.addMentor'), href: '/mentors/add', group: t('command.groupActions'), keywords: 'create new' },
       { id: 'add-mentee', label: t('mentee.addMentee'), href: '/mentees/add', group: t('command.groupActions'), keywords: 'create new' },
@@ -124,9 +124,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('command.placeholder', 'Search pages and actions…')}
             aria-label={t('command.search', 'Quick search')}
-            className="flex-1 bg-transparent text-sm text-primary outline-none placeholder:text-muted"
+            className="flex-1 bg-transparent text-sm text-primary outline-hidden placeholder:text-muted"
           />
-          <kbd className="hidden sm:inline-flex search-trigger px-1.5 py-0.5 text-[10px] font-medium rounded">esc</kbd>
+          <kbd className="hidden sm:inline-flex search-trigger px-1.5 py-0.5 text-[10px] font-medium rounded-sm">esc</kbd>
         </div>
         <div className="max-h-[50vh] overflow-y-auto p-2">
           {filtered.length === 0 ? (

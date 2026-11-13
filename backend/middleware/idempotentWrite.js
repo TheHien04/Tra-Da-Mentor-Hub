@@ -1,23 +1,52 @@
-import { readIdempotent, saveIdempotent } from '../lib/idempotency.js';
+import {
+  claimIdempotent,
+  completeIdempotent,
+  createIdempotencyContext,
+  releaseIdempotent,
+} from '../lib/idempotency.js';
 
 /**
- * Replay a successful POST when the client sends the same Idempotency-Key.
- * Callers without the header are unchanged.
+ * Reserve and replay a POST only after the route has authenticated and authorized it.
  */
-export function idempotentWrite(req, res, next) {
+export async function idempotentWrite(req, res, next) {
   if (req.method !== 'POST') return next();
   const key = req.get('Idempotency-Key');
-  const userId = req.user?.userId;
-  if (!key || !userId) return next();
+  if (!key || !req.user?.userId) return next();
+  if (key.length > 200) {
+    return res.status(400).json({ success: false, code: 'VALIDATION', message: 'Idempotency-Key is too long' });
+  }
 
-  const prior = readIdempotent(userId, key);
-  if (prior) return res.status(prior.status).json(prior.body);
+  try {
+    const context = createIdempotencyContext(req);
+    const claim = await claimIdempotent(context);
+    if (claim.kind === 'replay') return res.status(claim.status).json(claim.body);
+    if (claim.kind === 'conflict') {
+      return res.status(409).json({
+        success: false,
+        code: 'IDEMPOTENCY_KEY_REUSED',
+        message: 'This Idempotency-Key was already used with different request data or authorization',
+      });
+    }
+    if (claim.kind === 'pending') {
+      return res.status(409).json({
+        success: false,
+        code: 'IDEMPOTENCY_IN_PROGRESS',
+        message: 'A request with this Idempotency-Key is already in progress',
+      });
+    }
 
-  const send = res.json.bind(res);
-  res.json = (body) => {
-    const status = res.statusCode || 200;
-    if (status < 400) saveIdempotent(userId, key, status, body);
-    return send(body);
-  };
-  next();
+    const send = res.json.bind(res);
+    res.json = (body) => {
+      const status = res.statusCode || 200;
+      res.json = send;
+      const persist = status < 500
+        ? completeIdempotent(context, status, body)
+        : releaseIdempotent(context);
+      void persist.then(() => send(body)).catch(next);
+      return res;
+    };
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 }

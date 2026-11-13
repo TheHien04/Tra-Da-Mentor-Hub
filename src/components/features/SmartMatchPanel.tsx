@@ -68,6 +68,7 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
               <LaunchBadge variant="beta" />
             </h2>
             <p className="text-xs text-muted mt-0.5">{t('dashboard.smartMatchSubtitle')}</p>
+            {!compact && <p className="text-xs text-muted mt-1">{t('dashboard.matchMethodNote')}</p>}
           </div>
         </div>
         {!compact && (
@@ -98,6 +99,9 @@ export function SmartMatchPanel({ menteeId, mentorId, compact }: SmartMatchPanel
             )}
             {explainQuery.data?.source === 'demo' && (
               <span className="badge-pill badge-accent text-[10px]">{t('dashboard.matchDemo')}</span>
+            )}
+            {explainQuery.data?.source === 'rules' && (
+              <span className="badge-pill badge-neutral text-[10px]">{t('dashboard.matchRules')}</span>
             )}
           </p>
           {explained?.factors && (

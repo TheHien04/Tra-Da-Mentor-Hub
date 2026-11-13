@@ -41,7 +41,13 @@ jobs:
         run: npm run check:secrets
 
       - name: Validate OpenAPI spec
-        run: node -e "JSON.parse(require('fs').readFileSync('docs/openapi.json','utf8')); console.log('openapi.json OK')"
+        run: npm run check:openapi
+
+      - name: Validate repository structure
+        run: npm run check:structure
+
+      - name: Validate locale parity
+        run: npm run check:locales
 
       - name: Typecheck and build frontend
         run: npm run build
@@ -55,11 +61,8 @@ jobs:
       - name: Frontend unit tests (with coverage)
         run: npm run test:frontend:ci
 
-      - name: Locale parity
-        run: npm run check:locales
-
-      - name: Dependency audit (high severity)
-        run: npm audit --audit-level=high
+      - name: Dependency audit (moderate and above)
+        run: npm run audit:ci
 
       - name: Verify production env script
         run: |
@@ -101,8 +104,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
-      - name: E2E tests
+      - name: Critical E2E tests (Chromium)
         run: npm run test:e2e
+
+      - name: Cross-browser contract (Firefox + WebKit)
+        run: npm run test:e2e:crossbrowser

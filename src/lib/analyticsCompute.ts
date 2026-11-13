@@ -34,6 +34,8 @@ export interface AnalyticsKpis {
 export interface AnalyticsSnapshot {
   kpis: AnalyticsKpis;
   progressSegments: { key: string; value: number }[];
+  applicationFunnel: { key: string; value: number }[];
+  applicationConversion: { interviewRate: number; acceptanceRate: number };
   trackDistribution: { track: string; label: string; count: number }[];
   sessionTrend: { label: string; sessions: number; bookings: number }[];
   topSkills: { skill: string; count: number }[];
@@ -97,6 +99,26 @@ export function buildAnalyticsSnapshot({
     mentees.length > 0
       ? Math.round(mentees.reduce((s, m) => s + (m.progress || 0), 0) / mentees.length)
       : 0;
+
+  const applicationStatusCounts: Record<string, number> = {
+    pending: 0,
+    invited_for_interview: 0,
+    interviewed: 0,
+    accepted: 0,
+    rejected: 0,
+  };
+  mentees.forEach((mentee) => {
+    const status = mentee.applicationStatus || 'pending';
+    if (Object.prototype.hasOwnProperty.call(applicationStatusCounts, status)) {
+      applicationStatusCounts[status] += 1;
+    }
+  });
+  const decidedApplications =
+    applicationStatusCounts.accepted + applicationStatusCounts.rejected;
+  const interviewedApplications = mentees.filter((mentee) => {
+    if (['interviewed', 'accepted'].includes(mentee.applicationStatus || '')) return true;
+    return (mentee.applicationHistory || []).some((entry) => entry.to === 'interviewed');
+  }).length;
 
   const bookedSlots = slots.filter((s) => s.bookedBy || s.menteeId).length;
   const openSlots = slots.length - bookedSlots;
@@ -227,6 +249,17 @@ export function buildAnalyticsSnapshot({
       { key: 'inProgress', value: inProgress },
       { key: 'completed', value: completed },
     ],
+    applicationFunnel: Object.entries(applicationStatusCounts).map(([key, value]) => ({ key, value })),
+    applicationConversion: {
+      interviewRate:
+        mentees.length > 0
+          ? Math.round((interviewedApplications / mentees.length) * 100)
+          : 0,
+      acceptanceRate:
+        decidedApplications > 0
+          ? Math.round((applicationStatusCounts.accepted / decidedApplications) * 100)
+          : 0,
+    },
     trackDistribution,
     sessionTrend,
     topSkills,

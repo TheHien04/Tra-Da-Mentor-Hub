@@ -2,11 +2,17 @@ import request from 'supertest';
 import { createApp } from '../createApp.js';
 import { oauthCallbackUrl } from '../controllers/googleAuthController.js';
 import { lockDataMode, resetDataMode, useDb } from '../lib/dataMode.js';
-import { readIdempotent, saveIdempotent } from '../lib/idempotency.js';
+import {
+  claimIdempotent,
+  clearIdempotencyMemory,
+  completeIdempotent,
+  createIdempotencyContext,
+} from '../lib/idempotency.js';
 import { emailVerifiedOnRegister, mustVerifyEmail } from '../lib/accountPolicy.js';
 import { shouldSkipAudit } from '../middleware/auditMutations.js';
 
 afterEach(() => {
+  clearIdempotencyMemory();
   resetDataMode();
 });
 
@@ -23,10 +29,48 @@ describe('single data mode', () => {
 });
 
 describe('idempotent booking keys', () => {
-  it('replays the stored response', () => {
-    saveIdempotent('user-1', 'key-1', 200, { _id: 'slot-1' });
-    expect(readIdempotent('user-1', 'key-1')).toMatchObject({ status: 200, body: { _id: 'slot-1' } });
-    expect(readIdempotent('user-2', 'key-1')).toBeNull();
+  function context({ path = '/api/slots/slot-1/book', body = {}, role = 'mentee' } = {}) {
+    return createIdempotencyContext({
+      method: 'PATCH',
+      originalUrl: path,
+      body,
+      user: { userId: 'user-1', role },
+      get: (name) => (name === 'Idempotency-Key' ? 'key-1' : undefined),
+    });
+  }
+
+  beforeEach(() => lockDataMode('memory'));
+
+  it('atomically reserves and replays a completed response', async () => {
+    const request = context();
+    await expect(claimIdempotent(request)).resolves.toMatchObject({ kind: 'claimed' });
+    await expect(claimIdempotent(request)).resolves.toMatchObject({ kind: 'pending' });
+    await completeIdempotent(request, 200, { _id: 'slot-1' });
+    await expect(claimIdempotent(request)).resolves.toMatchObject({
+      kind: 'replay',
+      status: 200,
+      body: { _id: 'slot-1' },
+    });
+  });
+
+  it('rejects key reuse with a different payload or authorization context', async () => {
+    const request = context({ body: { menteeId: 'mentee-1' } });
+    await claimIdempotent(request);
+    await completeIdempotent(request, 200, { _id: 'slot-1' });
+
+    await expect(
+      claimIdempotent(context({ body: { menteeId: 'mentee-2' } }))
+    ).resolves.toMatchObject({ kind: 'conflict', reason: 'payload' });
+    await expect(
+      claimIdempotent(context({ body: { menteeId: 'mentee-1' }, role: 'admin' }))
+    ).resolves.toMatchObject({ kind: 'conflict', reason: 'authorization' });
+  });
+
+  it('scopes the same key independently per endpoint', async () => {
+    await expect(claimIdempotent(context())).resolves.toMatchObject({ kind: 'claimed' });
+    await expect(
+      claimIdempotent(context({ path: '/api/slots/slot-2/book' }))
+    ).resolves.toMatchObject({ kind: 'claimed' });
   });
 });
 
@@ -126,6 +170,22 @@ describe('account self-service', () => {
     expect(first.status).toBe(201);
     expect(second.status).toBe(201);
     expect(second.body.token).toBe(first.body.token);
+  });
+
+  it('rejects an idempotency key reused with another invite payload', async () => {
+    lockDataMode('memory');
+    const token = await adminToken();
+    const send = (email) =>
+      request(app)
+        .post('/api/invites')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Idempotency-Key', 'invite-payload-bound')
+        .send({ email, role: 'mentee' });
+
+    expect((await send(`first-${Date.now()}@example.com`)).status).toBe(201);
+    const reused = await send(`second-${Date.now()}@example.com`);
+    expect(reused.status).toBe(409);
+    expect(reused.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
   });
 });
 

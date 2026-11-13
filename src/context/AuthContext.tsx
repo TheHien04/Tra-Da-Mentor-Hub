@@ -14,6 +14,7 @@ import {
 } from '../services/authService';
 import type { LoginRequest, RegisterRequest } from '../services/authService';
 import { normalizeAuthUser } from '../lib/authUser';
+import { PRODUCT_EVENT_NAMES, trackProductEvent } from '../lib/productEvents';
 
 // ============ TYPES ============
 
@@ -148,6 +149,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'LOGIN_SUCCESS',
         payload: { user, accessToken: '', refreshToken: '' },
       });
+      trackProductEvent(PRODUCT_EVENT_NAMES.loginSucceeded, { role: user.role });
     } catch (error: unknown) {
       const err = error as { message?: string; response?: { data?: { message?: string } } };
       const errorMessage = err.message || err.response?.data?.message || 'Login failed';
@@ -176,6 +178,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'REGISTER_SUCCESS',
         payload: { user, accessToken: '', refreshToken: '' },
       });
+      trackProductEvent(PRODUCT_EVENT_NAMES.registrationSucceeded, {
+        role: user.role,
+        verificationRequired: false,
+      });
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
@@ -186,6 +192,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout handler
   const logout = useCallback(async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
+    const role = state.user?.role;
 
     try {
       await logoutApi();
@@ -196,8 +203,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clear all auth data
       clearAuthData();
       dispatch({ type: 'LOGOUT_SUCCESS' });
+      trackProductEvent(PRODUCT_EVENT_NAMES.logoutSucceeded, { role });
     }
-  }, []);
+  }, [state.user?.role]);
 
   // Clear error
   const clearError = useCallback(() => {

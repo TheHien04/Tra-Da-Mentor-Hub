@@ -44,7 +44,7 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     name: '',
-    role: 'user',
+    role: 'mentee',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -247,12 +247,14 @@ export default function RegisterPage() {
                 disabled={state.isLoading || inviteLocked}
                 className={`input ${errors.role ? 'input-error' : ''}`}
               >
-                <option value="user">{t('registerPage.roleUser')}</option>
                 <option value="mentee">{t('registerPage.roleMentee')}</option>
-                <option value="mentor">{t('registerPage.roleMentor')}</option>
+                {formData.role === 'mentor' && <option value="mentor">{t('registerPage.roleMentor')}</option>}
                 {formData.role === 'admin' && <option value="admin">{t('roles.admin')}</option>}
               </select>
               {errors.role && <p className="auth-field-error">{errors.role}</p>}
+              {!inviteLocked && (
+                <p className="mt-2 text-xs text-muted">{t('registerPage.mentorInviteOnly')}</p>
+              )}
             </div>
 
             <div>
@@ -382,7 +384,7 @@ export default function RegisterPage() {
           </Link>
 
           <p className="auth-register-text mt-4 text-center">
-            <Link to="/pricing" className="auth-link-muted">
+            <Link to="/programs" className="auth-link-muted">
               {t('auth.viewPricing')}
             </Link>
           </p>

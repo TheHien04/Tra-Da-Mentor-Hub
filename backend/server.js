@@ -2,7 +2,7 @@ import 'dotenv/config.js';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import mongoose from 'mongoose';
-import { connectDatabase } from './config/database.js';
+import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { lockDataMode } from './lib/dataMode.js';
 import env from './config/env.js';
 import logger from './config/logger.js';
@@ -84,3 +84,27 @@ async function startServer() {
 }
 
 startServer();
+
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info(`${signal} received; draining connections`);
+
+  const forceExit = setTimeout(() => {
+    logger.error('Graceful shutdown timed out');
+    process.exit(1);
+  }, 10_000);
+  forceExit.unref();
+
+  io.disconnectSockets(true);
+  httpServer.close(async (error) => {
+    if (error) logger.error('HTTP server close failed', error);
+    await disconnectDatabase();
+    clearTimeout(forceExit);
+    process.exit(error ? 1 : 0);
+  });
+}
+
+process.once('SIGTERM', () => void shutdown('SIGTERM'));
+process.once('SIGINT', () => void shutdown('SIGINT'));

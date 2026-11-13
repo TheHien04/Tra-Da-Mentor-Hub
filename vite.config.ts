@@ -1,17 +1,21 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+const devPort = Number(process.env.VITE_PORT || 5173)
+const devApiTarget = process.env.VITE_DEV_API_TARGET || 'http://localhost:5000'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     host: true,
-    port: 5173,
+    port: devPort,
     proxy: {
-      '/api': { target: 'http://localhost:5000', changeOrigin: true },
-      '/uploads': { target: 'http://localhost:5000', changeOrigin: true },
-      '/socket.io': { target: 'http://localhost:5000', ws: true, changeOrigin: true },
+      '/api': { target: devApiTarget, changeOrigin: true },
+      '/uploads': { target: devApiTarget, changeOrigin: true },
+      '/socket.io': { target: devApiTarget, ws: true, changeOrigin: true },
     },
   },
   test: {
@@ -38,6 +42,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          'locale-data': ['src/i18n/locales/en.json', 'src/i18n/locales/vi.json'],
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-charts': ['recharts'],
           'vendor-i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],

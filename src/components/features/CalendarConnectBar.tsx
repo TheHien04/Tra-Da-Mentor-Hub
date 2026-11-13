@@ -23,6 +23,19 @@ export function CalendarConnectBar() {
         <span className="text-sm text-muted">{t('common.loading')}</span>
       ) : connected ? (
         <span className="badge-pill badge-success shrink-0">{t('pages.schedule.calendarConnected')}</span>
+      ) : data?.demo ? (
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          <span className="badge-pill badge-warning shrink-0">{t('pages.schedule.calendarDemoStatus')}</span>
+          <button
+            type="button"
+            className="btn btn-secondary shrink-0 inline-flex items-center gap-2"
+            disabled={connect.isPending}
+            onClick={() => connect.mutate()}
+          >
+            <HiOutlineLink className="h-4 w-4" />
+            {t('pages.schedule.calendarTryDemo')}
+          </button>
+        </div>
       ) : (
         <button
           type="button"
