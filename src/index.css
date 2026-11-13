@@ -14,64 +14,67 @@
   }
 
   :root {
-    --bg-app: #f6f1ea;
-    --bg-sidebar: #fffcf8;
-    --bg-surface: #fffefc;
-    --bg-surface-muted: #f1e9df;
-    --bg-surface-hover: #e9ded2;
-    --bg-inset: #f5eee7;
-    --border-default: #d9cbbe;
-    --border-subtle: #e9ded2;
-    --text-primary: #2b2623;
-    --text-secondary: #5f554f;
-    --text-muted: #82756d;
-    --text-on-accent: #fffaf6;
-    --accent: #a75536;
-    --accent-hover: #8e432b;
-    --accent-subtle: #f3e2d9;
-    --accent-subtle-fg: #7b3825;
-    --accent-secondary: #b98542;
-    --accent-secondary-hover: #c99551;
+    --bg-app: #f5f7f1;
+    --bg-sidebar: #fcfdf9;
+    --bg-surface: #ffffff;
+    --bg-surface-muted: #eef3ea;
+    --bg-surface-hover: #e3ebdd;
+    --bg-inset: #f6f8f3;
+    --border-default: #d5e0d3;
+    --border-subtle: #e4ece1;
+    --text-primary: #17372d;
+    --text-secondary: #456052;
+    --text-muted: #6f7f75;
+    --text-on-accent: #f8fcf6;
+    --accent: #1f5a43;
+    --accent-hover: #174735;
+    --accent-subtle: #e5f0e4;
+    --accent-subtle-fg: #2e654a;
+    --accent-secondary: #8daa64;
+    --accent-secondary-hover: #a9c27c;
     --danger: #b84a45;
     --danger-hover: #963b37;
-    --shadow-card: 0 1px 2px rgb(74 54 42 / 0.06);
-    --ring-offset: #f6f1ea;
-    --primary-color: #a75536;
-    --secondary-color: #7b3825;
-    --accent-color: #b98542;
-    --light-accent: #f3e2d9;
-    --border-radius: 4px;
+    --shadow-card: 0 1px 2px rgb(24 63 45 / 0.05), 0 8px 24px rgb(24 63 45 / 0.035);
+    --ring-offset: #f5f7f1;
+    --primary-color: #1f5a43;
+    --secondary-color: #2e654a;
+    --accent-color: #8daa64;
+    --light-accent: #e5f0e4;
+    --border-radius: 12px;
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
     --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
     color-scheme: dark;
-    --bg-app: #171514;
-    --bg-sidebar: #201c1a;
-    --bg-surface: #24201e;
-    --bg-surface-muted: #302925;
-    --bg-surface-hover: #3a302a;
-    --bg-inset: #1d1917;
-    --border-default: #4a3c34;
-    --border-subtle: #382f2a;
-    --text-primary: #f8f1ea;
-    --text-secondary: #d9c9bd;
-    --text-muted: #a89689;
-    --text-on-accent: #fff8f2;
-    --accent: #d98763;
-    --accent-hover: #e6a17f;
-    --accent-subtle: #4a2c22;
-    --accent-subtle-fg: #f1b49a;
-    --accent-secondary: #d2a164;
-    --accent-secondary-hover: #e0b879;
+    --bg-app: #071e16;
+    --bg-sidebar: #0b281d;
+    --bg-surface: #0f3023;
+    --bg-surface-muted: #153c2e;
+    --bg-surface-hover: #1b4937;
+    --bg-inset: #0b281d;
+    --border-default: #285641;
+    --border-subtle: #1d4634;
+    --text-primary: #f4f7f1;
+    --text-secondary: #d2ded5;
+    --text-muted: #9bb0a2;
+    --text-on-accent: #f7fbf4;
+    --accent: #a9cf77;
+    --accent-hover: #c0e396;
+    --accent-subtle: #183e2e;
+    --accent-subtle-fg: #d8e9b8;
+    --accent-secondary: #b6c982;
+    --accent-secondary-hover: #c9dc9b;
     --danger: #e58378;
     --danger-hover: #f09a8e;
     --shadow-card: none;
-    --ring-offset: #24201e;
-    --primary-color: #d98763;
-    --secondary-color: #e6a17f;
-    --accent-color: #d2a164;
-    --light-accent: #4a2c22;
+    --ring-offset: #0f3023;
+    --primary-color: #a9cf77;
+    --secondary-color: #d8e9b8;
+    --accent-color: #b6c982;
+    --light-accent: #183e2e;
   }
 
   body {
@@ -108,6 +111,7 @@
   /* Surfaces — colors come from the Tailwind theme, which reads the CSS variables above */
   .card {
     @apply rounded-xs border border-surface-border bg-surface transition-shadow duration-200;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
   }
 
@@ -125,6 +129,7 @@
     background-color: var(--bg-surface-muted);
     border: 1px solid var(--border-subtle);
     @apply rounded-lg px-3 py-3 transition-colors;
+    border-radius: var(--radius-sm);
   }
 
   .list-row:hover {
@@ -158,6 +163,7 @@
   /* Buttons */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xs px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-offset-2;
+    border-radius: var(--radius-sm);
     --tw-ring-offset-color: var(--ring-offset);
   }
 
@@ -238,6 +244,7 @@
   /* Form */
   .input {
     @apply w-full rounded-lg border border-surface-border bg-surface px-3.5 py-2.5 text-sm text-primary transition-colors placeholder:text-muted focus:outline-hidden focus:ring-2;
+    border-radius: var(--radius-sm);
   }
 
   .input:focus {
@@ -252,6 +259,7 @@
   /* Stats */
   .stat-card {
     @apply rounded-xs border border-surface-border bg-surface p-6 flex flex-col gap-3 transition-shadow duration-200;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-card);
   }
 
@@ -1057,14 +1065,14 @@
     border: none;
     background: var(--text-primary);
     color: var(--text-on-accent);
-    box-shadow: 0 18px 50px rgb(74 54 42 / 0.16);
+    box-shadow: 0 18px 50px rgb(8 35 25 / 0.18);
   }
 
   .dashboard-hero__mesh {
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(100deg, rgb(24 20 18 / 0.6) 0%, rgb(43 38 35 / 0.22) 48%, color-mix(in srgb, var(--accent-secondary) 36%, transparent) 100%);
+      linear-gradient(100deg, rgb(5 29 20 / 0.62) 0%, rgb(17 71 53 / 0.24) 48%, color-mix(in srgb, var(--accent-secondary) 36%, transparent) 100%);
     pointer-events: none;
   }
 
@@ -2596,38 +2604,38 @@ html.motion-on [data-reveal] {
 /* ─── App shell (was App.css). Layout utilities come from the Tailwind theme. ─── */
 /* Role accent — đồng bộ --accent cho light & dark */
 .app-container.role-mentor {
-  --primary-color: #b98542;
-  --secondary-color: #8f632e;
-  --accent-color: #c99551;
-  --light-accent: #f4e8d6;
-  --accent: #b98542;
-  --accent-hover: #965f2b;
-  --accent-subtle: #f4e8d6;
-  --accent-subtle-fg: #765022;
-  --text-on-accent: #fffaf6;
+  --primary-color: #6d8d55;
+  --secondary-color: #4c6a3d;
+  --accent-color: #9ebd78;
+  --light-accent: #edf4e6;
+  --accent: #6d8d55;
+  --accent-hover: #587443;
+  --accent-subtle: #edf4e6;
+  --accent-subtle-fg: #4f6e3e;
+  --text-on-accent: #f8fcf6;
 }
 
 .app-container.role-mentee,
 .app-container.role-admin {
-  --primary-color: #a75536;
-  --secondary-color: #7b3825;
-  --accent-color: #b98542;
-  --light-accent: #f3e2d9;
-  --accent: #a75536;
-  --accent-hover: #8e432b;
-  --accent-subtle: #f3e2d9;
-  --accent-subtle-fg: #7b3825;
-  --text-on-accent: #fffaf6;
+  --primary-color: #1f5a43;
+  --secondary-color: #2e654a;
+  --accent-color: #8daa64;
+  --light-accent: #e5f0e4;
+  --accent: #1f5a43;
+  --accent-hover: #174735;
+  --accent-subtle: #e5f0e4;
+  --accent-subtle-fg: #2e654a;
+  --text-on-accent: #f8fcf6;
 }
 
 .dark .app-container.role-mentor,
 .dark .app-container.role-mentee,
 .dark .app-container.role-admin {
-  --accent: #d98763;
-  --accent-hover: #e6a17f;
-  --accent-subtle: #4a2c22;
-  --accent-subtle-fg: #f1b49a;
-  --text-on-accent: #fff8f2;
+  --accent: #a9cf77;
+  --accent-hover: #c0e396;
+  --accent-subtle: #183e2e;
+  --accent-subtle-fg: #d8e9b8;
+  --text-on-accent: #0b281d;
 }
 
 * {
@@ -2648,6 +2656,38 @@ html.motion-on [data-reveal] {
 
 .app-container .btn:hover {
   transform: none;
+}
+
+.app-container .card,
+.app-container .stat-card,
+.app-container .people-card,
+.app-container .insights-stat-card,
+.app-container .modal-panel,
+.app-container .editorial-card,
+.app-container .editorial-panel,
+.app-container .editorial-banner {
+  border-radius: var(--radius-md);
+}
+
+.app-container .nav-item,
+.app-container .search-trigger,
+.app-container .icon-btn,
+.app-container .badge-pill {
+  border-radius: var(--radius-sm);
+}
+
+.app-container .card,
+.app-container .stat-card,
+.app-container .people-card,
+.app-container .editorial-card,
+.app-container .editorial-panel,
+.app-container .editorial-banner,
+.app-container .btn {
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 220ms ease,
+    color 180ms ease;
 }
 
 .content {
