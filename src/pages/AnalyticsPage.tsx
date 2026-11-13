@@ -38,7 +38,7 @@ const CHART_TOOLTIP = {
   fontSize: 12,
 };
 
-const PROGRESS_COLORS = ['#a1a1aa', 'var(--accent)', '#10b981'];
+const PROGRESS_COLORS = ['#a1a1aa', 'var(--accent)', 'var(--accent-secondary)'];
 
 const APPLICATION_STAGE_KEYS = [
   'pending',
@@ -327,8 +327,8 @@ const AnalyticsPage = () => {
                         <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="bookingsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#86a914" stopOpacity={0.28} />
-                        <stop offset="100%" stopColor="#86a914" stopOpacity={0} />
+                        <stop offset="0%" stopColor="var(--accent-secondary)" stopOpacity={0.28} />
+                        <stop offset="100%" stopColor="var(--accent-secondary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
@@ -366,13 +366,13 @@ const AnalyticsPage = () => {
                       type="linear"
                       dataKey="bookings"
                       name={t('pages.analytics.legendBookings')}
-                      stroke="#86a914"
+                      stroke="var(--accent-secondary)"
                       strokeWidth={2}
                       fill="url(#bookingsGrad)"
                       connectNulls
                       dot={{
                         r: 3,
-                        stroke: '#86a914',
+                        stroke: 'var(--accent-secondary)',
                         strokeWidth: 2,
                         fill: 'var(--bg-surface)',
                       }}
