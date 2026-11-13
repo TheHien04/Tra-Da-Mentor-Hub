@@ -245,7 +245,14 @@
           "mentorId": { "type": "string", "nullable": true },
           "groupId": { "type": "string", "nullable": true },
           "mentorshipType": { "type": "string", "enum": ["GROUP", "ONE_ON_ONE"] },
-          "applicationStatus": { "type": "string" },
+          "applicationStatus": {
+            "type": "string",
+            "enum": ["pending", "invited_for_interview", "interviewed", "accepted", "rejected"]
+          },
+          "applicationHistory": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ApplicationHistoryEntry" }
+          },
           "avatarUrl": { "type": "string" },
           "mentor": { "type": "string" },
           "group": { "type": "string" }
@@ -265,14 +272,31 @@
           "mentorId": { "type": "string" },
           "groupId": { "type": "string" },
           "mentorshipType": { "type": "string" },
-          "applicationStatus": { "type": "string" },
           "avatarUrl": { "type": "string" }
         }
       },
       "ApplicationStatusWrite": {
         "type": "object",
         "required": ["applicationStatus"],
-        "properties": { "applicationStatus": { "type": "string" } }
+        "properties": {
+          "applicationStatus": {
+            "type": "string",
+            "enum": ["pending", "invited_for_interview", "interviewed", "accepted", "rejected"]
+          },
+          "reason": { "type": "string", "maxLength": 500 }
+        }
+      },
+      "ApplicationHistoryEntry": {
+        "type": "object",
+        "required": ["from", "to", "changedAt"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "changedAt": { "type": "string", "format": "date-time" },
+          "actorId": { "type": "string" },
+          "actorRole": { "type": "string" },
+          "reason": { "type": "string" }
+        }
       },
       "PagedMentees": {
         "type": "object",
@@ -587,11 +611,17 @@
       },
       "CalendarConnect": {
         "type": "object",
-        "properties": { "authUrl": { "type": "string" } }
+        "properties": {
+          "authUrl": { "type": "string" },
+          "demo": { "type": "boolean" }
+        }
       },
       "CalendarStatus": {
         "type": "object",
-        "properties": { "connected": { "type": "boolean" } }
+        "properties": {
+          "connected": { "type": "boolean" },
+          "demo": { "type": "boolean" }
+        }
       },
       "CalendarEventWrite": {
         "type": "object",
@@ -625,6 +655,7 @@
         "type": "object",
         "properties": {
           "inApp": { "type": "boolean" },
+          "demo": { "type": "boolean" },
           "email": { "type": "boolean" },
           "zalo": { "type": "boolean" },
           "zaloToken": { "type": "boolean" },
@@ -705,10 +736,23 @@
           "200": {
             "description": "Service healthy",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
+          }
+        }
+      }
+    },
+    "/api/ready": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Readiness check",
+        "description": "Returns 503 when a production instance cannot safely receive traffic, including when MongoDB is unavailable.",
+        "responses": {
+          "200": {
+            "description": "Service ready",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
           },
           "503": {
-            "description": "Degraded",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+            "description": "Service not ready",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Health" } } }
           }
         }
       }
@@ -1075,14 +1119,18 @@
     "/api/mentees/{id}/application-status": {
       "patch": {
         "tags": ["Mentees"],
-        "summary": "Update application status",
+        "summary": "Advance an application through its governed workflow",
+        "description": "Allowed transitions: pending → invited/rejected; invited → interviewed/rejected; interviewed → accepted/rejected. Accepted and rejected are terminal.",
         "security": [{ "bearerAuth": [] }],
         "parameters": [{ "$ref": "#/components/parameters/Id" }],
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApplicationStatusWrite" } } }
         },
-        "responses": { "200": { "description": "Updated" } }
+        "responses": {
+          "200": { "description": "Updated" },
+          "409": { "description": "Invalid transition from the current status" }
+        }
       }
     },
     "/api/groups": {
@@ -1599,6 +1647,50 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/admin/metrics": {
+      "get": {
+        "tags": ["Admin"],
+        "summary": "Process runtime metrics for operators",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Request, latency, status and process memory snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                      "type": "object",
+                      "required": ["startedAt", "uptimeSeconds", "requests", "inFlight", "averageDurationMs", "maxDurationMs", "statuses", "memory"],
+                      "properties": {
+                        "startedAt": { "type": "string", "format": "date-time" },
+                        "uptimeSeconds": { "type": "integer", "minimum": 0 },
+                        "requests": { "type": "integer", "minimum": 0 },
+                        "inFlight": { "type": "integer", "minimum": 0 },
+                        "averageDurationMs": { "type": "number", "minimum": 0 },
+                        "maxDurationMs": { "type": "number", "minimum": 0 },
+                        "statuses": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 } },
+                        "memory": {
+                          "type": "object",
+                          "properties": {
+                            "rssBytes": { "type": "integer", "minimum": 0 },
+                            "heapUsedBytes": { "type": "integer", "minimum": 0 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "Admin role required" }
         }
       }
     },

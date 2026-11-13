@@ -1,13 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { apiLogin, createInvite } from './helpers';
-
-async function loginAsAdmin(page: import('@playwright/test').Page) {
-  await page.goto('/login');
-  await page.getByLabel(/email|địa chỉ email/i).fill('admin@example.com');
-  await page.getByLabel(/^password|mật khẩu/i).fill('AdminPass123');
-  await page.getByRole('button', { name: /sign in|đăng nhập/i }).click();
-  await expect(page).toHaveURL(/\/(\?.*)?$/, { timeout: 15_000 });
-}
+import { API_BASE, apiLogin, createInvite, loginAsAdmin } from './helpers';
 
 test.describe('Production flows', () => {
   test('register via invite link', async ({ page, request }) => {
@@ -27,34 +19,99 @@ test.describe('Production flows', () => {
     await expect(page).toHaveURL(/\/(\?.*)?$/, { timeout: 20_000 });
   });
 
-  test('admin books an open slot', async ({ page }) => {
+  test('admin books an open slot', async ({ page, request }) => {
+    const accessToken = await apiLogin(request);
+    const suffix = Date.now();
+    const mentorName = `E2E Booking Mentor ${suffix}`;
+    const mentorResponse = await request.post(`${API_BASE}/mentors`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        name: mentorName,
+        email: `e2e-booking-mentor-${suffix}@example.com`,
+        track: 'tech',
+        expertise: ['Quality'],
+        maxMentees: 2,
+      },
+    });
+    expect(mentorResponse.ok()).toBeTruthy();
+    const mentor = await mentorResponse.json();
+
+    const menteeResponse = await request.post(`${API_BASE}/mentees`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        name: `E2E Booking Mentee ${suffix}`,
+        email: `e2e-booking-mentee-${suffix}@example.com`,
+        track: 'tech',
+      },
+    });
+    expect(menteeResponse.ok()).toBeTruthy();
+    const mentee = await menteeResponse.json();
+
+    const future = new Date();
+    future.setUTCDate(future.getUTCDate() + 30);
+    const slotResponse = await request.post(`${API_BASE}/slots`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        mentorId: mentor._id,
+        date: future.toISOString().slice(0, 10),
+        time: '13:30',
+        duration: 60,
+      },
+    });
+    expect(slotResponse.ok()).toBeTruthy();
+
     await loginAsAdmin(page);
     await page.goto('/slots');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
-    const bookBtn = page.getByRole('button', { name: /^book|đặt lịch/i }).first();
-    const hasOpen = await bookBtn.isVisible().catch(() => false);
-    if (!hasOpen) {
-      await page.getByRole('button', { name: /add free slot|thêm slot trống/i }).click();
-      await page.locator('form select').first().selectOption({ index: 1 });
-      await page.getByRole('button', { name: /^add slot$|^thêm slot$/i }).click();
-      await expect(page.getByText(/added|đã thêm/i).first()).toBeVisible({ timeout: 10_000 });
-    }
-
-    await page.getByRole('button', { name: /^book|đặt lịch/i }).first().click();
+    await page
+      .getByRole('combobox', { name: /filter by mentor|lọc theo mentor/i })
+      .selectOption(mentor._id);
+    await page
+      .getByRole('combobox', { name: /book for mentee|đặt cho mentee/i })
+      .selectOption(mentee._id);
+    const slotCard = page.locator('article').filter({ hasText: mentorName });
+    const bookBtn = slotCard.getByRole('button', { name: /^book|đặt lịch/i });
+    await expect(bookBtn).toBeVisible({ timeout: 10_000 });
+    await bookBtn.click();
     await expect(page.getByText(/booked|đã đặt/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('admin creates a session log', async ({ page }) => {
+  test('admin creates a session log for a valid mentoring relationship', async ({ page, request }) => {
+    const accessToken = await apiLogin(request);
+    const suffix = Date.now();
+    const mentorResponse = await request.post(`${API_BASE}/mentors`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        name: `E2E Log Mentor ${suffix}`,
+        email: `e2e-log-mentor-${suffix}@example.com`,
+        track: 'tech',
+        expertise: ['Quality'],
+        maxMentees: 2,
+      },
+    });
+    expect(mentorResponse.ok()).toBeTruthy();
+    const mentor = await mentorResponse.json();
+    const menteeResponse = await request.post(`${API_BASE}/mentees`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        name: `E2E Log Mentee ${suffix}`,
+        email: `e2e-log-mentee-${suffix}@example.com`,
+        track: 'tech',
+        mentorId: mentor._id,
+      },
+    });
+    expect(menteeResponse.ok()).toBeTruthy();
+    const mentee = await menteeResponse.json();
+
     await loginAsAdmin(page);
     await page.goto('/session-logs');
-    await page.getByRole('button', { name: /new log|nhật ký mới/i }).click();
+    await page.getByRole('button', { name: /new.*log|nhật ký mới/i }).click();
 
-    const selects = page.locator('form select');
-    await selects.nth(0).selectOption({ index: 1 });
-    await selects.nth(1).selectOption({ index: 1 });
-    await page.locator('input[type="date"]').fill(new Date().toISOString().split('T')[0]);
-    await page.getByPlaceholder(/topic|chủ đề/i).fill(`E2E session ${Date.now()}`);
+    await page.getByRole('combobox', { name: /^mentor\*?$/i }).selectOption(mentor._id);
+    await page.getByRole('combobox', { name: /^mentee\*?$/i }).selectOption(mentee._id);
+    await page.getByLabel(/^(date|ngày)\*?$/i).fill(new Date().toISOString().split('T')[0]);
+    await page.getByLabel(/^(topic|chủ đề)\*?$/i).fill(`E2E session ${Date.now()}`);
     await page.getByRole('button', { name: /save log|lưu nhật ký/i }).click();
 
     await expect(page.getByText(/session log saved|đã lưu nhật ký/i).first()).toBeVisible({
@@ -68,7 +125,7 @@ test.describe('Production flows', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 
     const msg = `E2E broadcast ${Date.now()}`;
-    await page.getByPlaceholder(/message|nội dung/i).fill(msg);
+    await page.getByLabel(/message|nội dung/i).fill(msg);
     await page.getByRole('button', { name: /send notification|gửi thông báo/i }).click();
 
     await expect(

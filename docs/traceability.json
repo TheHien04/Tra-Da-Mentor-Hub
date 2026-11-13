@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "requirements": [
+    {
+      "id": "AUTH-001",
+      "outcome": "A user can register, sign in, refresh a session, and sign out without browser token storage.",
+      "owner": "Product + Engineering",
+      "acceptance": [
+        "Valid credentials create an authenticated session.",
+        "Invalid credentials are rejected without revealing account existence.",
+        "Refresh rotates the session and logout invalidates it.",
+        "Access tokens are not stored in localStorage or sessionStorage."
+      ],
+      "evidence": [
+        "backend/__tests__/auth.test.js",
+        "backend/__tests__/api.access.test.js",
+        "backend/__tests__/sessionHardening.test.js",
+        "e2e/critical-paths.spec.ts"
+      ],
+      "uatRoles": ["mentee", "mentor", "admin"]
+    },
+    {
+      "id": "APP-001",
+      "outcome": "Coordinators can move applications only through valid, auditable lifecycle transitions.",
+      "owner": "BA + Operations",
+      "acceptance": [
+        "Interview is required before acceptance.",
+        "Rejected and accepted applications are terminal.",
+        "Every transition records actor, role, previous state, next state, time, and reason when supplied.",
+        "Profile updates cannot bypass the lifecycle."
+      ],
+      "evidence": [
+        "backend/__tests__/applicationLifecycle.test.js",
+        "docs/PRODUCT_OPERATING_MODEL.md"
+      ],
+      "uatRoles": ["admin"]
+    },
+    {
+      "id": "MATCH-001",
+      "outcome": "The platform recommends only eligible, unassigned mentees and mentors with capacity.",
+      "owner": "Product + Data",
+      "acceptance": [
+        "Only accepted, unassigned mentees are eligible.",
+        "Mentors at capacity are excluded.",
+        "Suggestions include bounded, explainable reasons.",
+        "AI may explain a deterministic decision but cannot change eligibility."
+      ],
+      "evidence": [
+        "backend/__tests__/matching.test.js",
+        "backend/__tests__/matchingAi.test.js",
+        "backend/services/matchingEngine.js",
+        "backend/services/matchingAi.js"
+      ],
+      "uatRoles": ["admin"]
+    },
+    {
+      "id": "BOOK-001",
+      "outcome": "A coordinator can book an available slot and cannot create conflicting bookings.",
+      "owner": "Product + Engineering",
+      "acceptance": [
+        "A future slot can be booked for an eligible mentee.",
+        "Concurrent attempts for the same slot are serialized.",
+        "A booking is distinct from a completed session log.",
+        "The booking operation supports safe retry with an idempotency key."
+      ],
+      "evidence": [
+        "backend/__tests__/stores.test.js",
+        "backend/__tests__/sessionHardening.test.js",
+        "backend/__tests__/api.crm.test.js",
+        "e2e/production-flows.spec.ts"
+      ],
+      "uatRoles": ["admin", "mentor"]
+    },
+    {
+      "id": "SESSION-001",
+      "outcome": "A valid mentoring relationship can be recorded as a session with outcomes and support flags.",
+      "owner": "Operations + QA",
+      "acceptance": [
+        "Unrelated mentor and mentee pairs are rejected.",
+        "A valid pair can create one session log for a mentoring day.",
+        "Feedback values are bounded and validated.",
+        "The session log is visible to authorized operational users."
+      ],
+      "evidence": [
+        "backend/__tests__/accessGuards.test.js",
+        "backend/__tests__/stores.test.js",
+        "backend/__tests__/api.crm.test.js",
+        "e2e/production-flows.spec.ts"
+      ],
+      "uatRoles": ["mentor", "admin"]
+    },
+    {
+      "id": "DATA-001",
+      "outcome": "A user can export and delete their account data through authorized self-service controls.",
+      "owner": "Data + Security",
+      "acceptance": [
+        "The account owner can request an export.",
+        "Deletion is protected against unauthorized or demo-account mutation.",
+        "Export and deletion actions are auditable.",
+        "Exports do not include another user's private data."
+      ],
+      "evidence": [
+        "backend/__tests__/sessionHardening.test.js",
+        "backend/__tests__/accessGuards.test.js",
+        "e2e/critical-paths.spec.ts",
+        "docs/DATA_GOVERNANCE.md"
+      ],
+      "uatRoles": ["mentee", "mentor"]
+    }
+  ]
+}

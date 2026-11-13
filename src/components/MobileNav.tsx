@@ -55,6 +55,7 @@ const MobileNav = () => {
     { to: '/schedule', label: t('nav.schedule') },
     { to: '/session-logs', label: t('nav.sessions') },
     { to: '/applications', label: t('nav.applications') },
+    { to: '/programs', label: t('nav.pricing') },
     { to: '/analytics', label: t('nav.analytics') },
     { to: '/insights', label: t('nav.insights') },
     { to: '/testimonials', label: t('nav.testimonials') },
@@ -135,10 +136,6 @@ const MobileNav = () => {
               ))}
             </div>
             <div className="mobile-nav-sheet-legal">
-              <Link to="/pricing" onClick={() => setMoreOpen(false)}>
-                {t('nav.pricing')}
-              </Link>
-              <span>·</span>
               <Link to="/privacy-policy" onClick={() => setMoreOpen(false)}>
                 {t('footer.privacy')}
               </Link>

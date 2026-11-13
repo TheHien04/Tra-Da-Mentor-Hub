@@ -1,145 +1,110 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { HiOutlineCreditCard } from 'react-icons/hi2';
-import { useAppTranslation } from '../hooks/useAppTranslation';
-import { toast } from 'react-toastify';
-import { paymentsApi } from '../services/api';
-import { useAuth } from '../hooks/useAuth';
+import { Link } from 'react-router-dom';
+import { HiOutlineAcademicCap, HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import { AuthPageFooter } from '../components/AuthPageFooter';
+import { ProgramPackageCard } from '../components/program/ProgramPackageCard';
+import {
+  getProgramContent,
+  OFFICIAL_APPLICATION_URL,
+  OFFICIAL_SERVICES_URL,
+} from '../content/officialProgram';
+import { useAppTranslation } from '../hooks/useAppTranslation';
 import './AuthPage.css';
 
-const PLAN_IDS = ['free', 'pro', 'premium'] as const;
-const PLAN_META: Record<
-  (typeof PLAN_IDS)[number],
-  { priceUsd: string; priceVnd: string; highlighted: boolean; disabled: boolean }
-> = {
-  free: { priceUsd: '$0', priceVnd: '0₫', highlighted: false, disabled: true },
-  pro: { priceUsd: '$29', priceVnd: '699.000₫', highlighted: true, disabled: false },
-  premium: { priceUsd: '$99', priceVnd: '2.399.000₫', highlighted: false, disabled: false },
-};
-
 export const PricingPage = () => {
-  const { t, i18n } = useAppTranslation();
-  const useVnd = i18n.language === 'vi';
-  const navigate = useNavigate();
-  const { state } = useAuth();
-  const [loading, setLoading] = useState<string | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    void paymentsApi.availability().then((res) => {
-      if (active) setCheckoutOpen(Boolean(res.data?.data?.checkout));
-    }).catch(() => {
-      if (active) setCheckoutOpen(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const plans = useMemo(
-    () =>
-      PLAN_IDS.map((id) => ({
-        id,
-        ...PLAN_META[id],
-        price: useVnd ? PLAN_META[id].priceVnd : PLAN_META[id].priceUsd,
-        name: t(`pages.pricing.plans.${id}.name`),
-        description: t(`pages.pricing.plans.${id}.description`),
-        buttonText:
-          id !== 'free' && !checkoutOpen
-            ? t('pages.pricing.checkoutClosed')
-            : t(`pages.pricing.plans.${id}.button`),
-        features: t(`pages.pricing.plans.${id}.features`, { returnObjects: true }) as string[],
-      })),
-    [t, useVnd, checkoutOpen]
-  );
-
-  const handleSubscribe = async (planId: string) => {
-    if (!state.isAuthenticated) {
-      toast.info(t('pages.pricing.loginToSubscribe'));
-      navigate('/login');
-      return;
-    }
-    if (planId === 'free' || !checkoutOpen) return;
-
-    setLoading(planId);
-    try {
-      const response = await paymentsApi.createCheckout(planId);
-      if (response.data.url) {
-        window.location.href = response.data.url;
-      }
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || t('pages.pricing.checkoutFailed'));
-      setLoading(null);
-    }
-  };
+  const { i18n } = useAppTranslation();
+  const content = getProgramContent(i18n.language);
 
   return (
     <div className="auth-page auth-page--pricing">
-      <div className="auth-shell auth-shell-pricing">
+      <main className="auth-shell auth-shell-pricing">
         <header className="pricing-header">
           <div className="auth-icon mx-auto mb-4">
-            <HiOutlineCreditCard className="h-7 w-7" aria-hidden />
+            <HiOutlineAcademicCap className="h-7 w-7" aria-hidden />
           </div>
-          <h1 className="auth-title">{t('pages.pricing.title')}</h1>
-          <p className="auth-subtitle">{t('pages.pricing.subtitle')}</p>
+          <p className="program-eyebrow">{content.eyebrow}</p>
+          <h1 className="auth-title">{content.title}</h1>
+          <p className="auth-subtitle program-lead">{content.subtitle}</p>
+          <a className="program-source-link" href={OFFICIAL_SERVICES_URL} target="_blank" rel="noreferrer">
+            {content.sourceLabel} <HiOutlineArrowTopRightOnSquare aria-hidden />
+          </a>
         </header>
 
-        <div className="pricing-grid">
-          {plans.map((plan) => (
-            <article
-              key={plan.id}
-              className={`pricing-card ${plan.highlighted ? 'pricing-card--featured' : ''}`}
-            >
-              {plan.highlighted && (
-                <span className="pricing-badge">{t('pages.pricing.mostPopular')}</span>
-              )}
+        <section className="program-section" aria-labelledby="programs-title">
+          <div className="program-section-heading">
+            <h2 id="programs-title">{content.programsHeading}</h2>
+            <p>{content.programsDescription}</p>
+          </div>
+          <div className="pricing-grid pricing-grid--programs">
+            {content.packages.map((program) => (
+              <ProgramPackageCard
+                key={program.id}
+                program={program}
+                perPerson={content.perPerson}
+                applyLabel={content.apply}
+                featuredLabel={content.featured}
+                applicationUrl={OFFICIAL_APPLICATION_URL}
+              />
+            ))}
+          </div>
+        </section>
 
-              <h3 className="pricing-plan-name">{plan.name}</h3>
-              <div className="pricing-price">
-                {plan.price}
-                <span className="pricing-period"> {t('pages.pricing.perMonth')}</span>
+        <section className="program-section program-panel" aria-labelledby="journey-title">
+          <div className="program-section-heading">
+            <h2 id="journey-title">{content.journeyHeading}</h2>
+            <p>{content.journeyDescription}</p>
+          </div>
+          <ol className="program-timeline">
+            {content.journey.map((step) => (
+              <li key={step.week}><span>{step.week}</span><strong>{step.title}</strong></li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="program-section" aria-labelledby="process-title">
+          <div className="program-section-heading">
+            <h2 id="process-title">{content.processHeading}</h2>
+            <p>{content.processDescription}</p>
+          </div>
+          <ol className="program-process-grid">
+            {content.process.map((step) => (
+              <li key={step.label}>
+                <span>{step.label}</span><h3>{step.title}</h3><p>{step.description}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="program-section program-panel" aria-labelledby="scholarships-title">
+          <div className="program-section-heading">
+            <h2 id="scholarships-title">{content.scholarshipsHeading}</h2>
+            <p>{content.scholarshipsDescription}</p>
+          </div>
+          <div className="program-scholarships">
+            {content.scholarships.map((item) => (
+              <div key={item.discount}>
+                <strong>{item.count}</strong><span>{content.scholarshipUnit} {item.discount}</span>
               </div>
-              <p className="pricing-desc">{plan.description}</p>
+            ))}
+          </div>
+        </section>
 
-              <ul className="pricing-features">
-                {plan.features.map((feature, index) => (
-                  <li key={index}>
-                    <span className="pricing-check" aria-hidden>
-                      ✓
-                    </span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                type="button"
-                className={`btn w-full ${plan.highlighted ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => handleSubscribe(plan.id)}
-                disabled={plan.disabled || !checkoutOpen && plan.id !== 'free' || loading === plan.id}
-              >
-                {loading === plan.id ? t('pages.pricing.processing') : plan.buttonText}
-              </button>
-            </article>
-          ))}
-        </div>
+        <section className="program-contact" aria-labelledby="contact-title">
+          <div><h2 id="contact-title">{content.contactHeading}</h2><p>{content.contactDescription}</p></div>
+          <address>
+            <a href="mailto:tradamentor@gmail.com">tradamentor@gmail.com</a>
+            <a href="tel:+84916631571">(+84) 916 631 571</a>
+            <span>456 Xô Viết Nghệ Tĩnh, Phường 25, Bình Thạnh, TP.HCM</span>
+          </address>
+        </section>
 
         <footer className="pricing-footer-block">
-          <p>{t('pages.pricing.trialNote')}</p>
-          <p>
-            {t('pages.pricing.contactSales')}{' '}
-            <a href="mailto:sales@tradamentor.com">{t('pages.pricing.contactSalesLink')}</a>
-          </p>
-          <Link to="/login" className="pricing-back">
-            ← {t('auth.backToLogin')}
-          </Link>
+          <a className="btn btn-primary" href={OFFICIAL_APPLICATION_URL} target="_blank" rel="noreferrer">
+            {content.apply} <span aria-hidden>↗</span>
+          </a>
+          <Link to="/login" className="pricing-back">← {content.back}</Link>
+          <AuthPageFooter />
         </footer>
-
-        <AuthPageFooter />
-      </div>
+      </main>
     </div>
   );
 };

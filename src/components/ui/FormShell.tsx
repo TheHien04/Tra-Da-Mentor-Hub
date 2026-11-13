@@ -1,4 +1,11 @@
-import type { FormEvent, ReactNode } from 'react';
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useId,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { Link } from 'react-router-dom';
 import { HiOutlineArrowLeft } from 'react-icons/hi2';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
@@ -46,14 +53,27 @@ export function FormField({
   hint?: string;
   required?: boolean;
 }) {
+  const generatedId = useId();
+  const isSingleControl = Children.count(children) === 1 && isValidElement<{
+    id?: string;
+    'aria-describedby'?: string;
+  }>(children);
+  const control = isSingleControl ? children : null;
+  const controlId = control?.props.id || `field-${generatedId}`;
+  const hintId = hint ? `${controlId}-hint` : undefined;
+  const describedBy = [control?.props['aria-describedby'], hintId].filter(Boolean).join(' ') || undefined;
+  const labelledControl = control
+    ? cloneElement(control, { id: controlId, 'aria-describedby': describedBy })
+    : children;
+
   return (
     <div>
-      <label className="block text-sm font-medium text-secondary mb-1.5">
+      <label htmlFor={control ? controlId : undefined} className="block text-sm font-medium text-secondary mb-1.5">
         {label}
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
-      {children}
-      {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
+      {labelledControl}
+      {hint && <p id={hintId} className="text-xs text-muted mt-1">{hint}</p>}
     </div>
   );
 }

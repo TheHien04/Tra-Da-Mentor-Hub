@@ -14,6 +14,19 @@ describe('API integration', () => {
       expect(res.body).toHaveProperty('status');
       expect(res.body).toHaveProperty('timestamp');
       expect(res.body).toHaveProperty('storage');
+      expect(res.body.check).toBe('liveness');
+      expect(res.headers['x-request-id']).toBeTruthy();
+    });
+
+    it('preserves a safe caller request ID for tracing', async () => {
+      const res = await request(app).get('/api/health').set('X-Request-ID', 'test-request-123');
+      expect(res.headers['x-request-id']).toBe('test-request-123');
+    });
+
+    it('exposes a readiness probe', async () => {
+      const res = await request(app).get('/api/ready');
+      expect(res.status).toBeLessThanOrEqual(503);
+      expect(res.body.check).toBe('readiness');
     });
   });
 

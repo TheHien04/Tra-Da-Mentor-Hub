@@ -22,6 +22,34 @@ function buildFallbackExplanation(match, lang) {
   ].join(' ');
 }
 
+function safeText(value, maxLength = 120) {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
+
+function safeList(values, maxItems = 8) {
+  return (Array.isArray(values) ? values : [])
+    .map((value) => safeText(value, 80))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+export function buildProviderInput(mentor, mentee, match) {
+  return {
+    mentorLabel: 'Mentor A',
+    menteeLabel: 'Mentee B',
+    mentorTrack: safeText(mentor.track, 80) || 'n/a',
+    menteeTrack: safeText(mentee.track, 80) || 'n/a',
+    expertise: safeList(mentor.expertise),
+    interests: safeList(mentee.interests),
+    score: match.score,
+    matchedSkills: safeList(match.matchedSkills),
+    reasons: safeList(match.reasons, 5),
+  };
+}
+
 /**
  * Optional OpenAI narrative for a mentor–mentee pair. Falls back to rule-based text.
  */
@@ -37,23 +65,26 @@ export async function explainMatch(mentor, mentee, lang = 'vi') {
     };
   }
 
+  const providerInput = buildProviderInput(mentor, mentee, match);
   const prompt = `You are a mentorship program advisor for "Trà Đá Mentor".
 Write 2-3 concise sentences in Vietnamese explaining why this mentor–mentee pairing makes sense.
 Be specific, warm, and professional. Do not invent skills not listed.
 
-Mentor: ${mentor.name}, track: ${mentor.track || 'n/a'}, expertise: ${(mentor.expertise || []).join(', ') || 'n/a'}
-Mentee: ${mentee.name || mentee.email}, track: ${mentee.track || 'n/a'}, interests: ${(mentee.interests || []).join(', ') || 'n/a'}
-Match score: ${match.score}%
-Matched skills: ${match.matchedSkills.join(', ') || 'none'}
-Reasons: ${match.reasons.join('; ')}`;
+Mentor: ${providerInput.mentorLabel}, track: ${providerInput.mentorTrack}, expertise: ${providerInput.expertise.join(', ') || 'n/a'}
+Mentee: ${providerInput.menteeLabel}, track: ${providerInput.menteeTrack}, interests: ${providerInput.interests.join(', ') || 'n/a'}
+Match score: ${providerInput.score}%
+Matched skills: ${providerInput.matchedSkills.join(', ') || 'none'}
+Reasons: ${providerInput.reasons.join('; ')}`;
 
   try {
+    const signal = AbortSignal.timeout(env.openaiTimeoutMs);
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${env.openaiApiKey}`,
       },
+      signal,
       body: JSON.stringify({
         model: env.openaiModel,
         messages: [
@@ -66,8 +97,7 @@ Reasons: ${match.reasons.join('; ')}`;
     });
 
     if (!res.ok) {
-      const errText = await res.text();
-      logger.warn(`OpenAI explain failed: ${res.status} ${errText}`);
+      logger.warn(`OpenAI explain failed: ${res.status}`);
       return { explanation: buildFallbackExplanation(match, language), source: 'rules', match };
     }
 

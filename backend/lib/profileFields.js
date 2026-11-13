@@ -41,7 +41,6 @@ export const MENTEE_ADMIN_FIELDS = [
   'mentorId',
   'groupId',
   'progress',
-  'applicationStatus',
   'mentorshipType',
 ];
 
@@ -80,9 +79,22 @@ export function redactMentor(row, actor) {
 export function redactMentee(row, actor) {
   if (!row) return row;
   const self = actor?.menteeId && String(actor.menteeId) === String(row._id);
-  if (actor?.isAdmin || self) return row;
+  if (actor?.isAdmin) return row;
   const copy = { ...row };
   delete copy.userId;
+  if (Array.isArray(copy.applicationHistory)) {
+    copy.applicationHistory = copy.applicationHistory.map((entry) => {
+      const safe = {
+        from: entry.from,
+        to: entry.to,
+        changedAt: entry.changedAt,
+      };
+      if (actor?.role === 'mentor') {
+        return { ...safe, actorRole: entry.actorRole, reason: entry.reason };
+      }
+      return safe;
+    });
+  }
   if (!canSeeMenteePhone(actor, row)) delete copy.phone;
   return copy;
 }

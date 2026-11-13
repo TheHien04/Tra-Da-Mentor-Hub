@@ -26,7 +26,7 @@ function calendarDemo() {
 export const connectCalendar = async (req, res) => {
   try {
     if (calendarDemo()) {
-      return res.json({ authUrl: `${env.frontendUrl}/schedule?calendar=connected`, demo: true });
+      return res.json({ authUrl: `${env.frontendUrl}/schedule?calendar=demo`, demo: true });
     }
     const userId = req.user._id;
     const authUrl = getAuthUrl(userId);
@@ -238,7 +238,7 @@ export const syncSlot = async (req, res) => {
 export const getStatus = async (req, res) => {
   try {
     if (calendarDemo()) {
-      return res.json({ connected: true, demo: true });
+      return res.json({ connected: false, demo: true });
     }
     const userId = req.user._id || req.user.userId;
     const user = await User.findById(userId);

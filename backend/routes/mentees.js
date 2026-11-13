@@ -72,12 +72,28 @@ router.patch('/:id/application-status', async (req, res, next) => {
   try {
     const actor = await loadActor(req);
     if (!actor?.isAdmin && actor?.role !== 'mentor') return fail(res, 403, 'FORBIDDEN');
-    const { applicationStatus } = req.body;
+    const { applicationStatus, reason } = req.body;
     if (!applicationStatus || !APPLICATION_STATUSES.includes(applicationStatus)) {
       return fail(res, 400, 'VALIDATION', `applicationStatus must be: ${APPLICATION_STATUSES.join(', ')}`);
     }
-    const result = await updateMenteeApplicationStatus(req.params.id, applicationStatus);
+    if (reason != null && (typeof reason !== 'string' || reason.length > 500)) {
+      return fail(res, 400, 'VALIDATION', 'reason must be a string of at most 500 characters');
+    }
+    const result = await updateMenteeApplicationStatus(req.params.id, applicationStatus, {
+      actorId: actor.userId,
+      actorRole: actor.role,
+      reason,
+    });
     if (result?.error === 'invalid_status') return fail(res, 400, 'VALIDATION');
+    if (result?.error === 'invalid_transition') {
+      return res.status(409).json({
+        success: false,
+        code: 'INVALID_APPLICATION_TRANSITION',
+        message: `Cannot move application from ${result.currentStatus} to ${result.requestedStatus}`,
+        currentStatus: result.currentStatus,
+        allowedTransitions: result.allowedTransitions,
+      });
+    }
     if (!result) return fail(res, 404, 'NOT_FOUND', 'Mentee not found');
     res.json(redactMentee(result, actor));
   } catch (e) {

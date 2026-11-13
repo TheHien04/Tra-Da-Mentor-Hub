@@ -69,7 +69,7 @@ export async function handleGoogleCallback(req, res) {
     }
 
     if (!user) {
-      const role = 'user';
+      const role = 'mentee';
       user = await User.create({
         email,
         name: googleUser.name || email.split('@')[0],

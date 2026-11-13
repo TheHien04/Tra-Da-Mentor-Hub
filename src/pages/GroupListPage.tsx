@@ -1,0 +1,226 @@
+/** Route-level mentoring group directory. */
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { HiOutlineUsers, HiOutlineTrash, HiOutlineCalendarDays, HiOutlineAcademicCap } from 'react-icons/hi2';
+import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useConfirm } from '../context/ConfirmContext';
+import { groupApi } from '../services/api';
+import { useGroupDirectory } from '../hooks/queries/useGroups';
+import { queryKeys } from '../hooks/queries/keys';
+import { toast } from 'react-toastify';
+import SearchFilter from '../components/SearchFilter';
+import EmptyState from '../components/EmptyState';
+import Skeleton from '../components/Skeleton';
+import { PageShell, PageHeader, FilterPanel, FilterField, filterSelectClass } from '../components/ui';
+import { Alert } from '../components/ui/Alert';
+import { getApiErrorMessage } from '../lib/apiHelpers';
+import { useAuth } from '../context/AuthContext';
+import { EditorialBanner } from '../components/motion/EditorialBanner';
+
+const GroupList = () => {
+  const { t } = useAppTranslation();
+  const { state } = useAuth();
+  const isAdmin = state.user?.role === 'admin';
+  const canAdd = state.user?.role === 'admin' || state.user?.role === 'mentor';
+  const { confirm } = useConfirm();
+  const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState({ frequency: '', mentorName: '' });
+  const { data, isLoading: loading, isError, error: queryError } = useGroupDirectory({
+    q: searchQuery || undefined,
+    page,
+    limit: 12,
+    frequency: advancedFilters.frequency || undefined,
+    mentorName: advancedFilters.mentorName || undefined,
+  });
+  const filteredGroups = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const error = isError ? getApiErrorMessage(queryError) : null;
+
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: t('common.delete'),
+      message: t('lists.confirmDeleteGroup', { name }),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await groupApi.delete(id);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.groups });
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    }
+  };
+
+  return (
+    <PageShell>
+      <PageHeader
+        title={t('group.title')}
+        description={t('lists.groupsShown', {
+          shown: filteredGroups.length,
+          total,
+        })}
+        icon={<HiOutlineUsers className="h-7 w-7" />}
+        action={canAdd ? { label: `+ ${t('group.addGroup')}`, href: '/groups/add' } : undefined}
+      />
+      <EditorialBanner
+        image="/media/quiet-table.jpg"
+        kicker={t('lists.groupLeadKicker')}
+        title={t('lists.groupLead')}
+        body={t('lists.groupLeadBody')}
+      />
+
+      {error && (
+        <Alert variant="error" title={t('common.loadError')} className="mb-4">
+          {error}
+        </Alert>
+      )}
+
+      <SearchFilter
+        onSearch={(value) => {
+          setSearchQuery(value);
+          setPage(1);
+        }}
+        placeholder={t('lists.searchGroups')}
+      />
+
+      <FilterPanel
+        onClear={() => {
+          setAdvancedFilters({ frequency: '', mentorName: '' });
+          setPage(1);
+        }}
+      >
+        <FilterField label={t('lists.filterFrequency')}>
+          <select
+            className={filterSelectClass}
+            value={advancedFilters.frequency}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, frequency: e.target.value });
+              setPage(1);
+            }}
+          >
+            <option value="">{t('lists.allFrequencies')}</option>
+            <option value="Weekly">{t('lists.freqWeekly')}</option>
+            <option value="Bi-weekly">{t('lists.freqBiweekly')}</option>
+            <option value="Monthly">{t('lists.freqMonthly')}</option>
+          </select>
+        </FilterField>
+        <FilterField label={t('lists.filterMentor')}>
+          <input
+            className={filterSelectClass}
+            placeholder={t('lists.mentorNamePlaceholder')}
+            value={advancedFilters.mentorName}
+            onChange={(e) => {
+              setAdvancedFilters({ ...advancedFilters, mentorName: e.target.value });
+              setPage(1);
+            }}
+          />
+        </FilterField>
+      </FilterPanel>
+
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card p-5">
+              <Skeleton count={3} />
+            </div>
+          ))}
+        </div>
+      ) : filteredGroups.length === 0 ? (
+        <EmptyState
+          title={t('lists.emptyGroupsTitle')}
+          description={t('lists.emptyGroupsDefault')}
+          actionLabel={`+ ${t('group.addGroup')}`}
+          actionHref="/groups/add"
+        />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {filteredGroups.map((group) => {
+            const count = group.mentees?.length || 0;
+            const max = group.maxSize || 10;
+            const pct = Math.min(100, (count / max) * 100);
+            const schedule = group.meetingSchedule;
+            const freq = group.frequency || schedule?.frequency;
+            const when = schedule
+              ? `${schedule.frequency} · ${schedule.dayOfWeek} ${schedule.time}`
+              : [freq, group.dayOfWeek, group.time].filter(Boolean).join(' · ');
+
+            return (
+              <article key={group._id} className="card card-hover people-card p-5 flex flex-col">
+                <div className="flex justify-between items-start gap-2 mb-3">
+                  <h3 className="people-card__name text-lg">{group.name}</h3>
+                  <span className="badge-pill badge-accent shrink-0">
+                    {t('lists.groupCapacity', { count, max })}
+                  </span>
+                </div>
+
+                {group.description && (
+                  <p className="text-sm text-secondary mb-3 line-clamp-2">{group.description}</p>
+                )}
+
+                {group.mentor?.name && (
+                  <p className="schedule-meta-item mb-2">
+                    <HiOutlineAcademicCap className="h-4 w-4 text-muted shrink-0" />
+                    {group.mentor.name}
+                  </p>
+                )}
+                {when && (
+                  <p className="schedule-meta-item mb-4">
+                    <HiOutlineCalendarDays className="h-4 w-4 text-muted shrink-0" />
+                    {when}
+                  </p>
+                )}
+
+                <div className="analytics-load-bar mb-4">
+                  <div
+                    className={`analytics-load-bar__fill ${pct >= 100 ? 'analytics-load-bar__fill--full' : ''}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+
+                <div className="people-card__footer">
+                  <Link to={`/groups/${group._id}`} className="btn btn-primary flex-1">
+                    {t('group.viewDetails')}
+                  </Link>
+                  {isAdmin && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost-danger px-3"
+                    onClick={() => handleDelete(group._id, group.name)}
+                    aria-label={t('common.delete')}
+                  >
+                    <HiOutlineTrash className="h-4 w-4" />
+                  </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+      {total > 12 && (
+        <div className="flex items-center justify-between mt-6">
+          <button type="button" className="btn btn-secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            {t('common.previous')}
+          </button>
+          <span className="text-sm text-muted">
+            {page} / {Math.ceil(total / 12)}
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            disabled={page >= Math.ceil(total / 12)}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            {t('common.next')}
+          </button>
+        </div>
+      )}
+    </PageShell>
+  );
+};
+
+export default GroupList;

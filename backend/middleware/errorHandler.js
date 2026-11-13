@@ -54,12 +54,14 @@ export const errorHandler = (err, req, res, next) => {
       method: req.method,
       ip: req.ip,
       body: safeBody,
+      requestId: req.id,
     });
   } else {
     logger.warn(`${error.statusCode} Error: ${error.message}`, {
       url: req.originalUrl,
       method: req.method,
       ip: req.ip,
+      requestId: req.id,
     });
   }
 
@@ -121,6 +123,7 @@ export const errorHandler = (err, req, res, next) => {
     message: isServerError
       ? 'The server could not complete that request.'
       : error.message,
+    requestId: req.id,
     ...(env.isDev && { stack: err.stack }),
   });
 };

@@ -35,6 +35,14 @@ function capacityScore(mentor) {
   return 1 - active / max;
 }
 
+function hasCapacity(mentor) {
+  return (mentor.mentees?.length || 0) < (mentor.maxMentees || 10);
+}
+
+function isEligibleMentee(mentee) {
+  return mentee.applicationStatus === 'accepted' && !mentee.mentorId;
+}
+
 export function scoreMentorForMentee(mentor, mentee) {
   const { matches, score: skillScore } = skillOverlap(mentor.expertise || [], mentee.interests || []);
   const trackMatch = mentor.track && mentee.track && mentor.track === mentee.track ? 1 : 0;
@@ -86,33 +94,44 @@ export function scoreMentorForMentee(mentor, mentee) {
 }
 
 export function getMatchSuggestions(mentors, mentees, { menteeId, mentorId, limit = 8 } = {}) {
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 8));
   const results = [];
 
   if (menteeId) {
     const mentee = mentees.find((m) => m._id === menteeId);
-    if (!mentee) return [];
-    for (const mentor of mentors) {
+    if (!mentee || !isEligibleMentee(mentee)) return [];
+    for (const mentor of mentors.filter(hasCapacity)) {
       results.push(scoreMentorForMentee(mentor, mentee));
     }
-    return results.sort((a, b) => b.score - a.score).slice(0, limit);
+    return results.sort((a, b) => b.score - a.score).slice(0, safeLimit);
   }
 
   if (mentorId) {
     const mentor = mentors.find((m) => m._id === mentorId);
-    if (!mentor) return [];
-    for (const mentee of mentees) {
+    if (!mentor || !hasCapacity(mentor)) return [];
+    // A mentor's suggestion queue is actionable work, not a directory of
+    // people who are already being supported by somebody else.
+    for (const mentee of mentees.filter(isEligibleMentee)) {
       const row = scoreMentorForMentee(mentor, mentee);
       results.push({ ...row, type: 'mentee' });
     }
-    return results.sort((a, b) => b.score - a.score).slice(0, limit);
+    return results.sort((a, b) => b.score - a.score).slice(0, safeLimit);
   }
 
   // Platform-wide top pairs
-  for (const mentee of mentees) {
-    for (const mentor of mentors) {
-      if ((mentor.mentees?.length || 0) >= (mentor.maxMentees || 10)) continue;
-      results.push(scoreMentorForMentee(mentor, mentee));
+  for (const mentee of mentees.filter(isEligibleMentee)) {
+    for (const mentor of mentors.filter(hasCapacity)) {
+      const candidate = scoreMentorForMentee(mentor, mentee);
+      if (results.length < safeLimit) {
+        results.push(candidate);
+        continue;
+      }
+      let lowest = 0;
+      for (let i = 1; i < results.length; i += 1) {
+        if (results[i].score < results[lowest].score) lowest = i;
+      }
+      if (candidate.score > results[lowest].score) results[lowest] = candidate;
     }
   }
-  return results.sort((a, b) => b.score - a.score).slice(0, limit);
+  return results.sort((a, b) => b.score - a.score);
 }

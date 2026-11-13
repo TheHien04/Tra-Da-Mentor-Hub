@@ -55,6 +55,20 @@ export interface Mentee extends User {
   groupId?: string;
   mentorshipType: MentorshipType;
   goals?: string[];
+  applicationStatus?:
+    | "pending"
+    | "invited_for_interview"
+    | "interviewed"
+    | "accepted"
+    | "rejected";
+  applicationHistory?: Array<{
+    from: string;
+    to: string;
+    changedAt: string | Date;
+    actorId?: string;
+    actorRole?: string;
+    reason?: string;
+  }>;
 }
 
 // ============= GROUP =============

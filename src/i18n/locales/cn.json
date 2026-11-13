@@ -5,6 +5,9 @@
     "brand": "Trà Đá Mentor"
   },
   "nav": {
+    "workspace": "Workspace",
+    "insightsGroup": "Insights",
+    "administration": "Administration",
     "dashboard": "仪表板",
     "mentors": "导师",
     "mentees": "学员",
@@ -21,10 +24,10 @@
     "audit": "Audit log",
     "account": "Account",
     "logout": "登出",
-    "insights": "AI Insights",
+    "insights": "Match Suggestions",
     "more": "More",
     "mobileNav": "Mobile navigation",
-    "pricing": "Pricing"
+    "pricing": "Programs"
   },
   "auth": {
     "login": "登录",
@@ -102,7 +105,7 @@
     "activityMeeting": "{{name}} scheduled a session for {{target}}",
     "activityMentorJoined": "{{name}} joined as a mentor",
     "activityMenteeJoined": "{{name}} joined as a mentee",
-    "smartMatchTitle": "AI Smart Match",
+    "smartMatchTitle": "Smart Match",
     "smartMatchSubtitle": "Match mentors and mentees by skills & capacity",
     "smartMatchViewAll": "View all",
     "smartMatchNoMatches": "No suitable suggestions yet.",
@@ -168,6 +171,8 @@
     "matchFactorCapacity": "Open capacity",
     "matchDemo": "In app",
     "smartMatchAiInsight": "Match insight",
+    "matchMethodNote": "Explainable score based on skills, track and available capacity. Review before assigning.",
+    "matchRules": "Rules-based",
     "slotOpen": "Open slot — {{mentor}}",
     "sessionOpenBadge": "Open",
     "analyticsBannerTitle": "Program analytics dashboard",
@@ -368,6 +373,9 @@
       "calendarDesc": "Connect to sync booked sessions and auto-create Google Meet links.",
       "calendarConnect": "Connect Google Calendar",
       "calendarConnected": "Calendar connected",
+      "calendarDemoStatus": "Demo simulation",
+      "calendarTryDemo": "Try demo flow",
+      "calendarDemoNotice": "This is a simulated Google Calendar flow; no Google account was connected.",
       "calendarError": "Could not connect Google Calendar. Check OAuth settings.",
       "calendarConnectFirst": "Connect Google Calendar first from the bar above.",
       "calendarSynced": "Session synced to Google Calendar.",
@@ -442,7 +450,9 @@
       "statusPending": "Pending",
       "statusInvited": "Invited",
       "statusInterviewed": "Interviewed",
-      "filterLabel": "Application status"
+      "filterLabel": "Application status",
+      "updating": "Updating…",
+      "markInterviewed": "Mark interviewed"
     },
     "sessionLog": {
       "title": "Session Logs",
@@ -515,6 +525,8 @@
       "meetingLinkHint": "Paste link for mentees after booking",
       "filterByMentor": "Filter by mentor",
       "allMentors": "All mentors",
+      "bookForMentee": "Book for mentee",
+      "selectMenteeToBook": "Select a mentee before booking.",
       "fillRequired": "Fill mentor, date, and time.",
       "added": "Slot added — realtime notification sent.",
       "addFailed": "Failed to add slot",
@@ -532,7 +544,7 @@
       "emptyMentee": "No open times yet. Check back after your mentor publishes a slot."
     },
     "insights": {
-      "title": "AI Insights",
+      "title": "Match Suggestions",
       "description": "Smart matching and program opportunities powered by your live data",
       "statUnassigned": "Unassigned mentees",
       "statOpenCapacity": "Mentors with capacity",
@@ -712,7 +724,7 @@
         "zaloReady": "Zalo OA is configured ({{count}} recipients in env).",
         "zaloNotReady": "Zalo is not configured on the server yet.",
         "integrationsTitle": "Integration status",
-        "demoNote": "These channels are on for this demo. Email and Zalo are delivered inside the app, calendar creates a meeting link, checkout opens a plan, and match explanations run here.",
+        "demoNote": "This environment simulates services that are not configured. A Demo simulation badge does not mean a vendor account is connected.",
         "recipientPreview": "Estimated recipients",
         "recipientMentors": "{{count}} mentors",
         "recipientMentees": "{{count}} mentees",
@@ -742,6 +754,7 @@
         "setupIntroTitle": "What does “Not configured” mean?",
         "setupIntroBody": "These services need API keys in the server `.env` file (not in the browser). Without them, you can still send in-app notifications. Add keys and restart the backend to enable Email or Zalo.",
         "statusReady": "Ready",
+        "statusDemo": "Demo simulation",
         "statusNeedsSetup": "Needs setup",
         "statusPartial": "Missing recipients",
         "notConfiguredShort": "not configured",
@@ -852,15 +865,18 @@
       "ariaLabel": "Notifications"
     },
     "pricing": {
-      "title": "Choose Your Plan",
-      "subtitle": "Flexible pricing to match your mentorship program needs",
+      "title": "Trà Đá Mentor programs",
+      "subtitle": "Official mentoring and mentee community programs",
       "mostPopular": "Most Popular",
-      "trialNote": "All plans include a 14-day free trial. No credit card required.",
+      "liveNote": "Checkout is live; plans activate only after Stripe confirms payment.",
+      "demoNote": "This is a demo plan catalogue. You can try checkout and no payment will be collected.",
+      "closedNote": "Plans are in preview; checkout is not open in this environment.",
       "contactSales": "Need a custom plan?",
       "contactSalesLink": "Contact Sales",
       "loginToSubscribe": "Please login to subscribe",
       "checkoutFailed": "Failed to create checkout session",
       "checkoutClosed": "Checkout is not open in this environment",
+      "checkoutDemo": "Try demo checkout",
       "processing": "Processing...",
       "plans": {
         "free": {
@@ -959,7 +975,19 @@
       "insightsCtaDesc": "Skill-based suggestions to grow your program faster",
       "insightsCtaLink": "Open AI Insights",
       "avgProgressShort": "Avg. progress",
-      "trendEmpty": "No sessions or bookings in the last 6 months yet."
+      "trendEmpty": "No sessions or bookings in the last 6 months yet.",
+      "applicationPipeline": "Application pipeline",
+      "applicationPipelineSub": "A governed view of every decision stage; rejected applications are a terminal branch.",
+      "applicationConversion": "Application conversion metrics",
+      "interviewRate": "Interviewed",
+      "acceptanceRate": "Accepted after decision",
+      "applicationStage": {
+        "pending": "Pending",
+        "invited_for_interview": "Invited",
+        "interviewed": "Interviewed",
+        "accepted": "Accepted",
+        "rejected": "Rejected"
+      }
     }
   },
   "detail": {
@@ -1056,6 +1084,7 @@
     "roleUser": "User (Learn)",
     "roleMentee": "Mentee (Get Mentorship)",
     "roleMentor": "Mentor (Share Knowledge)",
+    "mentorInviteOnly": "Mentor accounts are verified and created through an invitation.",
     "passwordPlaceholder": "Enter a strong password",
     "confirmPlaceholder": "Re-enter your password",
     "showPassword": "Show password",
@@ -1085,6 +1114,8 @@
     "paymentSuccess": {
       "title": "Payment successful!",
       "thanks": "Thank you for upgrading your subscription.",
+      "demoTitle": "Demo checkout complete!",
+      "demoThanks": "This was a demo flow; no payment was collected.",
       "sessionId": "Session ID",
       "redirect": "Redirecting to dashboard in {{count}} seconds...",
       "goDashboard": "Go to dashboard now"

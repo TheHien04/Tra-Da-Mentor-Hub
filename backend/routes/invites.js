@@ -12,12 +12,13 @@ import {
 } from '../services/inviteStore.js';
 import { sendInviteEmail } from '../utils/emailService.js';
 import logger from '../config/logger.js';
+import { idempotentWrite } from '../middleware/idempotentWrite.js';
 
 const router = express.Router();
 
 const INVITE_EXPIRY_DAYS = 7;
 
-router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/', authenticate, authorize('admin'), idempotentWrite, async (req, res, next) => {
   try {
     const { email, role } = req.body;
     if (!email || !email.trim()) {

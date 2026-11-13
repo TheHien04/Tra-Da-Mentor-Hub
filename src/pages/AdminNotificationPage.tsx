@@ -11,12 +11,7 @@ import {
   HiOutlineChevronDown,
   HiOutlineChevronUp,
   HiOutlineBellAlert,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCalendar,
-  HiOutlineSparkles,
-  HiOutlineCreditCard,
 } from 'react-icons/hi2';
-import type { AdminIntegrations } from '../services/api';
 import { toast } from 'react-toastify';
 import { PageShell, PageHeader } from '../components/ui';
 import { useAdminIntegrations } from '../hooks/queries/useAdminIntegrations';
@@ -31,100 +26,9 @@ import { useAppTranslation } from '../hooks/useAppTranslation';
 import { adminApi, type BroadcastChannel } from '../services/api';
 import { getApiErrorMessage } from '../lib/apiHelpers';
 import { queryKeys } from '../hooks/queries/keys';
+import { AdminIntegrationStatus } from '../components/admin/AdminIntegrationStatus';
 
 type Audience = 'mentors' | 'mentees' | 'all';
-
-type ChannelId = 'inApp' | 'email' | 'zalo';
-type PlatformId = 'googleCalendar' | 'openai' | 'stripe';
-
-const NOTIFICATION_CHANNELS: {
-  id: ChannelId;
-  icon: typeof HiOutlineBellAlert;
-  labelKey: string;
-  descKey: string;
-  ready: (i?: AdminIntegrations) => boolean;
-  partial?: (i?: AdminIntegrations) => boolean;
-}[] = [
-  {
-    id: 'inApp',
-    icon: HiOutlineBellAlert,
-    labelKey: 'pages.admin.notifications.channelInApp',
-    descKey: 'pages.admin.notifications.channelInAppDesc',
-    ready: () => true,
-  },
-  {
-    id: 'email',
-    icon: HiOutlineEnvelope,
-    labelKey: 'pages.admin.notifications.channelEmailLabel',
-    descKey: 'pages.admin.notifications.channelEmailDesc',
-    ready: (i) => Boolean(i?.email),
-  },
-  {
-    id: 'zalo',
-    icon: HiOutlineChatBubbleLeftRight,
-    labelKey: 'pages.admin.notifications.channelZaloLabel',
-    descKey: 'pages.admin.notifications.channelZaloDesc',
-    ready: (i) => Boolean(i?.zalo),
-    partial: (i) => Boolean(i?.zaloToken) && !i?.zalo,
-  },
-];
-
-const PLATFORM_SERVICES: {
-  id: PlatformId;
-  icon: typeof HiOutlineCalendar;
-  labelKey: string;
-  descKey: string;
-  ready: (i?: AdminIntegrations) => boolean;
-}[] = [
-  {
-    id: 'googleCalendar',
-    icon: HiOutlineCalendar,
-    labelKey: 'pages.admin.notifications.serviceGoogleCalendar',
-    descKey: 'pages.admin.notifications.serviceGoogleCalendarDesc',
-    ready: (i) => Boolean(i?.googleCalendar),
-  },
-  {
-    id: 'openai',
-    icon: HiOutlineSparkles,
-    labelKey: 'pages.admin.notifications.serviceOpenai',
-    descKey: 'pages.admin.notifications.serviceOpenaiDesc',
-    ready: (i) => Boolean(i?.openai),
-  },
-  {
-    id: 'stripe',
-    icon: HiOutlineCreditCard,
-    labelKey: 'pages.admin.notifications.serviceStripe',
-    descKey: 'pages.admin.notifications.serviceStripeDesc',
-    ready: (i) => Boolean(i?.stripe),
-  },
-];
-
-function IntegrationTile({
-  icon: Icon,
-  label,
-  description,
-  status,
-  statusLabel,
-}: {
-  icon: typeof HiOutlineBellAlert;
-  label: string;
-  description: string;
-  status: 'ready' | 'partial' | 'off';
-  statusLabel: string;
-}) {
-  const badgeClass =
-    status === 'ready' ? 'badge-success' : status === 'partial' ? 'badge-warning' : 'badge-neutral';
-  return (
-    <div className={`admin-integration-tile admin-integration-tile--${status}`}>
-      <div className="flex items-start gap-2 mb-2">
-        <Icon className="h-5 w-5 shrink-0" style={{ color: 'var(--accent)' }} />
-        <p className="admin-integration-tile__label !mb-0">{label}</p>
-      </div>
-      <span className={`badge-pill ${badgeClass}`}>{statusLabel}</span>
-      <p className="text-xs text-muted mt-2 leading-relaxed">{description}</p>
-    </div>
-  );
-}
 
 const AdminNotificationPage = () => {
   const { t, formatDateTime } = useAppTranslation();
@@ -141,7 +45,7 @@ const AdminNotificationPage = () => {
   const { data: mentors = [] } = useMentors();
   const { data: mentees = [] } = useMentees();
 
-  const extraChannelsAvailable = Boolean(integrations?.email || integrations?.zalo);
+  const extraChannelsAvailable = Boolean(integrations?.email || integrations?.zalo || integrations?.demo);
 
   const recipientCount = useMemo(() => {
     if (audience === 'mentors') return mentors.length;
@@ -162,12 +66,14 @@ const AdminNotificationPage = () => {
       return;
     }
 
+    const emailAvailable = Boolean(integrations?.email || integrations?.demo);
+    const zaloAvailable = Boolean(integrations?.zalo || integrations?.demo);
     const sendChannel =
-      channel === 'email' && !integrations?.email
+      channel === 'email' && !emailAvailable
         ? 'in_app'
-        : channel === 'zalo' && !integrations?.zalo
+        : channel === 'zalo' && !zaloAvailable
           ? 'in_app'
-          : channel === 'email_zalo' && !integrations?.email && !integrations?.zalo
+          : channel === 'email_zalo' && !emailAvailable && !zaloAvailable
             ? 'in_app'
             : channel;
 
@@ -198,65 +104,7 @@ const AdminNotificationPage = () => {
         icon={<HiOutlinePaperAirplane className="h-7 w-7" />}
       />
 
-      <h2 className="text-sm font-semibold text-primary mb-3">
-        {t('pages.admin.notifications.integrationsTitle')}
-      </h2>
-      {integrations?.demo && (
-        <p className="text-sm text-secondary mb-4">{t('pages.admin.notifications.demoNote')}</p>
-      )}
-      {integrationsLoading ? (
-        <div className="mb-6">
-          <Skeleton count={3} />
-        </div>
-      ) : (
-        <>
-          <div className="admin-integration-grid admin-integration-grid--channels mb-6">
-            {NOTIFICATION_CHANNELS.map(({ id, icon, labelKey, descKey, ready, partial }) => {
-              const isReady = ready(integrations);
-              const isPartial = !isReady && partial?.(integrations);
-              const status = isReady ? 'ready' : isPartial ? 'partial' : 'off';
-              const statusLabel = isReady
-                ? t('pages.admin.notifications.statusReady')
-                : isPartial
-                  ? t('pages.admin.notifications.statusPartial')
-                  : t('pages.admin.notifications.statusOff');
-              return (
-                <IntegrationTile
-                  key={id}
-                  icon={icon}
-                  label={t(labelKey)}
-                  description={t(descKey)}
-                  status={status}
-                  statusLabel={statusLabel}
-                />
-              );
-            })}
-          </div>
-
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted mb-3">
-            {t('pages.admin.notifications.platformServicesTitle')}
-          </h3>
-          <div className="admin-integration-grid mb-8">
-            {PLATFORM_SERVICES.map(({ id, icon, labelKey, descKey, ready }) => {
-              const isReady = ready(integrations);
-              return (
-                <IntegrationTile
-                  key={id}
-                  icon={icon}
-                  label={t(labelKey)}
-                  description={t(descKey)}
-                  status={isReady ? 'ready' : 'off'}
-                  statusLabel={
-                    isReady
-                      ? t('pages.admin.notifications.statusReady')
-                      : t('pages.admin.notifications.statusOff')
-                  }
-                />
-              );
-            })}
-          </div>
-        </>
-      )}
+      <AdminIntegrationStatus integrations={integrations} loading={integrationsLoading} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start mb-8">
         <form onSubmit={handleSend} className="card p-6 space-y-4 xl:col-span-2">
@@ -288,13 +136,13 @@ const AdminNotificationPage = () => {
                 onChange={(e) => setChannel(e.target.value as BroadcastChannel)}
               >
                 <option value="in_app">{t('pages.admin.notifications.sendChannelInApp')}</option>
-                {integrations?.email && (
+                {(integrations?.email || integrations?.demo) && (
                   <option value="email">{t('pages.admin.notifications.sendChannelEmail')}</option>
                 )}
-                {integrations?.zalo && (
+                {(integrations?.zalo || integrations?.demo) && (
                   <option value="zalo">{t('pages.admin.notifications.sendChannelZalo')}</option>
                 )}
-                {integrations?.email && integrations?.zalo && (
+                {((integrations?.email && integrations?.zalo) || integrations?.demo) && (
                   <option value="email_zalo">{t('pages.admin.notifications.sendChannelEmailZalo')}</option>
                 )}
               </select>

@@ -7,13 +7,17 @@
   "verbose": true,
   "collectCoverageFrom": [
     "backend/lib/healthStatus.js",
+    "backend/lib/idempotency.js",
     "backend/lib/secretValidation.js",
+    "backend/lib/runtimeMetrics.js",
+    "backend/domain/applicationLifecycle.js",
     "backend/middleware/security.js",
     "backend/config/demoAuth.js",
     "backend/createApp.js",
     "backend/routes/docs.js",
     "backend/utils/jwt.js",
     "backend/services/mentorStore.js",
+    "backend/services/matchingEngine.js",
     "backend/services/menteeStore.js",
     "backend/services/groupStore.js",
     "backend/services/activityStore.js",
@@ -25,10 +29,10 @@
   "coverageDirectory": "coverage",
   "coverageThreshold": {
     "global": {
-      "branches": 28,
-      "functions": 32,
-      "lines": 40,
-      "statements": 40
+      "branches": 60,
+      "functions": 80,
+      "lines": 80,
+      "statements": 75
     }
   }
 }

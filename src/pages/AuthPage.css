@@ -379,6 +379,234 @@
   align-items: stretch;
 }
 
+.pricing-grid--programs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.program-eyebrow {
+  margin-bottom: 0.65rem;
+  color: var(--accent-subtle-fg);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.program-lead {
+  max-width: 44rem;
+  margin-right: auto;
+  margin-left: auto;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.program-source-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 1rem;
+  color: var(--accent-subtle-fg);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.program-source-link svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.program-section {
+  margin-top: 4rem;
+}
+
+.program-section-heading {
+  max-width: 42rem;
+  margin: 0 auto 1.75rem;
+  text-align: center;
+}
+
+.program-section-heading h2,
+.program-contact h2 {
+  color: var(--text-primary);
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.program-section-heading p,
+.program-contact p {
+  margin-top: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.program-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 0 1.1rem;
+}
+
+.program-meta span {
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+  background: var(--bg-surface-muted);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.program-panel {
+  border: 1px solid var(--border-default);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  background: color-mix(in srgb, var(--bg-surface) 93%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
+.program-timeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.program-timeline li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0 1rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.program-timeline li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 0.68rem;
+  right: -0.5rem;
+  width: 1rem;
+  height: 1px;
+  background: var(--border-default);
+}
+
+.program-timeline span {
+  color: var(--accent-subtle-fg);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.program-timeline strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.program-process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.program-process-grid li {
+  border-top: 2px solid var(--accent);
+  border-radius: 0 0 0.9rem 0.9rem;
+  padding: 1.25rem;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.program-process-grid > li > span {
+  color: var(--accent);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.program-process-grid h3 {
+  margin-top: 0.65rem;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.program-process-grid p {
+  margin-top: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.program-scholarships {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.program-scholarships > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.9rem;
+  padding: 1.15rem 0.75rem;
+  background: var(--bg-surface-muted);
+  text-align: center;
+}
+
+.program-scholarships strong {
+  color: var(--accent);
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.program-scholarships span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.program-contact {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 2rem;
+  align-items: center;
+  margin-top: 4rem;
+  border-radius: 1.25rem;
+  padding: 2rem;
+  background: var(--accent);
+}
+
+.program-contact h2,
+.program-contact p,
+.program-contact a,
+.program-contact span {
+  color: var(--text-on-accent);
+}
+
+.program-contact address {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.program-contact a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 .pricing-card {
   position: relative;
   display: flex;
@@ -633,5 +861,31 @@
 
   .auth-page--pricing {
     padding-top: 3.5rem;
+  }
+
+  .pricing-grid--programs,
+  .program-process-grid,
+  .program-scholarships,
+  .program-contact {
+    grid-template-columns: 1fr;
+  }
+
+  .program-timeline {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .program-timeline li {
+    border-left: 2px solid var(--accent);
+    padding-left: 1rem;
+  }
+
+  .program-timeline li::after {
+    display: none;
+  }
+
+  .program-panel,
+  .program-contact {
+    padding: 1.4rem;
   }
 }

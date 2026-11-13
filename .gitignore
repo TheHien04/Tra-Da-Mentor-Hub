@@ -68,6 +68,9 @@ pids/
 *.pid
 
 # --- Databases & dumps ---
+backups/
+*.archive
+*.archive.sha256
 *.sqlite
 *.sqlite3
 *.db

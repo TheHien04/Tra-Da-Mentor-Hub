@@ -11,6 +11,13 @@ import {
 } from './helpers/mongoTest.js';
 import MentorProfile from '../models/MentorProfile.js';
 import MenteeProfile from '../models/MenteeProfile.js';
+import StudyGroup from '../models/StudyGroup.js';
+
+function futureDate(days = 30) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 describe('CRM API (MongoDB)', () => {
   let token;
@@ -120,7 +127,7 @@ describe('CRM API (MongoDB)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           mentorId: mentor._id,
-          date: '2026-12-01',
+          date: futureDate(),
           time: '10:00',
           duration: 60,
         });
@@ -153,6 +160,7 @@ describe('CRM API (MongoDB)', () => {
         track: 'tech',
         school: 'Test U',
         progress: 20,
+        mentorId: mentor._id,
       });
 
       const res = await request(app)
@@ -174,6 +182,156 @@ describe('CRM API (MongoDB)', () => {
         .set('Authorization', `Bearer ${token}`);
       expect(list.status).toBe(200);
       expect(list.body.length).toBeGreaterThan(0);
+    });
+
+    it('rejects a fabricated mentor-mentee session relationship', async () => {
+      const app = getTestApp();
+      await MentorProfile.create({
+        _id: 'm-unrelated',
+        name: 'Unrelated Mentor',
+        email: 'unrelated-mentor@test.com',
+        track: 'tech',
+        maxMentees: 2,
+      });
+      await MenteeProfile.create({
+        _id: 'e-unrelated',
+        name: 'Unrelated Mentee',
+        email: 'unrelated-mentee@test.com',
+        track: 'tech',
+        applicationStatus: 'accepted',
+      });
+
+      const res = await request(app)
+        .post('/api/session-logs')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          mentorId: 'm-unrelated',
+          menteeId: 'e-unrelated',
+          sessionDate: new Date().toISOString(),
+          topic: 'Fabricated session',
+        });
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe('MENTORING_RELATIONSHIP_REQUIRED');
+    });
+  });
+
+  describe('Group membership', () => {
+    it('enforces existence, capacity, duplicate safety, and cross-group assignment', async () => {
+      const app = getTestApp();
+      await StudyGroup.create({
+        _id: 'g-capacity',
+        name: 'Capacity Group',
+        topic: 'QA',
+        mentorId: 'm-owner',
+        maxSize: 1,
+      });
+      await StudyGroup.create({
+        _id: 'g-other',
+        name: 'Other Group',
+        topic: 'QA',
+        mentorId: 'm-owner',
+        maxSize: 2,
+      });
+
+      const missing = await request(app)
+        .post('/api/groups/g-capacity/mentees/not-real')
+        .set('Authorization', `Bearer ${token}`);
+      expect(missing.status).toBe(404);
+
+      await MenteeProfile.create({
+        _id: 'e-member',
+        name: 'Member',
+        email: 'member@test.com',
+        track: 'tech',
+      });
+      const added = await request(app)
+        .post('/api/groups/g-capacity/mentees/e-member')
+        .set('Authorization', `Bearer ${token}`);
+      expect(added.status).toBe(200);
+
+      const duplicate = await request(app)
+        .post('/api/groups/g-capacity/mentees/e-member')
+        .set('Authorization', `Bearer ${token}`);
+      expect(duplicate.status).toBe(200);
+      expect(duplicate.body.mentees).toEqual(['e-member']);
+
+      await MenteeProfile.create({
+        _id: 'e-overflow',
+        name: 'Overflow',
+        email: 'overflow@test.com',
+        track: 'tech',
+      });
+      const full = await request(app)
+        .post('/api/groups/g-capacity/mentees/e-overflow')
+        .set('Authorization', `Bearer ${token}`);
+      expect(full.status).toBe(409);
+      expect(full.body.code).toBe('GROUP_FULL');
+
+      await MenteeProfile.findByIdAndUpdate('e-overflow', { groupId: 'g-other' });
+      const conflict = await request(app)
+        .post('/api/groups/g-capacity/mentees/e-overflow')
+        .set('Authorization', `Bearer ${token}`);
+      expect(conflict.status).toBe(409);
+      expect(conflict.body.code).toBe('GROUP_ASSIGNMENT_CONFLICT');
+
+      const group = await StudyGroup.findById('g-capacity').lean();
+      expect(group.mentees).toEqual(['e-member']);
+    });
+
+    it('admits only one mentee when concurrent requests race for the last seat', async () => {
+      const app = getTestApp();
+      await StudyGroup.create({
+        _id: 'g-race',
+        name: 'Race Group',
+        topic: 'Concurrency',
+        mentorId: 'm-owner',
+        maxSize: 1,
+      });
+      await MenteeProfile.insertMany([
+        { _id: 'e-race-a', name: 'Race A', email: 'race-a@test.com', track: 'tech' },
+        { _id: 'e-race-b', name: 'Race B', email: 'race-b@test.com', track: 'tech' },
+      ]);
+
+      const [first, second] = await Promise.all([
+        request(app)
+          .post('/api/groups/g-race/mentees/e-race-a')
+          .set('Authorization', `Bearer ${token}`),
+        request(app)
+          .post('/api/groups/g-race/mentees/e-race-b')
+          .set('Authorization', `Bearer ${token}`),
+      ]);
+      expect([first.status, second.status].sort()).toEqual([200, 409]);
+      const group = await StudyGroup.findById('g-race').lean();
+      expect(group.mentees).toHaveLength(1);
+      const assignedProfiles = await MenteeProfile.countDocuments({ groupId: 'g-race' });
+      expect(assignedProfiles).toBe(1);
+    });
+  });
+
+  describe('Operational metrics', () => {
+    it('returns an admin-only process snapshot without exposing secrets', async () => {
+      const app = getTestApp();
+      const response = await request(app)
+        .get('/api/admin/metrics')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        success: true,
+        data: expect.objectContaining({
+          requests: expect.any(Number),
+          inFlight: expect.any(Number),
+          averageDurationMs: expect.any(Number),
+          statuses: expect.objectContaining({ '2xx': expect.any(Number), '5xx': expect.any(Number) }),
+          memory: expect.objectContaining({ rssBytes: expect.any(Number), heapUsedBytes: expect.any(Number) }),
+        }),
+      });
+      expect(JSON.stringify(response.body)).not.toMatch(/JWT_SECRET|DATABASE_URL|SENDGRID_API_KEY/);
+    });
+
+    it('rejects anonymous metrics access', async () => {
+      const response = await request(getTestApp()).get('/api/admin/metrics');
+      expect(response.status).toBe(401);
     });
   });
 });

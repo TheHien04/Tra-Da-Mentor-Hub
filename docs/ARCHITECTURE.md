@@ -58,13 +58,47 @@ HTTP Request
 ## Layering (frontend)
 
 ```
-Route (pages)
+App composition (`App.tsx`)
+    → shell + route table (`src/app`)
+    → route screens (`pages`, consistently named `*Page.tsx`)
     → feature components
     → hooks/queries (React Query)
-    → services/api.ts (Axios)
+    → domain API modules (`services/api`)
+    → shared Axios client
 ```
 
 Shared UI primitives live under `src/components/ui/`.
+
+`src/services/api.ts` is a stable public barrel only. Network behavior belongs in
+`src/services/api/client.ts`, generated-contract aliases in `contracts.ts`, and
+resource calls in the domain modules. This keeps feature code independent from
+the internal API-client layout.
+
+## Repository boundaries
+
+```text
+src/App.tsx                  provider composition root
+src/app/                     route table and shared application chrome
+src/pages/                   route-level screens
+src/components/features/     reusable product features
+src/components/ui/           accessible UI primitives
+src/hooks/queries/           server-state boundary
+src/services/api/            typed transport and domain clients
+
+backend/createApp.js         middleware/application composition root
+backend/routes/index.js      auditable API route registry
+backend/routes/              HTTP routing and authorization
+backend/controllers/         request/response orchestration
+backend/services/            domain logic and persistence adapters
+backend/models/              persistent schemas
+```
+
+New code should follow the existing dependency direction. Avoid importing route
+screens into shared components, accessing Axios outside `services/api`, or using
+Mongoose directly from frontend-facing route modules.
+
+The complete file-placement and naming contract is documented in
+[STRUCTURE.md](./STRUCTURE.md).
 
 ## Authentication flow
 
@@ -76,12 +110,12 @@ sequenceDiagram
 
   C->>A: POST /api/auth/login
   A->>D: find user + verify password
-  A-->>C: accessToken + refreshToken
-  C->>A: API calls with Bearer token
+  A-->>C: httpOnly access + refresh cookies, readable CSRF cookie
+  C->>A: API calls with cookies; mutation includes X-CSRF-Token
   A->>A: authenticate middleware
   A-->>C: 200 / 403
   C->>A: POST /api/auth/refresh (when access expires)
-  A-->>C: new accessToken
+  A-->>C: rotated cookies
 ```
 
 See [ADR 002](./adr/002-jwt-rbac.md).
@@ -115,7 +149,8 @@ See [ADR 003](./adr/003-in-app-notifications-first.md).
 | Validation | Zod (API + client) |
 | i18n | i18next, `en` source + merged locales |
 | Monitoring | Sentry (optional DSN) |
-| Health | `GET /api/health` — 503 when Mongo required but down |
+| Liveness | `GET /api/health` — process can serve HTTP |
+| Readiness | `GET /api/ready` — 503 when production dependencies are unavailable |
 
 ## API contract
 
@@ -129,3 +164,4 @@ Interactive UI: `GET /api/docs` when the server is running.
 - [ADR 003 — In-app notifications first](./adr/003-in-app-notifications-first.md)
 - [Staging environments](./STAGING.md)
 - [Operations runbook](./RUNBOOK.md)
+- [Repository structure and ownership](./STRUCTURE.md)

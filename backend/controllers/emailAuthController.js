@@ -4,13 +4,13 @@
  * Handle email verification and password reset
  */
 
-import User from '../models/User.js';
 import logger from '../config/logger.js';
 import {
   sendWelcomeEmail,
   sendPasswordResetEmail,
   sendEmailVerification,
 } from '../utils/emailService.js';
+import { findUserByEmail, findUserById, findUserByTimedToken } from '../services/userStore.js';
 
 /**
  * Send email verification
@@ -19,7 +19,7 @@ import {
 export async function sendVerificationEmail(req, res) {
   try {
     const userId = req.user.userId;
-    const user = await User.findById(userId);
+    const user = await findUserById(userId);
 
     if (!user) {
       return res.status(404).json({
@@ -65,10 +65,7 @@ export async function verifyEmail(req, res) {
   try {
     const { token } = req.params;
 
-    const user = await User.findOne({
-      emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() },
-    });
+    const user = await findUserByTimedToken('emailVerificationToken', token);
 
     if (!user) {
       return res.status(400).json({
@@ -106,7 +103,7 @@ export async function forgotPassword(req, res) {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await findUserByEmail(email);
 
     // Always return success to prevent user enumeration
     if (!user) {
@@ -165,10 +162,7 @@ export async function resetPassword(req, res) {
     }
 
     // Find user with valid token
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
+    const user = await findUserByTimedToken('resetPasswordToken', token);
 
     if (!user) {
       return res.status(400).json({
@@ -206,7 +200,7 @@ export async function resendVerification(req, res) {
   try {
     const { email } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await findUserByEmail(email);
 
     if (!user) {
       return res.json({

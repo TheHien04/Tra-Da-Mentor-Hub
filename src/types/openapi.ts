@@ -30,13 +30,52 @@ export interface paths {
                         "application/json": components["schemas"]["Health"];
                     };
                 };
-                /** @description Degraded */
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness check
+         * @description Returns 503 when a production instance cannot safely receive traffic, including when MongoDB is unavailable.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Service ready */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Health"];
+                    };
+                };
+                /** @description Service not ready */
                 503: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Error"];
+                        "application/json": components["schemas"]["Health"];
                     };
                 };
             };
@@ -958,7 +997,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update application status */
+        /**
+         * Advance an application through its governed workflow
+         * @description Allowed transitions: pending → invited/rejected; invited → interviewed/rejected; interviewed → accepted/rejected. Accepted and rejected are terminal.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -976,6 +1018,13 @@ export interface paths {
             responses: {
                 /** @description Updated */
                 200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid transition from the current status */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2388,6 +2437,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Process runtime metrics for operators */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Request, latency, status and process memory snapshot */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            success: boolean;
+                            data: {
+                                /** Format: date-time */
+                                startedAt: string;
+                                uptimeSeconds: number;
+                                requests: number;
+                                inFlight: number;
+                                averageDurationMs: number;
+                                maxDurationMs: number;
+                                statuses: {
+                                    [key: string]: number;
+                                };
+                                memory: {
+                                    rssBytes?: number;
+                                    heapUsedBytes?: number;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Admin role required */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/analytics/summary": {
         parameters: {
             query?: never;
@@ -2554,7 +2664,9 @@ export interface components {
             groupId?: string | null;
             /** @enum {string} */
             mentorshipType?: "GROUP" | "ONE_ON_ONE";
-            applicationStatus?: string;
+            /** @enum {string} */
+            applicationStatus?: "pending" | "invited_for_interview" | "interviewed" | "accepted" | "rejected";
+            applicationHistory?: components["schemas"]["ApplicationHistoryEntry"][];
             avatarUrl?: string;
             mentor?: string;
             group?: string;
@@ -2571,11 +2683,21 @@ export interface components {
             mentorId?: string;
             groupId?: string;
             mentorshipType?: string;
-            applicationStatus?: string;
             avatarUrl?: string;
         };
         ApplicationStatusWrite: {
-            applicationStatus: string;
+            /** @enum {string} */
+            applicationStatus: "pending" | "invited_for_interview" | "interviewed" | "accepted" | "rejected";
+            reason?: string;
+        };
+        ApplicationHistoryEntry: {
+            from: string;
+            to: string;
+            /** Format: date-time */
+            changedAt: string;
+            actorId?: string;
+            actorRole?: string;
+            reason?: string;
         };
         PagedMentees: {
             data: components["schemas"]["Mentee"][];
@@ -2801,9 +2923,11 @@ export interface components {
         };
         CalendarConnect: {
             authUrl?: string;
+            demo?: boolean;
         };
         CalendarStatus: {
             connected?: boolean;
+            demo?: boolean;
         };
         CalendarEventWrite: {
             summary?: string;

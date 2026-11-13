@@ -14,6 +14,7 @@ import { loadActor } from '../lib/actor.js';
 import { fail } from '../lib/httpError.js';
 import { getMentorById } from '../services/mentorStore.js';
 import { getMenteeById } from '../services/menteeStore.js';
+import { listSlots } from '../services/slotStore.js';
 
 const router = express.Router();
 
@@ -65,6 +66,28 @@ router.post('/', async (req, res, next) => {
       return fail(res, 400, 'VALIDATION', 'sessionDate must be a real date, at most a day ahead');
     }
 
+    const [mentor, mentee, bookedSlots] = await Promise.all([
+      getMentorById(mentorId),
+      getMenteeById(menteeId),
+      listSlots({ mentorId, menteeId }),
+    ]);
+    if (!mentor || !mentee) {
+      return fail(res, 404, 'NOT_FOUND', 'Mentor or mentee not found');
+    }
+    const assigned =
+      String(mentee.mentorId || '') === String(mentorId) ||
+      (mentor.mentees || []).some((id) => String(id) === String(menteeId));
+    const sessionDay = when.toISOString().slice(0, 10);
+    const hasBookedSession = bookedSlots.some(
+      (slot) =>
+        String(slot.mentorId) === String(mentorId) &&
+        String(slot.menteeId || slot.bookedBy) === String(menteeId) &&
+        String(slot.date).slice(0, 10) === sessionDay
+    );
+    if (!assigned && !hasBookedSession) {
+      return fail(res, 409, 'MENTORING_RELATIONSHIP_REQUIRED');
+    }
+
     const payload = { mentorId, menteeId, sessionDate, topic: String(topic).trim().slice(0, 200) };
     for (const key of fieldsForActor(actor)) {
       if (req.body[key] !== undefined) payload[key] = req.body[key];
@@ -73,10 +96,6 @@ router.post('/', async (req, res, next) => {
     const { log, created } = await upsertSessionLog(payload);
 
     if (created) {
-      const [mentor, mentee] = await Promise.all([
-        getMentorById(mentorId),
-        getMenteeById(menteeId),
-      ]);
       const targets =
         actor.role === 'mentor' ? [mentee] : actor.role === 'mentee' ? [mentor] : [mentor, mentee];
       const io = req.app.get('io');

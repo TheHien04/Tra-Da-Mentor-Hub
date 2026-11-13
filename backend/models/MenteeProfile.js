@@ -1,12 +1,5 @@
 import mongoose from 'mongoose';
-
-const APPLICATION_STATUSES = [
-  'pending',
-  'invited_for_interview',
-  'interviewed',
-  'accepted',
-  'rejected',
-];
+import { APPLICATION_STATUSES } from '../domain/applicationLifecycle.js';
 
 const menteeProfileSchema = new mongoose.Schema(
   {
@@ -26,6 +19,20 @@ const menteeProfileSchema = new mongoose.Schema(
       type: String,
       enum: APPLICATION_STATUSES,
       default: 'pending',
+    },
+    applicationHistory: {
+      type: [
+        {
+          _id: false,
+          from: { type: String, enum: APPLICATION_STATUSES, required: true },
+          to: { type: String, enum: APPLICATION_STATUSES, required: true },
+          changedAt: { type: Date, required: true },
+          actorId: { type: String, default: '' },
+          actorRole: { type: String, default: '' },
+          reason: { type: String, maxlength: 500, default: '' },
+        },
+      ],
+      default: [],
     },
     goals: { type: [String], default: [] },
     avatarUrl: { type: String, default: '' },

@@ -89,8 +89,28 @@ export async function updateGroup(id, body, { replace = false } = {}) {
 export async function addMenteeToGroup(groupId, menteeId) {
   const group = await getGroupById(groupId);
   if (!group) return null;
-  const mentees = group.mentees.includes(menteeId) ? group.mentees : [...group.mentees, menteeId];
-  return updateGroup(groupId, { mentees });
+  if (group.mentees.includes(menteeId)) return group;
+  if (group.mentees.length >= (group.maxSize || 5)) return null;
+
+  if (useDb()) {
+    const doc = await StudyGroup.findOneAndUpdate(
+      {
+        _id: groupId,
+        mentees: { $ne: menteeId },
+        $expr: {
+          $lt: [
+            { $size: { $ifNull: ['$mentees', []] } },
+            { $ifNull: ['$maxSize', 5] },
+          ],
+        },
+      },
+      { $addToSet: { mentees: menteeId } },
+      { new: true, runValidators: true }
+    );
+    return toClient(doc);
+  }
+
+  return updateGroup(groupId, { mentees: [...group.mentees, menteeId] });
 }
 
 export async function removeMenteeFromGroup(groupId, menteeId) {

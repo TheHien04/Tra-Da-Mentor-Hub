@@ -8,7 +8,9 @@ const RULES: { prefix: string; roles: AppRole[] }[] = [
   { prefix: '/applications', roles: ['mentor', 'admin'] },
   { prefix: '/analytics', roles: ['mentor', 'admin'] },
   { prefix: '/insights', roles: ['mentor', 'admin'] },
-  { prefix: '/mentees', roles: ['mentor', 'mentee', 'admin'] },
+  // The directory contains private participant data. Mentees may open their own
+  // detail route through product flows, but must not receive a directory link.
+  { prefix: '/mentees', roles: ['mentor', 'admin'] },
   { prefix: '/mentors', roles: ['mentor', 'mentee', 'admin'] },
   { prefix: '/groups', roles: ['mentor', 'mentee', 'admin'] },
   { prefix: '/schedule', roles: ['mentor', 'mentee', 'admin'] },

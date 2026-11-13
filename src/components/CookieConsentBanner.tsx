@@ -32,25 +32,29 @@ export const CookieConsentBanner = () => {
   }
 
   return (
-    <div className="cookie-consent-banner">
+    <section
+      className="cookie-consent-banner"
+      role="region"
+      aria-labelledby="cookie-consent-title"
+    >
       <div className="cookie-consent-content">
         <div className="cookie-icon">🍪</div>
         <div className="cookie-text">
-          <h3>{t('pages.cookie.title')}</h3>
+          <h3 id="cookie-consent-title">{t('pages.cookie.title')}</h3>
           <p>
             {t('pages.cookie.message')}{' '}
             <Link to="/privacy-policy">{t('pages.cookie.privacyLink')}</Link>.
           </p>
         </div>
         <div className="cookie-actions">
-          <button className="btn btn-secondary" onClick={handleDecline}>
+          <button type="button" className="btn btn-secondary" onClick={handleDecline}>
             {t('pages.cookie.decline')}
           </button>
-          <button className="btn btn-primary" onClick={handleAccept}>
+          <button type="button" className="btn btn-primary" onClick={handleAccept}>
             {t('pages.cookie.acceptAll')}
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
