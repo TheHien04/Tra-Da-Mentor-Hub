@@ -561,95 +561,95 @@
   }
 
   .avatar--tone-0 {
-    --avatar-from: #0d9488;
-    --avatar-to: #0891b2;
-    --avatar-ring: color-mix(in srgb, #0d9488 30%, transparent);
+    --avatar-from: #1f5a43;
+    --avatar-to: #2f8060;
+    --avatar-ring: color-mix(in srgb, #1f5a43 30%, transparent);
   }
   .avatar--tone-1 {
-    --avatar-from: #0f766e;
-    --avatar-to: #047857;
-    --avatar-ring: color-mix(in srgb, #0f766e 30%, transparent);
+    --avatar-from: #356b4e;
+    --avatar-to: #5a8f6a;
+    --avatar-ring: color-mix(in srgb, #356b4e 30%, transparent);
   }
   .avatar--tone-2 {
-    --avatar-from: #0369a1;
-    --avatar-to: #0e7490;
-    --avatar-ring: color-mix(in srgb, #0369a1 30%, transparent);
+    --avatar-from: #587b52;
+    --avatar-to: #7d9d67;
+    --avatar-ring: color-mix(in srgb, #587b52 30%, transparent);
   }
   .avatar--tone-3 {
-    --avatar-from: #4f46e5;
-    --avatar-to: #6366f1;
-    --avatar-ring: color-mix(in srgb, #4f46e5 28%, transparent);
+    --avatar-from: #6c8f5a;
+    --avatar-to: #98b878;
+    --avatar-ring: color-mix(in srgb, #6c8f5a 28%, transparent);
   }
   .avatar--tone-4 {
-    --avatar-from: #7c3aed;
-    --avatar-to: #8b5cf6;
-    --avatar-ring: color-mix(in srgb, #7c3aed 28%, transparent);
+    --avatar-from: #496e52;
+    --avatar-to: #6e9876;
+    --avatar-ring: color-mix(in srgb, #496e52 28%, transparent);
   }
   .avatar--tone-5 {
-    --avatar-from: #be185d;
-    --avatar-to: #db2777;
-    --avatar-ring: color-mix(in srgb, #be185d 28%, transparent);
+    --avatar-from: #2b6d55;
+    --avatar-to: #4e9978;
+    --avatar-ring: color-mix(in srgb, #2b6d55 28%, transparent);
   }
   .avatar--tone-6 {
-    --avatar-from: #b45309;
-    --avatar-to: #d97706;
-    --avatar-ring: color-mix(in srgb, #b45309 28%, transparent);
+    --avatar-from: #7e9a61;
+    --avatar-to: #a8be7a;
+    --avatar-ring: color-mix(in srgb, #7e9a61 28%, transparent);
   }
   .avatar--tone-7 {
-    --avatar-from: #475569;
-    --avatar-to: #64748b;
-    --avatar-ring: color-mix(in srgb, #475569 28%, transparent);
+    --avatar-from: #526b61;
+    --avatar-to: #748c81;
+    --avatar-ring: color-mix(in srgb, #526b61 28%, transparent);
   }
 
   .avatar--track-tech {
-    --avatar-from: #0d9488;
-    --avatar-to: #14b8a6;
-    --avatar-ring: color-mix(in srgb, #0d9488 32%, transparent);
+    --avatar-from: #1f5a43;
+    --avatar-to: #4e9978;
+    --avatar-ring: color-mix(in srgb, #1f5a43 32%, transparent);
   }
   .avatar--track-economics {
-    --avatar-from: #0369a1;
-    --avatar-to: #0284c7;
-    --avatar-ring: color-mix(in srgb, #0369a1 30%, transparent);
+    --avatar-from: #587b52;
+    --avatar-to: #7d9d67;
+    --avatar-ring: color-mix(in srgb, #587b52 30%, transparent);
   }
   .avatar--track-marketing {
-    --avatar-from: #be123c;
-    --avatar-to: #e11d48;
-    --avatar-ring: color-mix(in srgb, #be123c 28%, transparent);
+    --avatar-from: #356b4e;
+    --avatar-to: #6e9876;
+    --avatar-ring: color-mix(in srgb, #356b4e 28%, transparent);
   }
   .avatar--track-hr {
-    --avatar-from: #047857;
-    --avatar-to: #059669;
-    --avatar-ring: color-mix(in srgb, #047857 30%, transparent);
+    --avatar-from: #2b6d55;
+    --avatar-to: #5a8f6a;
+    --avatar-ring: color-mix(in srgb, #2b6d55 30%, transparent);
   }
   .avatar--track-sales {
-    --avatar-from: #1d4ed8;
-    --avatar-to: #2563eb;
-    --avatar-ring: color-mix(in srgb, #1d4ed8 28%, transparent);
+    --avatar-from: #6c8f5a;
+    --avatar-to: #a8be7a;
+    --avatar-ring: color-mix(in srgb, #6c8f5a 28%, transparent);
   }
   .avatar--track-social {
-    --avatar-from: #6d28d9;
-    --avatar-to: #7c3aed;
-    --avatar-ring: color-mix(in srgb, #6d28d9 28%, transparent);
+    --avatar-from: #496e52;
+    --avatar-to: #98b878;
+    --avatar-ring: color-mix(in srgb, #496e52 28%, transparent);
   }
   .avatar--track-business {
-    --avatar-from: #b45309;
-    --avatar-to: #ca8a04;
-    --avatar-ring: color-mix(in srgb, #b45309 28%, transparent);
+    --avatar-from: #7e9a61;
+    --avatar-to: #b6c982;
+    --avatar-ring: color-mix(in srgb, #7e9a61 28%, transparent);
   }
   .avatar--track-education {
-    --avatar-from: #0e7490;
-    --avatar-to: #0891b2;
-    --avatar-ring: color-mix(in srgb, #0e7490 30%, transparent);
+    --avatar-from: #356b4e;
+    --avatar-to: #7d9d67;
+    --avatar-ring: color-mix(in srgb, #356b4e 30%, transparent);
   }
   .avatar--track-startup {
-    --avatar-from: #c2410c;
-    --avatar-to: #ea580c;
-    --avatar-ring: color-mix(in srgb, #c2410c 28%, transparent);
+    --avatar-from: #1f5a43;
+    --avatar-to: #6e9876;
+    --avatar-ring: color-mix(in srgb, #1f5a43 28%, transparent);
   }
   .avatar--track-design {
-    --avatar-from: #a21caf;
-    --avatar-to: #c026d3;
-    --avatar-ring: color-mix(in srgb, #a21caf 28%, transparent);
+    --avatar-from: #587b52;
+    --avatar-to: #a8be7a;
+    --avatar-ring: color-mix(in srgb, #587b52 28%, transparent);
   }
 
   /* Track pill */
@@ -705,14 +705,14 @@
     border-color: color-mix(in srgb, var(--accent) 22%, transparent);
   }
   .track-pill--economics {
-    background: color-mix(in srgb, #0284c7 12%, var(--bg-surface));
-    color: color-mix(in srgb, #0369a1 90%, var(--text-primary));
-    border-color: color-mix(in srgb, #0284c7 22%, transparent);
+    background: color-mix(in srgb, #7d9d67 14%, var(--bg-surface));
+    color: color-mix(in srgb, #496e52 90%, var(--text-primary));
+    border-color: color-mix(in srgb, #7d9d67 28%, transparent);
   }
   .track-pill--marketing {
-    background: color-mix(in srgb, #e11d48 10%, var(--bg-surface));
-    color: color-mix(in srgb, #be123c 88%, var(--text-primary));
-    border-color: color-mix(in srgb, #e11d48 20%, transparent);
+    background: color-mix(in srgb, #98b878 14%, var(--bg-surface));
+    color: color-mix(in srgb, #356b4e 88%, var(--text-primary));
+    border-color: color-mix(in srgb, #98b878 28%, transparent);
   }
   .track-pill--hr {
     background: color-mix(in srgb, #059669 12%, var(--bg-surface));
@@ -720,14 +720,14 @@
     border-color: color-mix(in srgb, #059669 22%, transparent);
   }
   .track-pill--sales {
-    background: color-mix(in srgb, #2563eb 10%, var(--bg-surface));
-    color: color-mix(in srgb, #1d4ed8 88%, var(--text-primary));
-    border-color: color-mix(in srgb, #2563eb 20%, transparent);
+    background: color-mix(in srgb, #6e9876 12%, var(--bg-surface));
+    color: color-mix(in srgb, #2b6d55 88%, var(--text-primary));
+    border-color: color-mix(in srgb, #6e9876 24%, transparent);
   }
   .track-pill--social {
-    background: color-mix(in srgb, #7c3aed 10%, var(--bg-surface));
-    color: color-mix(in srgb, #6d28d9 88%, var(--text-primary));
-    border-color: color-mix(in srgb, #7c3aed 20%, transparent);
+    background: color-mix(in srgb, #a8be7a 14%, var(--bg-surface));
+    color: color-mix(in srgb, #587b52 88%, var(--text-primary));
+    border-color: color-mix(in srgb, #a8be7a 28%, transparent);
   }
   .track-pill--business {
     background: color-mix(in srgb, #ca8a04 12%, var(--bg-surface));
@@ -735,19 +735,19 @@
     border-color: color-mix(in srgb, #ca8a04 22%, transparent);
   }
   .track-pill--education {
-    background: color-mix(in srgb, #0891b2 12%, var(--bg-surface));
-    color: color-mix(in srgb, #0e7490 90%, var(--text-primary));
-    border-color: color-mix(in srgb, #0891b2 22%, transparent);
+    background: color-mix(in srgb, #5a8f6a 14%, var(--bg-surface));
+    color: color-mix(in srgb, #356b4e 90%, var(--text-primary));
+    border-color: color-mix(in srgb, #5a8f6a 28%, transparent);
   }
   .track-pill--startup {
-    background: color-mix(in srgb, #ea580c 10%, var(--bg-surface));
-    color: color-mix(in srgb, #c2410c 88%, var(--text-primary));
-    border-color: color-mix(in srgb, #ea580c 20%, transparent);
+    background: color-mix(in srgb, #4e9978 12%, var(--bg-surface));
+    color: color-mix(in srgb, #1f5a43 88%, var(--text-primary));
+    border-color: color-mix(in srgb, #4e9978 24%, transparent);
   }
   .track-pill--design {
-    background: color-mix(in srgb, #c026d3 10%, var(--bg-surface));
-    color: color-mix(in srgb, #a21caf 88%, var(--text-primary));
-    border-color: color-mix(in srgb, #c026d3 20%, transparent);
+    background: color-mix(in srgb, #7d9d67 12%, var(--bg-surface));
+    color: color-mix(in srgb, #496e52 88%, var(--text-primary));
+    border-color: color-mix(in srgb, #7d9d67 24%, transparent);
   }
 
   .btn-ghost-danger {

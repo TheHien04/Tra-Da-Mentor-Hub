@@ -124,47 +124,77 @@ The gallery below was captured from the running application with Playwright usin
 
 ### Public and authentication surfaces
 
-| Program catalogue | Login and account entry |
-| --- | --- |
-| ![Program catalogue](./docs/screenshots/public-programs.png) | ![Login screen](./docs/screenshots/auth-login.png) |
+<p align="center">
+  <img src="./docs/screenshots/public-programs.png" alt="Program catalogue" width="920" />
+</p>
 
-The public catalogue gives prospective mentees a clear entry point, while the authentication surface supports localized email/password login, theme switching, password visibility, and development-only demo access.
+The public catalogue gives prospective mentees a clear entry point.
+
+<p align="center">
+  <img src="./docs/screenshots/auth-login.png" alt="Login screen" width="920" />
+</p>
+
+The authentication surface supports localized email/password login, theme switching, password visibility, and development-only demo access.
 
 ### Operational workspace
 
-![Dashboard](./docs/screenshots/product/dashboard.png)
+<p align="center">
+  <img src="./docs/screenshots/product/dashboard.png" alt="Dashboard" width="920" />
+</p>
 
 The dashboard is the operational command centre: capacity KPIs, next actions, Smart Match signals, quick navigation, and role-aware administration links are visible without hiding the primary workflow.
 
-| Mentor directory | Mentee directory |
-| --- | --- |
-| ![Mentor directory](./docs/screenshots/product/mentors.png) | ![Mentee directory](./docs/screenshots/product/mentees.png) |
+<p align="center">
+  <img src="./docs/screenshots/product/mentors.png" alt="Mentor directory" width="920" />
+</p>
+
+<p align="center">
+  <img src="./docs/screenshots/product/mentees.png" alt="Mentee directory" width="920" />
+</p>
 
 ### Lifecycle and scheduling
 
-| Applications | Availability slots |
-| --- | --- |
-| ![Applications workflow](./docs/screenshots/product/applications.png) | ![Availability slots](./docs/screenshots/product/availability-slots.png) |
+<p align="center">
+  <img src="./docs/screenshots/product/applications.png" alt="Applications workflow" width="920" />
+</p>
 
-| Schedule | Session CRM |
-| --- | --- |
-| ![Schedule](./docs/screenshots/product/schedule.png) | ![Session logs](./docs/screenshots/product/session-logs.png) |
+<p align="center">
+  <img src="./docs/screenshots/product/availability-slots.png" alt="Availability slots" width="920" />
+</p>
+
+<p align="center">
+  <img src="./docs/screenshots/product/schedule.png" alt="Schedule" width="920" />
+</p>
+
+<p align="center">
+  <img src="./docs/screenshots/product/session-logs.png" alt="Session logs" width="920" />
+</p>
 
 ### Intelligence and administration
 
-| Analytics | Explainable matching insights |
-| --- | --- |
-| ![Analytics](./docs/screenshots/product/analytics.png) | ![Matching insights](./docs/screenshots/product/matching-insights.png) |
+<p align="center">
+  <img src="./docs/screenshots/product/analytics.png" alt="Analytics" width="920" />
+</p>
 
-| Audit history | Data export |
-| --- | --- |
-| ![Audit history](./docs/screenshots/product/admin-audit.png) | ![Data export](./docs/screenshots/product/admin-export.png) |
+<p align="center">
+  <img src="./docs/screenshots/product/matching-insights.png" alt="Explainable matching insights" width="920" />
+</p>
+
+<p align="center">
+  <img src="./docs/screenshots/product/admin-audit.png" alt="Audit history" width="920" />
+</p>
+
+<p align="center">
+  <img src="./docs/screenshots/product/admin-export.png" alt="Data export" width="920" />
+</p>
 
 ### Responsive experience
 
-| Mobile dashboard | Mobile schedule |
-| --- | --- |
-| ![Mobile dashboard](./docs/screenshots/mobile/dashboard.png) | ![Mobile schedule](./docs/screenshots/mobile/schedule.png) |
+<p align="center">
+  <img src="./docs/screenshots/mobile/login.png" alt="Mobile login" width="280" />
+  <img src="./docs/screenshots/mobile/dashboard.png" alt="Mobile dashboard" width="280" />
+  <img src="./docs/screenshots/mobile/schedule.png" alt="Mobile schedule" width="280" />
+</p>
 
 ### Product surface map
 
