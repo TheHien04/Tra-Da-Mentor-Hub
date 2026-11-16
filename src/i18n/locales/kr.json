@@ -6,6 +6,8 @@
   },
   "nav": {
     "workspace": "Workspace",
+    "peopleGroup": "사람과 그룹",
+    "sessionsGroup": "세션과 일정",
     "insightsGroup": "Insights",
     "administration": "Administration",
     "dashboard": "대시보드",
@@ -18,6 +20,7 @@
     "applications": "지원서",
     "sessions": "세션 로그",
     "slots": "슬롯 관리",
+    "availableSlots": "예약 가능한 시간",
     "notifications": "알림",
     "invites": "사용자 초대",
     "export": "데이터 내보내기",
@@ -73,6 +76,9 @@
   "dashboard": {
     "welcome": "환영합니다",
     "overview": "개요",
+    "moreDetails": "활동 및 분석 더 보기",
+    "capacityAlert": "멘토 {{count}}명이 정원에 도달했습니다",
+    "capacityAlertHint": "멘토 목록에서 멘티 배정을 조정하세요.",
     "recentActivity": "최근 활동",
     "upcomingEvents": "다가오는 이벤트",
     "statistics": "통계",

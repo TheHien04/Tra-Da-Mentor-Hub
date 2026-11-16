@@ -1,4 +1,4 @@
-# Staging CD — runs after CI on develop; wire your host secrets to enable real deploy.
+# Staging CD — requires a real deployment command and verifies the deployed API.
 name: Staging
 
 on:
@@ -24,12 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Staging deploy placeholder
+      - name: Deploy and verify staging
+        env:
+          STAGING_DEPLOY_COMMAND: ${{ secrets.STAGING_DEPLOY_COMMAND }}
+          STAGING_URL: ${{ vars.STAGING_URL }}
         run: |
-          echo "CI passed on develop. Connect STAGING_* secrets per docs/STAGING.md"
-          echo "Examples: SSH host, Docker registry, or platform CLI (Railway, Render, Fly)."
-          if [ -z "${{ secrets.STAGING_DEPLOY_COMMAND }}" ]; then
-            echo "STAGING_DEPLOY_COMMAND not set — skipping remote deploy."
-            exit 0
+          set -euo pipefail
+          if [ -z "$STAGING_DEPLOY_COMMAND" ] || [ -z "$STAGING_URL" ]; then
+            echo "Staging deploy requires STAGING_DEPLOY_COMMAND secret and STAGING_URL variable." >&2
+            exit 1
           fi
-          eval "${{ secrets.STAGING_DEPLOY_COMMAND }}"
+          bash -euo pipefail -c "$STAGING_DEPLOY_COMMAND"
+          response="$(curl --fail --silent --show-error --retry 6 --retry-delay 5 --max-time 15 "${STAGING_URL%/}/api/ready")"
+          echo "$response" | jq -e '.status == "ok" and .storage == "mongodb"' > /dev/null

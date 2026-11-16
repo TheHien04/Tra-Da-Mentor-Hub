@@ -40,31 +40,42 @@ const MobileNav = () => {
   const primary = [
     { to: '/', label: t('nav.dashboard'), icon: HiOutlineHome },
     role === 'mentee'
-      ? { to: '/slots', label: t('nav.slots'), icon: HiOutlineClock }
+      ? { to: '/slots', label: t('nav.availableSlots'), icon: HiOutlineClock }
       : { to: '/schedule', label: t('nav.schedule'), icon: HiOutlineClock },
     role === 'mentor'
       ? { to: '/mentees', label: t('nav.mentees'), icon: HiOutlineAcademicCap }
       : { to: '/mentors', label: t('nav.mentors'), icon: HiOutlineAcademicCap },
   ].filter((item) => canAccessPath(role, item.to));
 
-  const moreLinks = [
-    { to: '/mentees', label: t('nav.mentees') },
-    { to: '/mentors', label: t('nav.mentors') },
-    { to: '/groups', label: t('nav.groups') },
-    { to: '/slots', label: t('nav.slots') },
-    { to: '/schedule', label: t('nav.schedule') },
-    { to: '/session-logs', label: t('nav.sessions') },
-    { to: '/applications', label: t('nav.applications') },
-    { to: '/programs', label: t('nav.pricing') },
-    { to: '/analytics', label: t('nav.analytics') },
-    { to: '/insights', label: t('nav.insights') },
-    { to: '/testimonials', label: t('nav.testimonials') },
-    { to: '/account', label: t('nav.account') },
-    { to: '/admin/audit', label: t('nav.audit') },
-    { to: '/admin/export', label: t('nav.export') },
-    { to: '/admin/invite', label: t('nav.invites') },
-    { to: '/admin/notifications', label: t('nav.notifications') },
-  ].filter((item) => canAccessPath(role, item.to) && !primary.some((p) => p.to === item.to));
+  const moreSections = [
+    { title: t('nav.workspace'), links: [{ to: '/programs', label: t('nav.pricing') }] },
+    { title: t('nav.peopleGroup'), links: [
+      { to: '/mentors', label: t('nav.mentors') },
+      { to: '/mentees', label: t('nav.mentees') },
+      { to: '/groups', label: t('nav.groups') },
+    ] },
+    { title: t('nav.sessionsGroup'), links: [
+      { to: '/schedule', label: t('nav.schedule') },
+      { to: '/slots', label: t(role === 'mentee' ? 'nav.availableSlots' : 'nav.slots') },
+      { to: '/session-logs', label: t('nav.sessions') },
+      { to: '/applications', label: t('nav.applications') },
+    ] },
+    { title: t('nav.insightsGroup'), links: [
+      { to: '/analytics', label: t('nav.analytics') },
+      { to: '/insights', label: t('nav.insights') },
+      { to: '/testimonials', label: t('nav.testimonials') },
+    ] },
+    { title: t('nav.administration'), links: [
+      { to: '/admin/audit', label: t('nav.audit') },
+      { to: '/admin/export', label: t('nav.export') },
+      { to: '/admin/invite', label: t('nav.invites') },
+      { to: '/admin/notifications', label: t('nav.notifications') },
+    ] },
+    { title: t('nav.account'), links: [{ to: '/account', label: t('nav.account') }] },
+  ].map((section) => ({
+    ...section,
+    links: section.links.filter((item) => canAccessPath(role, item.to) && !primary.some((p) => p.to === item.to)),
+  })).filter((section) => section.links.length > 0);
 
   const handleLogout = async () => {
     setMoreOpen(false);
@@ -124,15 +135,20 @@ const MobileNav = () => {
               <LanguageSwitcher placement="down" />
             </div>
             <div className="mobile-nav-sheet-links">
-              {moreLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className={isActive(link.to) ? 'active' : ''}
-                  onClick={() => setMoreOpen(false)}
-                >
-                  {link.label}
-                </Link>
+              {moreSections.map((section) => (
+                <section key={section.title} className="mobile-nav-sheet-section" aria-label={section.title}>
+                  <h2>{section.title}</h2>
+                  {section.links.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      className={isActive(link.to) ? 'active' : ''}
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </section>
               ))}
             </div>
             <div className="mobile-nav-sheet-legal">
