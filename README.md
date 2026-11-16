@@ -304,8 +304,8 @@ Report a vulnerability privately according to [SECURITY.md](./SECURITY.md). Do n
 
 The project supports Railway, Render, and Docker-based deployments. See:
 
-- [Deployment guide](./DEPLOY.md)
-- [Production readiness checklist](./PRODUCTION_READINESS.md)
+- [Deployment guide](./docs/operations/DEPLOYMENT.md)
+- [Production readiness checklist](./docs/operations/PRODUCTION_READINESS.md)
 - [Operational runbook](./docs/RUNBOOK.md)
 - [Staging guide](./docs/STAGING.md)
 - [Architecture documentation](./docs/ARCHITECTURE.md)

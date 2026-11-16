@@ -85,4 +85,4 @@ console.log('   • Deploy (hoặc push code lên main)');
 console.log('\n3. Mở: https://<domain>.up.railway.app/api/health');
 console.log('   → status ok, storage mongodb');
 console.log('\n4. Đăng ký tài khoản mới tại /register (demo admin đã tắt)');
-console.log('\n📄 Chi tiết: DEPLOY.md\n');
+console.log('\n📄 Chi tiết: docs/operations/DEPLOYMENT.md\n');

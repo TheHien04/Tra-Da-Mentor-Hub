@@ -43,7 +43,7 @@ Use **different** JWT secrets than production. Live checkout also requires both 
 
 1. `npm run verify:env` with staging variables
 2. `npm run build`
-3. Deploy container or PaaS service (see [DEPLOY.md](../DEPLOY.md))
+3. Deploy container or PaaS service (see [deployment guide](./operations/DEPLOYMENT.md))
 4. `npm run create:admin -- ...` once per environment
 5. Smoke test:
    - `GET /api/health` → 200, `check: liveness`
