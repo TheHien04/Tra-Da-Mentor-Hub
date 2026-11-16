@@ -180,7 +180,7 @@ const ScheduleList = () => {
   ];
 
   return (
-    <PageShell>
+    <PageShell className="schedule-page">
       <PageHeader
         title={t('pages.schedule.title')}
         description={t('pages.schedule.description', { count: filtered.length, upcoming })}
@@ -259,7 +259,7 @@ const ScheduleList = () => {
           actionHref="/slots"
         />
       ) : (
-        <div className="space-y-4">
+        <div className="schedule-session-list">
           {filtered.map((s) => {
             const { day, month } = parseDateParts(s.date);
             const synced = Boolean(s.googleCalendarEventId);

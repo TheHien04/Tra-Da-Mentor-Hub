@@ -60,6 +60,7 @@
     "sceneCaption": "대화 한 번, 짜다 한 잔, 다음 한 걸음.",
     "demoCredentials": "Demo credentials",
     "copyCredentials": "Copy credentials",
+    "useDemoCredentials": "데모 계정 사용",
     "copied": "Copied!",
     "orContinueWith": "Or continue with",
     "oauth": {

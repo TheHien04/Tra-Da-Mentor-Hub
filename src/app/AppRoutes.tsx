@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import Skeleton from '../components/Skeleton';
 
-const Dashboard = lazy(() => import('../pages/DashboardPage'));
+const HomePage = lazy(() => import('../pages/HomePage'));
 const LoginPage = lazy(() => import('../pages/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/RegisterPage'));
 const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage'));
@@ -74,7 +74,7 @@ export function AppRoutes() {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/dashboard" element={<Navigate to="/" replace />} />
 
-        <Route path="/" element={protect(<Dashboard />)} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/mentors" element={protect(<MentorList />, ['mentor', 'mentee', 'admin'])} />
         <Route path="/mentors/add" element={protect(<AddMentor />, ['admin'])} />
         <Route path="/mentors/:id" element={protect(<MentorDetail />, ['mentor', 'mentee', 'admin'])} />

@@ -160,7 +160,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-page auth-page--scene">
+    <div className="auth-page auth-page--scene auth-page--register">
       <AuthScene />
       <div className="auth-shell auth-shell-wide auth-form-column">
         <div className="auth-card">
@@ -191,7 +191,7 @@ export default function RegisterPage() {
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="auth-register-form">
             {state.error && (
               <div className="auth-error" role="alert">
                 {state.error}

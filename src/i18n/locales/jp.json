@@ -60,6 +60,7 @@
     "sceneCaption": "会話と一杯のトラダ、そして次の一歩。",
     "demoCredentials": "Demo credentials",
     "copyCredentials": "Copy credentials",
+    "useDemoCredentials": "デモアカウントを使う",
     "copied": "Copied!",
     "orContinueWith": "Or continue with",
     "oauth": {

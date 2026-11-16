@@ -284,29 +284,6 @@ const Dashboard = () => {
   return (
     <PageShell>
       <DashboardHero />
-      <div className="work-grid work-grid--single">
-        <section className="next-up" aria-labelledby="next-up-title">
-          <div className="min-w-0">
-            <p className="next-up__kicker">{t('dashboard.nextUp')}</p>
-            {loading ? <Skeleton count={2} /> : (
-              <>
-                <h2 id="next-up-title" className="next-up__title">
-                  {next ? next.title : t('dashboard.nextUpEmpty')}
-                </h2>
-                <p className="next-up__meta">
-                  {next ? `${formatSlotDay(next.date)} · ${next.time}` : nextHint}
-                </p>
-              </>
-            )}
-          </div>
-          {!loading && (
-            <Link to={nextHref} className="btn btn-primary shrink-0">
-              {nextLabel}
-            </Link>
-          )}
-        </section>
-      </div>
-
       {!loading && isOps && stats.mentorsAtCapacity > 0 && (
         <Link to="/mentors" className="dashboard-alert">
           <HiOutlineExclamationTriangle className="h-5 w-5 shrink-0" aria-hidden />
@@ -340,6 +317,29 @@ const Dashboard = () => {
                 </div>
               </Link>
             ))}
+      </div>
+
+      <div className="work-grid work-grid--single">
+        <section className="next-up" aria-labelledby="next-up-title">
+          <div className="min-w-0">
+            <p className="next-up__kicker">{t('dashboard.nextUp')}</p>
+            {loading ? <Skeleton count={2} /> : (
+              <>
+                <h2 id="next-up-title" className="next-up__title">
+                  {next ? next.title : t('dashboard.nextUpEmpty')}
+                </h2>
+                <p className="next-up__meta">
+                  {next ? `${formatSlotDay(next.date)} · ${next.time}` : nextHint}
+                </p>
+              </>
+            )}
+          </div>
+          {!loading && (
+            <Link to={nextHref} className="btn btn-primary shrink-0">
+              {nextLabel}
+            </Link>
+          )}
+        </section>
       </div>
 
       <details className="dashboard-details card mb-8" onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>

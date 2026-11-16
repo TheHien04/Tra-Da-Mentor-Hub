@@ -19,7 +19,8 @@ export function AppShell() {
   const location = useLocation();
   const { state } = useAuth();
   const command = useCommandPalette();
-  const publicShell = usesPublicShell(location.pathname);
+  const homeRoute = location.pathname === '/';
+  const publicShell = usesPublicShell(location.pathname) || (homeRoute && !state.isAuthenticated);
   const role = state.user?.role || 'user';
 
   return (
@@ -27,7 +28,7 @@ export function AppShell() {
       <SkipToContent />
       <RouteProgress />
       <ScrollToTop />
-      {publicShell ? <AuthLanguageBar /> : <Navbar />}
+      {publicShell ? (homeRoute ? null : <AuthLanguageBar />) : <Navbar />}
       <main id="main-content" className="content" tabIndex={-1}>
         <ScrollMotion />
         <AppRoutes />

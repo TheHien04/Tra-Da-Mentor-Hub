@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAppTranslation } from '../hooks/useAppTranslation';
+import { useAuth } from '../hooks/useAuth';
 
 const APP_NAME = 'Trà Đá Mentor';
 
 export function PageTitleSync() {
   const { pathname } = useLocation();
-  const { t } = useAppTranslation();
+  const { t, i18n } = useAppTranslation();
+  const { state } = useAuth();
 
   useEffect(() => {
     const map: Record<string, string> = {
-      '/': t('nav.dashboard'),
       '/login': t('auth.login'),
       '/register': t('auth.register'),
       '/schedule': t('nav.schedule'),
@@ -43,9 +44,13 @@ export function PageTitleSync() {
       .filter((p) => p !== '/' && (pathname === p || pathname.startsWith(`${p}/`)))
       .sort((a, b) => b.length - a.length)[0];
 
-    const page = pathname === '/' ? map['/'] : match ? map[match] : '';
+    const page = pathname === '/'
+      ? state.isAuthenticated
+        ? t('nav.dashboard')
+        : i18n.language.startsWith('vi') ? 'Hệ sinh thái Life Mentoring' : 'Life Mentoring'
+      : match ? map[match] : '';
     document.title = page ? `${page} · ${APP_NAME}` : APP_NAME;
-  }, [pathname, t]);
+  }, [pathname, state.isAuthenticated, i18n.language, t]);
 
   return null;
 }

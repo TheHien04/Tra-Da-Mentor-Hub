@@ -14,6 +14,7 @@ import {
 } from '../services/authService';
 import type { LoginRequest, RegisterRequest } from '../services/authService';
 import { normalizeAuthUser } from '../lib/authUser';
+import { getApiErrorMessage } from '../lib/apiHelpers';
 import { PRODUCT_EVENT_NAMES, trackProductEvent } from '../lib/productEvents';
 
 // ============ TYPES ============
@@ -151,8 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       trackProductEvent(PRODUCT_EVENT_NAMES.loginSucceeded, { role: user.role });
     } catch (error: unknown) {
-      const err = error as { message?: string; response?: { data?: { message?: string } } };
-      const errorMessage = err.message || err.response?.data?.message || 'Login failed';
+      const errorMessage = getApiErrorMessage(error);
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         verificationRequired: false,
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      const errorMessage = getApiErrorMessage(error);
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw error;
     }

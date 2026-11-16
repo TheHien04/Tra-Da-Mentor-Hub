@@ -79,6 +79,7 @@
     "sceneCaption": "Một cuộc trò chuyện, một ly trà đá, một bước tiếp theo.",
     "demoCredentials": "Tài khoản demo",
     "copyCredentials": "Sao chép",
+    "useDemoCredentials": "Dùng tài khoản demo",
     "copied": "Đã sao chép!",
     "orContinueWith": "Hoặc tiếp tục với",
     "emailPlaceholder": "ban@email.com",
@@ -1308,8 +1309,8 @@
     }
   },
   "errors": {
-    "NETWORK": "Cannot reach the server. Start it with npm run dev:all.",
-    "GENERIC": "Something went wrong. Try again.",
+    "NETWORK": "Không kết nối được máy chủ. Hãy kiểm tra máy chủ demo rồi thử lại.",
+    "GENERIC": "Có lỗi xảy ra. Vui lòng thử lại.",
     "FORBIDDEN": "You do not have access to this action.",
     "NOT_FOUND": "That record was not found.",
     "VALIDATION": "Check the form and try again.",

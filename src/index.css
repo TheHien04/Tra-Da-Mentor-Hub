@@ -36,6 +36,14 @@
     --danger-hover: #963b37;
     --shadow-card: 0 1px 2px rgb(24 63 45 / 0.05), 0 8px 24px rgb(24 63 45 / 0.035);
     --ring-offset: #f5f7f1;
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --page-max: 84rem;
+    --page-gutter: clamp(1rem, 2.2vw, 2rem);
     --primary-color: #1f5a43;
     --secondary-color: #2e654a;
     --accent-color: #8daa64;
@@ -96,23 +104,27 @@
 
 @layer components {
   .page-header {
-    @apply mb-8;
+    margin: 0 0 var(--space-6);
   }
 
   .page-title {
     @apply font-display text-2xl font-semibold text-primary sm:text-3xl;
-    letter-spacing: -0.045em;
+    margin: 0;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
   }
 
   .page-subtitle {
-    @apply mt-1 text-sm text-muted;
+    @apply text-sm text-muted;
+    margin: var(--space-2) 0 0;
+    line-height: 1.55;
   }
 
   /* Surfaces — colors come from the Tailwind theme, which reads the CSS variables above */
   .card {
-    @apply rounded-xs border border-surface-border bg-surface transition-shadow duration-200;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-card);
+    @apply border border-surface-border bg-surface transition-shadow duration-200;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px rgb(16 24 16 / 0.035);
   }
 
   .card-hover:hover {
@@ -1060,20 +1072,30 @@
   .dashboard-hero {
     position: relative;
     overflow: hidden;
-    border-radius: 2px;
+    isolation: isolate;
+    min-height: 12rem;
+    border-radius: var(--radius-lg);
     margin-bottom: 1.5rem;
-    border: none;
-    background: var(--text-primary);
+    border: 1px solid color-mix(in srgb, var(--accent-secondary) 30%, transparent);
+    background:
+      linear-gradient(100deg, rgb(5 29 20 / 0.94) 0%, rgb(17 71 53 / 0.82) 50%, rgb(38 74 42 / 0.58) 100%),
+      url('/media/hero-session.jpg') center 52% / cover;
     color: var(--text-on-accent);
-    box-shadow: 0 18px 50px rgb(8 35 25 / 0.18);
+    box-shadow: 0 16px 40px rgb(8 35 25 / 0.14);
   }
 
   .dashboard-hero__mesh {
     position: absolute;
     inset: 0;
-    background:
-      linear-gradient(100deg, rgb(5 29 20 / 0.62) 0%, rgb(17 71 53 / 0.24) 48%, color-mix(in srgb, var(--accent-secondary) 36%, transparent) 100%);
+    z-index: -1;
+    background: radial-gradient(ellipse at 82% 24%, rgb(185 213 126 / 0.27), transparent 42%);
+    animation: canopyDrift 16s ease-in-out infinite alternate;
     pointer-events: none;
+  }
+
+  @keyframes canopyDrift {
+    from { opacity: 0.55; transform: translate3d(-1.5%, 0, 0) scale(1); }
+    to { opacity: 1; transform: translate3d(1.5%, 0, 0) scale(1.04); }
   }
 
   .dashboard-hero__inner {
@@ -1112,7 +1134,8 @@
   }
 
   .dashboard-hero--work .dashboard-hero__inner {
-    padding: 1.25rem 1.5rem;
+    min-height: 12rem;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
   }
 
   .dashboard-hero--work .dashboard-hero__title {
@@ -2542,12 +2565,6 @@ html.motion-on [data-reveal] {
   --text-on-accent: #0b281d;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 #root {
   width: 100%;
   min-height: 100vh;
@@ -2595,10 +2612,47 @@ html.motion-on [data-reveal] {
 }
 
 .content {
-  @apply flex min-h-screen flex-1 flex-col overflow-auto px-8 py-6;
+  @apply flex min-h-screen flex-1 flex-col overflow-auto;
+  padding: var(--space-6) var(--page-gutter);
   background:
     radial-gradient(ellipse 90% 60% at 100% -10%, color-mix(in srgb, var(--accent-secondary) 10%, transparent), transparent 55%),
     var(--bg-app);
+}
+
+.page-shell {
+  width: 100%;
+  max-width: var(--page-max);
+  margin-inline: auto;
+}
+
+.app-container .page-shell h1,
+.app-container .page-shell h2,
+.app-container .page-shell h3 {
+  letter-spacing: -0.03em;
+}
+
+.app-container .card,
+.app-container .stat-card,
+.app-container .people-card,
+.app-container .analytics-kpi {
+  border-radius: var(--radius-md);
+}
+
+.app-container .btn {
+  min-height: 2.75rem;
+  border-radius: 0.625rem;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .app-container .analytics-kpi:hover,
+  .app-container .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgb(24 63 45 / 0.09);
+  }
+
+  .app-container .nav-item:hover {
+    transform: translateX(2px);
+  }
 }
 
 /* Sidebar */

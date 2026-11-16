@@ -30,6 +30,20 @@
   min-height: calc(100% + 3rem);
 }
 
+.content:has(.auth-page--scene) {
+  min-height: 100vh;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+.auth-page--scene {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-app);
+}
+
 .auth-scene {
   display: none;
 }
@@ -77,6 +91,12 @@
     min-height: 100vh;
   }
 
+  .auth-page--login {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+  }
+
   .auth-scene {
     display: block;
     position: sticky;
@@ -105,6 +125,99 @@
     padding: 5.5rem 1.75rem 2.5rem;
     justify-content: center;
   }
+}
+
+.auth-login-form,
+.auth-register-form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.auth-login-form > *,
+.auth-register-form > * {
+  min-width: 0;
+  margin: 0 !important;
+}
+
+.auth-login-form label,
+.auth-register-form label {
+  display: block;
+  margin: 0 0 0.5rem;
+}
+
+.auth-login-form .input,
+.auth-register-form .input {
+  display: block;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.625rem;
+  background: var(--bg-surface);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.auth-login-form .relative .input,
+.auth-register-form .relative .input {
+  padding-right: 3rem;
+}
+
+.auth-login-form .btn,
+.auth-register-form .btn {
+  min-height: 3.25rem;
+  width: 100%;
+}
+
+.auth-demo-credentials {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem 0.75rem;
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--bg-surface-muted);
+}
+
+.auth-demo-credentials__header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.auth-demo-credentials__label {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-demo-credentials__value {
+  align-self: center;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+}
+
+.auth-demo-credentials__use {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.auth-demo-credentials__use:hover {
+  border-color: var(--accent);
 }
 
 @media (max-width: 1024px) {
@@ -357,10 +470,22 @@
   align-items: flex-start;
   padding-top: 4.5rem;
   padding-bottom: 4rem;
+  min-height: 100vh;
+  height: auto;
+  overflow: visible;
 }
 
 .auth-shell-pricing {
   max-width: 72rem;
+  flex: 0 0 auto;
+}
+
+/* Program information is a long-form public page; let the document scroll. */
+.content:has(.auth-page--pricing) {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+  padding: 0;
 }
 
 .pricing-header {

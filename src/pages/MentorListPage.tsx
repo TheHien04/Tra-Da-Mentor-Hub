@@ -94,7 +94,7 @@ const MentorList = () => {
     setAdvancedFilters({ track: '', mentorshipType: '', duration: '', expertise: '' });
 
   return (
-    <PageShell>
+    <PageShell className="mentor-directory-page">
       <PageHeader
         title={t('mentor.title')}
         description={t('lists.mentorsShown', {

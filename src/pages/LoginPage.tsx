@@ -91,15 +91,24 @@ export default function LoginPage() {
   };
 
   const copyCredentials = () => {
-    navigator.clipboard.writeText('admin@example.com / AdminPass123');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    void navigator.clipboard.writeText('admin@example.com / AdminPass123')
+      .then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => setCopied(false));
+  };
+
+  const useDemoCredentials = () => {
+    setFormData({ email: 'admin@example.com', password: 'AdminPass123' });
+    setErrors({});
+    clearError();
   };
 
   const googleAuthUrl = `${env.apiUrl.replace(/\/api\/?$/, '')}/api/auth/google`;
 
   return (
-    <div className="auth-page auth-page--scene">
+    <div className="auth-page auth-page--scene auth-page--login">
       <AuthScene />
       <div className="auth-form-column max-w-md w-full space-y-8">
         <div className="auth-card">
@@ -111,7 +120,7 @@ export default function LoginPage() {
             <p className="auth-subtitle">{t('auth.signInSubtitle')}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="auth-login-form">
             {state.error && (
               <div className="auth-error flex items-start gap-3 animate-scale-in" role="alert">
                 <p>{state.error}</p>
@@ -212,9 +221,9 @@ export default function LoginPage() {
           </form>
 
           {!import.meta.env.PROD && (
-            <div className="mt-6 p-4 rounded-lg border surface-muted">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-secondary uppercase tracking-wide">
+            <section className="auth-demo-credentials" aria-label={t('auth.demoCredentials')}>
+              <div className="auth-demo-credentials__header">
+                <p className="auth-demo-credentials__label">
                   {t('auth.demoCredentials')}
                 </p>
                 <button
@@ -226,10 +235,11 @@ export default function LoginPage() {
                   {copied ? <FaCheck className="h-4 w-4" /> : <FaCopy className="h-4 w-4" />}
                 </button>
               </div>
-              <code className="text-sm text-primary font-mono block">
-                admin@example.com / AdminPass123
-              </code>
-            </div>
+              <code className="auth-demo-credentials__value">admin@example.com / AdminPass123</code>
+              <button type="button" className="auth-demo-credentials__use" onClick={useDemoCredentials}>
+                {t('auth.useDemoCredentials')}
+              </button>
+            </section>
           )}
 
           <div className="mt-6 text-center space-y-3">

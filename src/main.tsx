@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import 'react-toastify/dist/ReactToastify.css'
 import './index.css' // Tailwind CSS & global styles
+import './styles/app-polish.css' // Shared compact editorial app layout
 import './i18n/config' // Initialize i18n
 import { initSentry } from './lib/sentry'
 

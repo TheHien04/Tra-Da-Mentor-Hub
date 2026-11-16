@@ -120,7 +120,18 @@ Dependency direction is kept one-way: route screens use feature components and q
 
 ## 🖼️ Product walkthrough
 
-The selected screens below were captured from the running application on 16 November 2026 with Playwright using the development demo account and synthetic data. Cookie consent and onboarding overlays are dismissed before capture. Screenshots show representative workflows; data in the demo environment is illustrative.
+The selected screens below were captured from the running application on 16 November 2026 with Playwright. Public screens are captured signed out; workspace screens use the development demo account and synthetic data. Cookie consent and onboarding overlays are dismissed before capture. Screenshots show representative workflows; data in the demo environment is illustrative.
+
+### Sign in and program catalogue
+
+The public entry point introduces the mentoring ecosystem, shows the published program options, and links applicants to the official application process. The full program page is captured to show the complete page and confirm its lower sections are reachable by scrolling.
+
+<p align="center">
+  <img src="./docs/screenshots/auth-login.png" alt="Trà Đá Mentor sign-in page with development demo credentials" width="600" />
+  <img src="./docs/screenshots/public-programs.png" alt="Complete mentoring programs page with packages, journey, application process, financial aid, and contact details" width="600" />
+</p>
+
+The login screen includes a one-click development demo account helper. The program catalogue shows four published packages, the mentoring journey, application steps, financial-aid allocations, and official contact details.
 
 ### Operational dashboard
 
