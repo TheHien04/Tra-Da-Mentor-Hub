@@ -120,81 +120,46 @@ Dependency direction is kept one-way: route screens use feature components and q
 
 ## 🖼️ Product walkthrough
 
-The gallery below was captured from the running application on 16 November 2026 with Playwright using the development demo account and synthetic data. Cookie consent and onboarding overlays are dismissed before capture, so every image shows the actual product surface clearly. The gallery is intentionally kept under version control so the README documents the product that is actually built, not a separate design mockup.
+The selected screens below were captured from the running application on 16 November 2026 with Playwright using the development demo account and synthetic data. Cookie consent and onboarding overlays are dismissed before capture. Screenshots show representative workflows; data in the demo environment is illustrative.
 
-### Public and authentication surfaces
+### Operational dashboard
 
-<p align="center">
-  <img src="./docs/screenshots/public-programs.png" alt="Program catalogue" width="920" />
-</p>
+The dashboard puts the next action and key capacity indicators first. Secondary reports and activity are available on demand.
 
-The public catalogue gives prospective mentees a clear entry point.
+<p align="center"><img src="./docs/screenshots/product/dashboard.png" alt="Dashboard with next action, capacity KPIs, and expandable operational insights" width="920" /></p>
 
-<p align="center">
-  <img src="./docs/screenshots/auth-login.png" alt="Login screen" width="920" />
-</p>
+### Mentor directory
 
-The authentication surface supports localized email/password login, theme switching, password visibility, and development-only demo access.
+Search and filter mentor profiles, compare expertise and capacity, and open a profile for relationship details.
 
-### Operational workspace
+<p align="center"><img src="./docs/screenshots/product/mentors.png" alt="Mentor directory with search, filters, and profile cards" width="920" /></p>
 
-<p align="center">
-  <img src="./docs/screenshots/product/dashboard.png" alt="Dashboard" width="920" />
-</p>
+### Application workflow
 
-The dashboard is the operational command centre: capacity KPIs, next actions, Smart Match signals, quick navigation, and role-aware administration links are visible without hiding the primary workflow.
+Review applicants and progress each application through the interview decision steps.
 
-<p align="center">
-  <img src="./docs/screenshots/product/mentors.png" alt="Mentor directory" width="920" />
-</p>
+<p align="center"><img src="./docs/screenshots/product/applications.png" alt="Mentee application review and lifecycle actions" width="920" /></p>
 
-<p align="center">
-  <img src="./docs/screenshots/product/mentees.png" alt="Mentee directory" width="920" />
-</p>
+### Scheduling
 
-### Lifecycle and scheduling
+Review availability and upcoming sessions from a single calendar-oriented workspace.
+
+<p align="center"><img src="./docs/screenshots/product/schedule.png" alt="Mentoring schedule and availability" width="920" /></p>
+
+### Analytics and matching
+
+Track program outcomes and inspect explainable mentor–mentee match suggestions.
 
 <p align="center">
-  <img src="./docs/screenshots/product/applications.png" alt="Applications workflow" width="920" />
+  <img src="./docs/screenshots/product/analytics.png" alt="Program analytics and governed KPIs" width="450" />
+  <img src="./docs/screenshots/product/matching-insights.png" alt="Explainable mentor–mentee match suggestions" width="450" />
 </p>
 
-<p align="center">
-  <img src="./docs/screenshots/product/availability-slots.png" alt="Availability slots" width="920" />
-</p>
+### Mobile dashboard
 
-<p align="center">
-  <img src="./docs/screenshots/product/schedule.png" alt="Schedule" width="920" />
-</p>
+The mobile layout keeps the next step visible and moves navigation into a compact, task-grouped menu.
 
-<p align="center">
-  <img src="./docs/screenshots/product/session-logs.png" alt="Session logs" width="920" />
-</p>
-
-### Intelligence and administration
-
-<p align="center">
-  <img src="./docs/screenshots/product/analytics.png" alt="Analytics" width="920" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/product/matching-insights.png" alt="Explainable matching insights" width="920" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/product/admin-audit.png" alt="Audit history" width="920" />
-</p>
-
-<p align="center">
-  <img src="./docs/screenshots/product/admin-export.png" alt="Data export" width="920" />
-</p>
-
-### Responsive experience
-
-<p align="center">
-  <img src="./docs/screenshots/mobile/login.png" alt="Mobile login" width="280" />
-  <img src="./docs/screenshots/mobile/dashboard.png" alt="Mobile dashboard" width="280" />
-  <img src="./docs/screenshots/mobile/schedule.png" alt="Mobile schedule" width="280" />
-</p>
+<p align="center"><img src="./docs/screenshots/mobile/dashboard.png" alt="Responsive dashboard on a mobile viewport" width="360" /></p>
 
 ### Product surface map
 

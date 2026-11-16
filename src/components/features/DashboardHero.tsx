@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-import { HiOutlineSparkles, HiOutlineArrowRight } from 'react-icons/hi2';
 import { useAuth } from '../../context/AuthContext';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useGreeting } from '../../hooks/useGreeting';
@@ -28,7 +26,6 @@ export function DashboardHero() {
         : role === 'admin'
           ? t('dashboard.adminSubtitle')
           : t('dashboard.defaultSubtitle');
-  const canReviewMatches = role === 'admin' || role === 'mentor';
 
   return (
     <section className="dashboard-hero dashboard-hero--work" aria-labelledby="dashboard-hero-title">
@@ -43,20 +40,6 @@ export function DashboardHero() {
           <div className="dashboard-hero__badges">
             <span className="badge-pill badge-accent">{roleLabel}</span>
           </div>
-        </div>
-        <div className="dashboard-hero__actions">
-          {canReviewMatches ? (
-            <Link to="/insights" className="btn btn-primary dashboard-hero__cta">
-              <HiOutlineSparkles className="h-4 w-4" />
-              {t('nav.insights')}
-              <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
-            </Link>
-          ) : (
-            <Link to="/slots" className="btn btn-primary dashboard-hero__cta">
-              {t('dashboard.bookSession')}
-              <HiOutlineArrowRight className="h-3.5 w-3.5 opacity-70" />
-            </Link>
-          )}
         </div>
       </div>
     </section>

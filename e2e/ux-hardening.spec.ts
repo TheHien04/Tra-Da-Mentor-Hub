@@ -15,6 +15,30 @@ test.describe('Post-login UX hardening', () => {
     await expect(page.getByRole('link', { name: /audit|nhật ký kiểm tra/i })).toBeVisible();
   });
 
+  test('dashboard shows one primary task and keeps deeper information optional', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.next-up .btn')).toBeVisible();
+    await expect(page.locator('.dashboard-hero .btn')).toHaveCount(0);
+
+    const details = page.locator('.dashboard-details');
+    await expect(details).not.toHaveAttribute('open', '');
+    await expect(details.locator('.action-center')).not.toBeVisible();
+    await details.locator('summary').click();
+    await expect(details.locator('.action-center')).toBeVisible();
+    await expect(details.getByRole('heading', { name: /quick actions|thao tác nhanh/i })).toBeVisible();
+  });
+
+  test('mobile menu groups destinations by task', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await page.locator('.mobile-nav-item').last().click();
+    const menu = page.getByRole('dialog', { name: /more|thêm/i });
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('region', { name: /people|con người/i })).toBeVisible();
+    await expect(menu.getByRole('region', { name: /sessions|buổi học/i })).toBeVisible();
+    await expect(menu.getByRole('region', { name: /insights|phân tích/i })).toBeVisible();
+  });
+
   test('labels simulated integrations without claiming a live connection', async ({ page }) => {
     await page.goto('/admin/notifications');
     await expect(page.getByText(/demo simulation|mô phỏng demo/i).first()).toBeVisible();

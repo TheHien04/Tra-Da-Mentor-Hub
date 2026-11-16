@@ -118,11 +118,15 @@ const Navbar = () => {
         {navSection(t('nav.workspace', 'Workspace'), [
           navLink('/', t('nav.dashboard'), <HiOutlineHome className={iconClass} />),
           navLink('/programs', t('nav.pricing'), <HiOutlineDocumentText className={iconClass} />, true),
+        ])}
+        {navSection(t('nav.peopleGroup'), [
           navLink('/mentors', t('nav.mentors'), <HiOutlineAcademicCap className={iconClass} />, true),
           navLink('/mentees', t('nav.mentees'), <HiOutlineUserGroup className={iconClass} />, true),
           navLink('/groups', t('nav.groups'), <HiOutlineUsers className={iconClass} />, true),
+        ])}
+        {navSection(t('nav.sessionsGroup'), [
           navLink('/schedule', t('nav.schedule'), <HiOutlineCalendar className={iconClass} />, true),
-          navLink('/slots', t('nav.slots'), <HiOutlineClock className={iconClass} />, true),
+          navLink('/slots', t(role === 'mentee' ? 'nav.availableSlots' : 'nav.slots'), <HiOutlineClock className={iconClass} />, true),
           navLink('/session-logs', t('nav.sessions'), <HiOutlineClipboardDocumentList className={iconClass} />, true),
           isMentorOrAdmin &&
             navLink('/applications', t('nav.applications'), <HiOutlineDocumentText className={iconClass} />, true),

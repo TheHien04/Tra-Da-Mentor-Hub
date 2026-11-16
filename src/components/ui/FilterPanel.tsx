@@ -34,10 +34,10 @@ export function FilterField({
   children: ReactNode;
 }) {
   return (
-    <div>
-      <label className="block text-xs font-medium text-muted mb-1.5">{label}</label>
+    <label className="block">
+      <span className="block text-xs font-medium text-muted mb-1.5">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 

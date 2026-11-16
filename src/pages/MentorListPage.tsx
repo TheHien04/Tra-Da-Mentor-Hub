@@ -53,7 +53,6 @@ const MentorList = () => {
   const mentors = data?.data ?? [];
   const total = data?.total ?? 0;
   const error = isError ? getApiErrorMessage(queryError) : null;
-  const filteredMentors = mentors;
 
   const getStatusBadge = (mentor: { mentees?: string[]; maxMentees?: number }) => {
     const menteeCount = mentor.mentees?.length || 0;
@@ -99,7 +98,7 @@ const MentorList = () => {
       <PageHeader
         title={t('mentor.title')}
         description={t('lists.mentorsShown', {
-          shown: filteredMentors.length,
+          shown: mentors.length,
           total,
         })}
         icon={<HiOutlineAcademicCap className="h-7 w-7" />}
@@ -194,7 +193,7 @@ const MentorList = () => {
             </div>
           ))}
         </div>
-      ) : filteredMentors.length === 0 ? (
+      ) : mentors.length === 0 ? (
         <EmptyState
           title={t('lists.emptyMentorsTitle')}
           description={
@@ -209,9 +208,9 @@ const MentorList = () => {
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {filteredMentors.map((mentor) => (
-            <article key={mentor._id} className="card card-hover people-card p-5 flex flex-col">
-              <div className="people-card__header mb-4">
+          {mentors.map((mentor) => (
+            <article key={mentor._id} className="card card-hover people-card p-5 flex flex-col gap-4">
+              <div className="people-card__header">
                 <Avatar
                   name={mentor.name}
                   size="lg"
@@ -235,7 +234,7 @@ const MentorList = () => {
                 </div>
               </div>
 
-              <div className="people-metrics">
+              <div className="people-metrics !mb-0">
                 <div className="people-metrics__item">
                   <span className="people-metrics__value">{mentor.mentees?.length || 0}</span>
                   <span className="people-metrics__label">{t('nav.mentees')}</span>
@@ -248,12 +247,12 @@ const MentorList = () => {
               </div>
 
               {mentor.bio && (
-                <p className="text-sm text-secondary line-clamp-2 mb-4 mt-4">{mentor.bio}</p>
+                <p className="text-sm leading-relaxed text-secondary line-clamp-2">{mentor.bio}</p>
               )}
 
               {mentor.expertise && mentor.expertise.length > 0 && (
-                <div className="mb-4">
-                  <SkillTags skills={mentor.expertise} />
+                <div>
+                  <SkillTags skills={mentor.expertise} max={4} />
                 </div>
               )}
 

@@ -2,24 +2,24 @@
 
 This document tracks how close the repository is to a **full software engineering** bar (not only “demo complete”).
 
-## Scorecard (target ~95–100%)
+## Evidence-based scorecard
 
 | Area | Status | Evidence |
 | ---- | ------ | -------- |
-| Requirements & scope | Done | README, OpenAPI, ADRs |
-| Design | Done | `docs/ARCHITECTURE.md`, ADRs |
-| Implementation | Done | TypeScript frontend, Express API |
+| Requirements & scope | Documented | README, OpenAPI, ADRs; validate against pilot users |
+| Design | Documented | `docs/ARCHITECTURE.md`, ADRs; accessibility review pending |
+| Implementation | Built | TypeScript frontend, Express API |
 | Testing | Strong | Backend core ≥80% lines/functions, Vitest, Chromium critical E2E, Firefox/WebKit contract tests and p95 smoke budget in CI |
-| CI/CD | Strong | `.github/workflows/ci.yml`, `staging.yml`, `release.yml` |
-| Documentation | Done | README, RUNBOOK, STAGING, TESTING, CONTRIBUTING |
+| CI/CD | Conditional | CI gate exists; staging requires a configured deploy command and live readiness verification |
+| Documentation | Maintained | README, RUNBOOK, STAGING, TESTING, CONTRIBUTING, production gate checklist |
 | Security | Strong | SECURITY.md, production dependency audit, CodeQL SAST, Helmet, rate limits, direct SendGrid HTTPS integration |
-| Release mgmt | Done | CHANGELOG, semver `1.1.0`, manual release workflow |
-| Operations | Strong | RUNBOOK, liveness/readiness, admin runtime metrics, SLOs, checksum backup/guarded restore, Docker Compose |
-| Governance | Done | LICENSE, PR template, issue templates, Dependabot |
+| Release mgmt | Built | CHANGELOG, semver `1.1.0`, manual release workflow; promotion evidence pending |
+| Operations | Conditional | RUNBOOK, liveness/readiness, admin runtime metrics, SLO targets, HMAC-protected backup/guarded restore; live alerts and restore drill remain unverified |
+| Governance | Built | LICENSE, PR template, issue templates, Dependabot |
 
 ## What is intentionally out of scope
 
-- Managed staging host (wire `STAGING_DEPLOY_COMMAND` when you have a server).
+- Managed staging host (configure `STAGING_DEPLOY_COMMAND` and `STAGING_URL`; the workflow fails if either is missing).
 - SOC2 / formal pen-test (use your org’s security process).
 - Production UAT and third-party sandbox certification require real users and credentials.
 

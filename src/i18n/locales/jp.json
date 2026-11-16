@@ -6,6 +6,8 @@
   },
   "nav": {
     "workspace": "Workspace",
+    "peopleGroup": "メンバーとグループ",
+    "sessionsGroup": "セッションと予定",
     "insightsGroup": "Insights",
     "administration": "Administration",
     "dashboard": "ダッシュボード",
@@ -18,6 +20,7 @@
     "applications": "応募",
     "sessions": "セッションログ",
     "slots": "スロット管理",
+    "availableSlots": "予約可能な時間",
     "notifications": "通知",
     "invites": "ユーザー招待",
     "export": "データエクスポート",
@@ -73,6 +76,9 @@
   "dashboard": {
     "welcome": "おかえりなさい",
     "overview": "概要",
+    "moreDetails": "活動と分析をもっと見る",
+    "capacityAlert": "{{count}}人のメンターが定員に達しています",
+    "capacityAlertHint": "メンター一覧で担当人数を確認してください。",
     "recentActivity": "最近のアクティビティ",
     "upcomingEvents": "今後のイベント",
     "statistics": "統計",

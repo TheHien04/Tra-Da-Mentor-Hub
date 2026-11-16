@@ -22,7 +22,7 @@ interface SearchFilterProps {
 }
 
 const SearchFilter = ({
-  searchQuery: externalSearchQuery = '',
+  searchQuery: externalSearchQuery,
   setSearchQuery: externalSetSearchQuery,
   filters: externalFilters,
   setFilters: externalSetFilters,
@@ -88,6 +88,7 @@ const SearchFilter = ({
             type="button"
             onClick={() => setShowFilter(!showFilter)}
             className={`btn ${showFilter ? 'btn-primary' : 'btn-secondary'} gap-2`}
+          aria-expanded={showFilter}
           >
             <HiOutlineFunnel className="h-4 w-4" />
             {t('common.filter')}

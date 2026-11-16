@@ -55,7 +55,7 @@ Use **different** JWT secrets than production. Live checkout also requires both 
 
 GitHub Actions E2E job uses `NODE_ENV=test` with MongoDB — not identical to staging but catches regressions.
 
-Optional: add a `staging` deployment workflow on push to `develop` (Railway/Render preview).
+The staging workflow runs on `develop` and manual dispatch. Set the `STAGING_DEPLOY_COMMAND` environment secret and `STAGING_URL` environment variable before running it. The job fails when either is missing or when `/api/ready` does not report a healthy MongoDB-backed deployment.
 
 ## Promotion to production
 

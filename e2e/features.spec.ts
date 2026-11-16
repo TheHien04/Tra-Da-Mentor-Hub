@@ -24,5 +24,8 @@ test.describe('Features', () => {
   test('mentors list uses card layout', async ({ page }) => {
     await page.goto('/mentors');
     await expect(page.locator('.people-card').first()).toBeVisible({ timeout: 10_000 });
+    const search = page.locator('input[type="search"]').first();
+    await search.fill('Nguyễn');
+    await expect(search).toHaveValue('Nguyễn');
   });
 });
