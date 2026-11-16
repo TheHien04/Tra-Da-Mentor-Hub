@@ -70,4 +70,4 @@ console.log("2) Railway: https://railway.app → New Project → Deploy from Git
 console.log("3) Railway → Variables → Raw Editor → dán nội dung file trên (+ DATABASE_URL từ Atlas)\n");
 console.log("Sau deploy mở: https://<tên-app>.up.railway.app/api/health");
 console.log("Mong đợi: storage=mongodb, status=ok\n");
-console.log("Chi tiết: DEPLOY.md\n");
+console.log("Chi tiết: docs/operations/DEPLOYMENT.md\n");
