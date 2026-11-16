@@ -120,7 +120,7 @@ Dependency direction is kept one-way: route screens use feature components and q
 
 ## 🖼️ Product walkthrough
 
-The gallery below was captured from the running application with Playwright using the development demo account and synthetic data. It is intentionally kept under version control so the README documents the product that is actually built, not a separate design mockup.
+The gallery below was captured from the running application on 16 November 2026 with Playwright using the development demo account and synthetic data. Cookie consent and onboarding overlays are dismissed before capture, so every image shows the actual product surface clearly. The gallery is intentionally kept under version control so the README documents the product that is actually built, not a separate design mockup.
 
 ### Public and authentication surfaces
 
